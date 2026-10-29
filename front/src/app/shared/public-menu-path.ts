@@ -13,3 +13,13 @@ export function publicMenuPath(tenant: {
 }): string {
   return `/public-menu/${publicMenuTenantRef(tenant)}`;
 }
+
+export function publicMenuCategorySlug(categoryId: string): string {
+  return categoryId
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ı/g, 'i')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}

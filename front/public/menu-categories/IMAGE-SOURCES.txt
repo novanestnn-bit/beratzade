@@ -1,0 +1,4 @@
+These optimized WebP category images are derived from image attachments supplied by the user.
+The original attachments are not included in the repository.
+
+The images are served locally. No external image host is needed at runtime.

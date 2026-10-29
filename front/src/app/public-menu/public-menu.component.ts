@@ -9,7 +9,7 @@ import {
   afterNextRender,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DomSanitizer, SafeResourceUrl, SafeStyle, Title } from '@angular/platform-browser';
+import { DomSanitizer, Meta, SafeResourceUrl, SafeStyle, Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { merge } from 'rxjs';
@@ -17,12 +17,24 @@ import { environment } from '../../environments/environment';
 import {
   ApiService,
   PublicTenantMenuCategory,
+  PublicTenantMenuProduct,
   PublicTenantMenuResponse,
   TenantSummary,
 } from '../services/api.service';
 import { PublicGuestHeaderComponent } from '../shared/public-guest-header.component';
+import { LanguagePickerComponent } from '../shared/language-picker.component';
 import { resolvePublicPrimaryColor } from '../shared/public-brand-colors';
-import { publicMenuTenantRef } from '../shared/public-menu-path';
+import {
+  beratzadeCategoryVisual,
+  BeratzadeCategoryVisual,
+} from '../shared/beratzade-category-visuals';
+import {
+  beratzadeMenuCategoryLabel,
+  beratzadeMenuCategorySlug,
+  orderBeratzadeMenuCategories,
+  orderBeratzadeSubcategories,
+} from '../shared/public-menu-categories';
+import { publicMenuCategorySlug, publicMenuTenantRef } from '../shared/public-menu-path';
 import { publicBookRouterLink } from '../shared/public-book-path';
 import { LanguageService } from '../services/language.service';
 import { LegalLinksComponent } from '../shared/legal-links.component';
@@ -31,7 +43,7 @@ import { formatMoneyCents } from '../shared/currency-symbol';
 @Component({
   selector: 'app-public-menu',
   standalone: true,
-  imports: [RouterLink, TranslateModule, PublicGuestHeaderComponent, LegalLinksComponent],
+  imports: [RouterLink, TranslateModule, PublicGuestHeaderComponent, LanguagePickerComponent, LegalLinksComponent],
   templateUrl: './public-menu.component.html',
   styleUrls: ['../book/book.component.scss', './public-menu.component.scss'],
 })
@@ -44,6 +56,7 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
   private language = inject(LanguageService);
   private sanitizer = inject(DomSanitizer);
   private title = inject(Title);
+  private meta = inject(Meta);
   private destroyRef = inject(DestroyRef);
 
   tenantId = signal(0);
@@ -52,12 +65,42 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
   logoUrl = signal<string | null>(null);
   loading = signal(true);
   menuLoading = signal(false);
+  searchTerm = signal('');
+  categorySlug = signal('');
+  subcategorySlug = signal('');
+  activeCategoryId = signal('');
+  selectedProduct = signal<PublicTenantMenuProduct | null>(null);
+  failedImageIds = signal<Set<number>>(new Set());
+  failedCategoryImageIds = signal<Set<string>>(new Set());
   errorKind = signal<'invalid_tenant' | 'tenant_not_found' | 'menu_load_failed' | null>(null);
   /** Category ids collapsed by user toggle (default: all expanded). */
   private collapsedCategoryIds = signal<Set<string>>(new Set());
 
   googleMapsUrl = computed(() => this.tenant()?.public_google_maps_url?.trim() || null);
   openstreetmapUrl = computed(() => this.tenant()?.public_openstreetmap_url?.trim() || null);
+  hasAnyProducts = computed(() => this.categories().some((category) => category.products.length > 0));
+  hasSearchResults = computed(() => this.visibleCategories().length > 0);
+  activeCategory = computed(() => {
+    const slug = this.categorySlug();
+    const categories = this.isBeratzadeMenuOnly() ? this.orderedCategories() : this.categories();
+    return slug
+      ? categories.find((category) => this.categoryRouteSlug(category.id) === slug) ?? null
+      : null;
+  });
+  activeSubcategory = computed(() => {
+    const slug = this.subcategorySlug();
+    return slug
+      ? this.activeCategory()?.subcategories?.find((subcategory) => this.categoryRouteSlug(subcategory.id) === slug) ?? null
+      : null;
+  });
+  isCategoryRoute = computed(() => Boolean(this.categorySlug()));
+  isBeratzadeMenuOnly = computed(() => {
+    const tenant = this.tenant();
+    if (!tenant) return false;
+    const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('tr-TR');
+    const name = normalize(tenant.name.replace(/&/g, ' ve ').replace(/\s+/g, ' ').trim());
+    return name === 'beratzade kebap ve kahvalti salonu' || name === 'beratzade kebap kahvalti salonu' || normalize(tenant.public_slug ?? '').startsWith('beratzade-');
+  });
 
   constructor() {
     afterNextRender(() => this.updateDocumentTitle());
@@ -82,6 +125,23 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
         }
       });
 
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const nextCategorySlug = params.get('categorySlug') ?? '';
+      const nextSubcategorySlug = params.get('subcategorySlug') ?? '';
+      if (nextCategorySlug !== this.categorySlug()) {
+        this.categorySlug.set(nextCategorySlug);
+        this.searchTerm.set('');
+        this.selectedProduct.set(null);
+        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+      if (nextSubcategorySlug !== this.subcategorySlug()) {
+        this.subcategorySlug.set(nextSubcategorySlug);
+        this.searchTerm.set('');
+        this.selectedProduct.set(null);
+        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+    });
+
     const refParam = (this.route.snapshot.paramMap.get('tenantId') || '').trim();
     if (!refParam) {
       this.errorKind.set('invalid_tenant');
@@ -102,7 +162,18 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
         this.logoUrl.set(this.api.getTenantLogoUrl(t.logo_filename ?? undefined, t.id));
         const canonical = String(publicMenuTenantRef(t));
         if (canonical && canonical !== refParam) {
-          void this.router.navigate(['/public-menu', canonical], {
+          const categorySlug = this.categorySlug();
+          const subcategorySlug = this.subcategorySlug();
+          const canonicalRoute = categorySlug
+            ? [
+                '/public-menu',
+                canonical,
+                'kategori',
+                categorySlug,
+                ...(subcategorySlug ? [subcategorySlug] : []),
+              ]
+            : ['/public-menu', canonical];
+          void this.router.navigate(canonicalRoute, {
             replaceUrl: true,
             queryParamsHandling: 'preserve',
           });
@@ -158,6 +229,141 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
     return this.menu()?.categories ?? [];
   }
 
+  menuCategories(): PublicTenantMenuCategory[] {
+    return this.isBeratzadeMenuOnly()
+      ? this.menu()?.category_tree ?? this.categories()
+      : this.categories();
+  }
+
+  orderedCategories(): PublicTenantMenuCategory[] {
+    return orderBeratzadeMenuCategories(this.menuCategories());
+  }
+
+  orderedSubcategories(category: PublicTenantMenuCategory): PublicTenantMenuCategory[] {
+    return orderBeratzadeSubcategories(category.name, category.subcategories ?? []);
+  }
+
+  categoryVisual(categoryId: string): BeratzadeCategoryVisual | null {
+    return beratzadeCategoryVisual(categoryId);
+  }
+
+  categoryImageFailed(categoryId: string): void {
+    this.failedCategoryImageIds.update((ids) => new Set(ids).add(categoryId));
+  }
+
+  hasCategoryImageFailed(categoryId: string): boolean {
+    return this.failedCategoryImageIds().has(categoryId);
+  }
+
+  visibleCategories(): PublicTenantMenuCategory[] {
+    const query = this.normalizeSearchText(this.searchTerm());
+    const selected = this.activeCategory();
+    if (this.isCategoryRoute() && !selected) return [];
+    if (this.isBeratzadeMenuOnly() && selected) {
+      const source = this.activeSubcategory()
+        ? [this.activeSubcategory()!]
+        : selected.subcategories?.length
+          ? query
+            ? [selected, ...selected.subcategories]
+            : []
+          : [selected];
+      if (!query) {
+        return source.filter((category) => category.products.length > 0);
+      }
+      return source
+        .map((category) => ({
+          ...category,
+          products: category.products.filter((product) =>
+            this.normalizeSearchText(`${product.name} ${product.description ?? ''}`).includes(query),
+          ),
+        }))
+        .filter((category) => category.products.length > 0);
+    }
+    const source = this.isBeratzadeMenuOnly()
+      ? this.orderedCategories()
+      : selected
+        ? [selected]
+        : this.categories();
+    if (!query) {
+      return source.filter(
+        (category) =>
+          category.products.length > 0 ||
+          (this.isBeratzadeMenuOnly() && Boolean(category.subcategories?.length)),
+      );
+    }
+    return source
+      .map((category) => ({
+        ...category,
+        products: category.products.filter((product) =>
+          this.normalizeSearchText(`${product.name} ${product.description ?? ''}`).includes(query),
+        ),
+      }))
+      .filter((category) => category.products.length > 0);
+  }
+
+  private normalizeSearchText(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase(this.translate.currentLang || 'tr-TR')
+      .replace(/ı/g, 'i');
+  }
+
+  setSearchTerm(value: string): void {
+    this.searchTerm.set(value);
+  }
+
+  clearSearch(input?: HTMLInputElement): void {
+    this.searchTerm.set('');
+    input?.focus();
+  }
+
+  scrollToCategory(categoryId: string): void {
+    this.activeCategoryId.set(categoryId);
+    document.getElementById(`cat-${categoryId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  categoryRouteSlug(categoryId: string): string {
+    return this.isBeratzadeMenuOnly()
+      ? beratzadeMenuCategorySlug(categoryId)
+      : publicMenuCategorySlug(categoryId);
+  }
+
+  menuRouterLink(): (string | number)[] {
+    return ['/public-menu', this.tenant()?.public_slug?.trim() || this.tenantId()];
+  }
+
+  categoryRouterLink(category: PublicTenantMenuCategory): (string | number)[] {
+    return [...this.menuRouterLink(), 'kategori', this.categoryRouteSlug(category.id)];
+  }
+
+  subcategoryRouterLink(
+    category: PublicTenantMenuCategory,
+    subcategoryId: string,
+  ): (string | number)[] {
+    return [...this.categoryRouterLink(category), this.categoryRouteSlug(subcategoryId)];
+  }
+
+  languageQueryParams(): Record<string, string> {
+    return { lang: this.translate.currentLang || this.language.getLanguage() || 'tr' };
+  }
+
+  openProductDetails(product: PublicTenantMenuProduct): void {
+    this.selectedProduct.set(product);
+  }
+
+  closeProductDetails(): void {
+    this.selectedProduct.set(null);
+  }
+
+  productImageFailed(productId: number): void {
+    this.failedImageIds.update((ids) => new Set(ids).add(productId));
+  }
+
+  hasProductImage(product: PublicTenantMenuProduct): boolean {
+    return Boolean(product.image_url && !this.failedImageIds().has(product.id));
+  }
+
   isCategoryExpanded(categoryId: string): boolean {
     return !this.collapsedCategoryIds().has(categoryId);
   }
@@ -176,6 +382,9 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
 
   /** Translation key for known API category names; falls back to raw value. */
   getCategoryLabel(category: string): string {
+    if (this.isBeratzadeMenuOnly()) {
+      return beratzadeMenuCategoryLabel(category);
+    }
     const keyMap: Record<string, string> = {
       Starters: 'PRODUCTS.CATEGORY_STARTERS',
       'Main Course': 'PRODUCTS.CATEGORY_MAIN_COURSE',
@@ -255,11 +464,21 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
     } else if (err === 'menu_load_failed') {
       key = 'PUBLIC_MENU.LOAD_FAILED';
     } else if (name) {
-      this.title.setTitle(`${name} — ${this.translate.instant('PUBLIC_MENU.PAGE_TITLE')}`);
-      return;
+      key = 'PUBLIC_MENU.PAGE_TITLE';
     } else {
       key = 'PUBLIC_MENU.PAGE_TITLE';
     }
-    this.title.setTitle(this.translate.instant(key));
+    const pageTitle = this.translate.instant(key);
+    const title = name ? `${name} — ${pageTitle}` : pageTitle;
+    const description = name ? `${name} — ${pageTitle}` : pageTitle;
+    this.title.setTitle(title);
+    this.meta.updateTag({ property: 'og:title', content: title });
+    this.meta.updateTag({ property: 'og:description', content: description });
+    this.meta.updateTag({ name: 'description', content: description });
+    if (name) {
+      this.meta.updateTag({ property: 'og:site_name', content: name });
+    } else {
+      this.meta.removeTag('property="og:site_name"');
+    }
   }
 }

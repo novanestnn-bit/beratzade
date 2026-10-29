@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON as SA_JSON, Column, Date, DateTime, Enum as SAEnum, Text, Time, UniqueConstraint
+from sqlalchemy import JSON as SA_JSON, Column, Date, DateTime, Enum as SAEnum, Index, Text, Time, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -60,6 +60,8 @@ class OrderChannel(str, Enum):
     """How the order was placed / fulfilled (kitchen + courier distinguish channels)."""
 
     table = "table"  # dine-in (default)
+    quick_sale = "quick_sale"  # staff counter sale without a table
+    takeaway = "takeaway"  # staff pickup / take-away order
     satisfecho_delivery = "satisfecho_delivery"  # first-party Satisfecho Delivery
     marketplace = "marketplace"  # third-party (Glovo/Uber); usually paired with delivery_integration_id
 
@@ -521,6 +523,7 @@ class KitchenStationDefaultsUpdate(SQLModel):
 
 class Product(TenantMixin, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    is_active: bool = Field(default=True)
     name: str
     price_cents: int
     cost_cents: int | None = None  # Cost price for profit calculation
@@ -614,7 +617,7 @@ class Provider(SQLModel, table=True):
     )  # Unique hash for secure URL access
     url: str | None = None
     api_endpoint: str | None = None
-    is_active: bool = Field(default=True, index=True)
+    is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Company / contact details (from registration or profile update)
@@ -711,7 +714,7 @@ class TenantProduct(SQLModel, table=True):
     cost_cents: int | None = None  # Cost price for profit calculation
     image_filename: str | None = None  # Restaurant's own image
     ingredients: str | None = None
-    is_active: bool = Field(default=True, index=True)
+    is_active: bool = Field(default=True)
     tax_id: int | None = Field(default=None, foreign_key="tax.id", index=True)  # Override default tax
     # Availability window: customer-facing menu shows product only when today is in [available_from, available_until]
     available_from: date | None = Field(default=None, sa_column=Column(Date, nullable=True))
@@ -726,7 +729,7 @@ class Floor(TenantMixin, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str  # e.g., "Main Floor", "Terrace"
     sort_order: int = Field(default=0)
-    is_active: bool = Field(default=True, index=True)  # False = hidden from public booking zones
+    is_active: bool = Field(default=True)  # False = hidden from public booking zones
     # indoor | outdoor | any — used with reservation seating_preference (terrace ↔ outdoor)
     seating_zone: str = Field(default="any", max_length=16)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -840,6 +843,7 @@ class Reservation(TenantMixin, table=True):
     party_size: int
     status: ReservationStatus = Field(default=ReservationStatus.booked, index=True)
     table_id: int | None = Field(default=None, foreign_key="table.id")
+    created_by_user_id: int | None = Field(default=None, foreign_key="user.id", index=True)
     seated_at: datetime | None = Field(default=None)  # UTC when staff seated party (turn-time capacity)
     token: str | None = Field(default=None, unique=True, index=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -1189,9 +1193,11 @@ class TseTransaction(SQLModel, table=True):
 
 
 class Order(TenantMixin, table=True):
+    __table_args__ = (UniqueConstraint("tenant_id", "staff_sale_idempotency_key", name="uq_order_tenant_staff_sale_key"),)
     id: int | None = Field(default=None, primary_key=True)
     # Null when soft-deleted and unlinked, or legacy cleanup; active orders always have a table.
     table_id: int | None = Field(default=None, foreign_key="table.id")
+    created_by_user_id: int | None = Field(default=None, foreign_key="user.id", index=True)
     status: OrderStatus = Field(default=OrderStatus.pending)
     notes: str | None = None  # General order notes
     session_id: str | None = Field(default=None, index=True)  # Unique session identifier per browser
@@ -1239,6 +1245,8 @@ class Order(TenantMixin, table=True):
 
     # First-party Satisfecho Delivery (no delivery_integration_id); table_id stays null
     order_channel: OrderChannel = Field(default=OrderChannel.table, max_length=32, index=True)
+    staff_sale_idempotency_key: str | None = Field(default=None, max_length=64)
+    staff_sale_payload_hash: str | None = Field(default=None, max_length=64)
     delivery_address: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     customer_phone: str | None = Field(default=None, max_length=40)
     courier_user_id: int | None = Field(default=None, foreign_key="user.id", index=True)
@@ -1260,11 +1268,14 @@ class OrderPayment(TenantMixin, table=True):
     """One payment leg against an order (split bill / partial pay). See docs/0071-split-bill.md."""
 
     __tablename__ = "order_payment"
+    __table_args__ = (UniqueConstraint("tenant_id", "idempotency_key", name="uq_order_payment_tenant_idempotency_key"),)
 
     id: int | None = Field(default=None, primary_key=True)
     order_id: int = Field(foreign_key="order.id", index=True)
     amount_cents: int = Field(ge=1)
-    payment_method: str = Field(max_length=32)  # cash, terminal, stripe, other, …
+    payment_method: str = Field(max_length=32)
+    idempotency_key: str | None = Field(default=None, max_length=64)
+    cash_register_session_id: int | None = Field(default=None, foreign_key="cash_register_session.id", index=True)  # cash, terminal, stripe, other, …
     payer_label: str | None = Field(default=None, max_length=120)
     tip_amount_cents: int | None = Field(default=None, ge=0)
     stripe_payment_intent_id: str | None = Field(default=None, max_length=128)
@@ -1272,6 +1283,34 @@ class OrderPayment(TenantMixin, table=True):
     paid_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     voided_at: datetime | None = None
     note: str | None = Field(default=None, max_length=500)
+
+
+class CashRegisterSession(TenantMixin, table=True):
+    __tablename__ = "cash_register_session"
+    __table_args__ = (Index("ix_cash_register_session_tenant_status", "tenant_id", "status"),)
+
+    id: int | None = Field(default=None, primary_key=True)
+    opened_by_user_id: int = Field(foreign_key="user.id", index=True)
+    opened_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    opening_cash_cents: int = Field(ge=0)
+    status: str = Field(default="open", max_length=16, index=True)
+    closed_by_user_id: int | None = Field(default=None, foreign_key="user.id")
+    closed_at: datetime | None = None
+    counted_cash_cents: int | None = Field(default=None, ge=0)
+    expected_cash_cents: int | None = Field(default=None, ge=0)
+    variance_cents: int | None = None
+    note: str | None = Field(default=None, max_length=500)
+
+
+class CashRegisterMovement(TenantMixin, table=True):
+    __tablename__ = "cash_register_movement"
+    id: int | None = Field(default=None, primary_key=True)
+    session_id: int = Field(foreign_key="cash_register_session.id", index=True)
+    movement_type: str = Field(max_length=16)
+    amount_cents: int = Field(ge=1)
+    note: str = Field(max_length=500)
+    created_by_user_id: int = Field(foreign_key="user.id", index=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
 
 
 class OrderPaymentItem(TenantMixin, table=True):
@@ -1704,6 +1743,31 @@ class OrderCreate(SQLModel):
     longitude: float | None = None  # Optional GPS longitude for location verification
 
 
+class StaffSaleType(str, Enum):
+    quick_sale = "quick_sale"
+    takeaway = "takeaway"
+
+
+class StaffSaleCreate(SQLModel):
+    idempotency_key: str = Field(min_length=8, max_length=64)
+    sale_type: StaffSaleType
+    items: list[OrderItemCreate]
+    customer_name: str | None = None
+    customer_phone: str | None = None
+    notes: str | None = None
+
+
+class StaffSaleCreateResponse(SQLModel):
+    id: int
+    status: str
+    order_channel: str
+    table_id: int | None
+    customer_name: str | None
+    total_cents: int
+    created_at: datetime
+    duplicate: bool = False
+
+
 class SatisfechoDeliveryOrderCreate(SQLModel):
     """Staff create first-party Satisfecho Delivery order (no table, no marketplace integration)."""
 
@@ -1789,11 +1853,28 @@ class OrderPaymentCreate(SQLModel):
     """
 
     amount_cents: int | None = Field(default=None, ge=1)
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=64)
     payment_method: str = "cash"
     payer_label: str | None = Field(default=None, max_length=120)
     tip_amount_cents: int | None = Field(default=None, ge=0)
     note: str | None = Field(default=None, max_length=500)
     order_item_ids: list[int] | None = None
+
+
+class CashRegisterOpen(SQLModel):
+    opening_cash_cents: int = Field(ge=0)
+    note: str | None = Field(default=None, max_length=500)
+
+
+class CashRegisterMovementCreate(SQLModel):
+    movement_type: str = Field(max_length=16)
+    amount_cents: int = Field(ge=1)
+    note: str = Field(min_length=1, max_length=500)
+
+
+class CashRegisterClose(SQLModel):
+    counted_cash_cents: int = Field(ge=0)
+    note: str | None = Field(default=None, max_length=500)
 
 
 class OfflineCashOrderCreate(SQLModel):

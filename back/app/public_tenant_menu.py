@@ -13,6 +13,7 @@ from . import models
 from . import promo_service as promo_svc
 from .category_codes import get_public_category_display_label
 from .tenant_currency import normalize_tenant_currency_fields
+from .tenant_subcategories import STANDARD_CATEGORY_ORDER, normalize_custom_subcategories
 from .translation_service import TranslationService
 
 _UPLOADS_DIR = Path(__file__).resolve().parent.parent / "uploads"
@@ -174,17 +175,24 @@ def _load_flat_products(
     tenant_id: int,
     lang: str,
     currency_code: str,
+    *,
+    include_source: bool = False,
+    order_channel: str = models.OrderChannel.table.value,
 ) -> list[dict]:
     """Load customer-visible products using the same sources/filters as GET /menu/{table_token}."""
-    tenant_products = session.exec(
+    all_tenant_products = session.exec(
         select(models.TenantProduct).where(
             models.TenantProduct.tenant_id == tenant_id,
-            models.TenantProduct.is_active == True,  # noqa: E712
         )
     ).all()
 
+    tenant_products = [tp for tp in all_tenant_products if tp.is_active]
+
     legacy_products = session.exec(
-        select(models.Product).where(models.Product.tenant_id == tenant_id)
+        select(models.Product).where(
+            models.Product.tenant_id == tenant_id,
+            models.Product.is_active == True,  # noqa: E712
+        )
     ).all()
 
     tenant = session.get(models.Tenant, tenant_id)
@@ -201,10 +209,42 @@ def _load_flat_products(
         if _is_available_today(p.available_from, p.available_until, today)
     ]
 
+    # POS-only customization data. Public menu responses continue to omit these
+    # fields; the public serializer already treats questions as sensitive.
+    effective_product_ids = [
+        tp.product_id for tp in tenant_products if tp.product_id is not None
+    ]
+    effective_product_ids.extend(
+        product.id for product in legacy_products
+        if product.id not in {tp.product_id for tp in tenant_products if tp.product_id is not None}
+    )
+    questions_by_product: dict[int, list[dict]] = {}
+    if include_source and effective_product_ids:
+        from .product_customization import choice_options_is_multi
+
+        questions = session.exec(
+            select(models.ProductQuestion).where(
+                models.ProductQuestion.tenant_id == tenant_id,
+                models.ProductQuestion.product_id.in_(effective_product_ids),
+            ).order_by(models.ProductQuestion.sort_order, models.ProductQuestion.id)
+        ).all()
+        for question in questions:
+            questions_by_product.setdefault(question.product_id, []).append({
+                "id": question.id,
+                "type": question.type.value if hasattr(question.type, "value") else str(question.type),
+                "label": question.label,
+                "options": question.options,
+                "required": question.required,
+                "multi": (
+                    choice_options_is_multi(question.options)
+                    if question.type == models.ProductQuestionType.choice else False
+                ),
+            })
+
     products: list[dict] = []
 
     linked_legacy_product_ids = {
-        tp.product_id for tp in tenant_products if tp.product_id is not None
+        tp.product_id for tp in all_tenant_products if tp.product_id is not None
     }
 
     for tp in tenant_products:
@@ -213,25 +253,40 @@ def _load_flat_products(
         subcategory = catalog_item.subcategory if catalog_item else None
         description = None
         stock_fields: dict = {}
+        image_url = None
+        custom_product = None
         if tp.product_id:
             custom_product = session.get(models.Product, tp.product_id)
             if custom_product:
+                # /products is the restaurant's management surface. For linked
+                # catalog items, its edits must be the values guests see too.
+                if not custom_product.is_active:
+                    continue
+                category = custom_product.category or category
+                subcategory = custom_product.subcategory or subcategory
                 if custom_product.description:
                     description = custom_product.description
+                image_url = resolve_product_image_url(
+                    tenant_id, custom_product.image_filename
+                )
                 from .product_stock import product_stock_alert_payload
 
                 stock_fields = product_stock_alert_payload(custom_product)
         if not description and catalog_item and catalog_item.description:
             description = catalog_item.description
+        if not image_url:
+            image_url = _resolve_tenant_product_image(session, tenant_id, tp)
 
-        entity_type = "tenant_product"
-        entity_id = tp.id
-        if tp.product_id and description:
-            entity_type = "product"
-            entity_id = tp.product_id
+        entity_type = "product" if custom_product else "tenant_product"
+        entity_id = custom_product.id if custom_product else tp.id
 
         name = _translated_name(
-            session, tenant_id, "tenant_product", tp.id, tp.name or "", lang
+            session,
+            tenant_id,
+            entity_type,
+            entity_id,
+            (custom_product.name if custom_product else tp.name) or "",
+            lang,
         )
         description = _translated_description(
             session,
@@ -242,20 +297,25 @@ def _load_flat_products(
             lang,
         )
 
-        products.append(
-            {
+        row = {
                 "id": tp.id,
                 "name": name,
-                "price_cents": tp.price_cents,
-                "price_formatted": format_public_price(tp.price_cents, lang),
+                "price_cents": custom_product.price_cents if custom_product else tp.price_cents,
+                "price_formatted": format_public_price(
+                    custom_product.price_cents if custom_product else tp.price_cents,
+                    lang,
+                ),
                 "description": description,
                 "category": category,
                 "subcategory": subcategory,
-                "image_url": _resolve_tenant_product_image(session, tenant_id, tp),
+                "image_url": image_url,
                 "available": True,
                 **stock_fields,
             }
-        )
+        if include_source:
+            row["source"] = "tenant_product"
+            row["questions"] = questions_by_product.get(custom_product.id, []) if custom_product else []
+        products.append(row)
 
     for lp in legacy_products:
         if lp.id in linked_legacy_product_ids:
@@ -268,8 +328,7 @@ def _load_flat_products(
         )
         from .product_stock import product_stock_alert_payload
 
-        products.append(
-            {
+        row = {
                 "id": lp.id,
                 "name": name,
                 "price_cents": lp.price_cents,
@@ -281,12 +340,15 @@ def _load_flat_products(
                 "available": True,
                 **product_stock_alert_payload(lp),
             }
-        )
+        if include_source:
+            row["source"] = "product"
+            row["questions"] = questions_by_product.get(lp.id, [])
+        products.append(row)
 
     eligible = promo_svc.eligible_promos(
         session,
         tenant_id=tenant_id,
-        channel=models.OrderChannel.table.value,
+        channel=order_channel,
     )
     for product in products:
         promo_svc.decorate_menu_product(
@@ -388,10 +450,63 @@ def group_products_into_categories(products: list[dict], lang: str = "en") -> li
     return categories
 
 
+def group_products_into_category_tree(
+    products: list[dict],
+    custom_categories: dict[str, list[str]],
+) -> list[dict]:
+    """Build parent/child menu navigation without changing the legacy flat response."""
+    category_names = list(custom_categories)
+    for product in products:
+        category = (product.get("category") or "").strip()
+        if category and category not in category_names:
+            category_names.append(category)
+
+    tree = []
+    for name in category_names:
+        category_products = [
+            product for product in products
+            if (product.get("category") or "").strip() == name
+        ]
+        subcategory_names = list(custom_categories.get(name, []))
+        for product in category_products:
+            subcategory = (product.get("subcategory") or "").strip()
+            if subcategory and subcategory not in subcategory_names:
+                subcategory_names.append(subcategory)
+
+        subcategories = []
+        for subcategory in subcategory_names:
+            subcategories.append(
+                {
+                    "id": _category_slug(subcategory),
+                    "name": subcategory,
+                    "products": [
+                        product for product in category_products
+                        if (product.get("subcategory") or "").strip() == subcategory
+                    ],
+                }
+            )
+
+        tree.append(
+            {
+                "id": _category_slug(name),
+                "name": name,
+                "products": [
+                    product for product in category_products
+                    if not (product.get("subcategory") or "").strip()
+                ],
+                "subcategories": subcategories,
+            }
+        )
+    return tree
+
+
 def build_public_tenant_menu(
     session: Session,
     tenant_id: int,
     lang: str,
+    *,
+    include_source: bool = False,
+    order_channel: str = models.OrderChannel.table.value,
 ) -> dict:
     tenant = session.get(models.Tenant, tenant_id)
     if not tenant:
@@ -409,8 +524,26 @@ def build_public_tenant_menu(
         if translated:
             tenant_name = translated
 
-    products = _load_flat_products(session, tenant_id, lang, currency_code)
+    products = _load_flat_products(
+        session,
+        tenant_id,
+        lang,
+        currency_code,
+        include_source=include_source,
+        order_channel=order_channel,
+    )
     categories = group_products_into_categories(products, lang)
+    custom_categories = normalize_custom_subcategories(tenant.custom_subcategories)
+    category_tree = group_products_into_category_tree(products, custom_categories)
+    existing_ids = {category["id"] for category in categories}
+    for name in custom_categories:
+        if name in STANDARD_CATEGORY_ORDER:
+            continue
+        category_id = _category_slug(name)
+        if category_id not in existing_ids:
+            categories.append({"id": category_id, "name": name, "products": []})
+            existing_ids.add(category_id)
+    categories.sort(key=lambda category: _section_sort_key(category["name"]))
 
     return {
         "tenant_id": tenant_id,
@@ -418,6 +551,7 @@ def build_public_tenant_menu(
         "currency": currency_code,
         "lang": lang,
         "categories": categories,
+        "category_tree": category_tree,
     }
 
 

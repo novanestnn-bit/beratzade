@@ -13,6 +13,7 @@ import { tablesCanvasCanDeactivate } from './tables/tables-canvas-deactivate.gua
 export const routes: Routes = [
   // Public routes
   { path: '', loadComponent: () => import('./landing/landing.component').then(m => m.LandingComponent) },
+  { path: 'beratzade', loadComponent: () => import('./beratzade-home/beratzade-home.component').then(m => m.BeratzadeHomeComponent) },
   { path: 'features/:slug', loadComponent: () => import('./features/feature-detail.component').then(m => m.FeatureDetailComponent) },
   { path: 'features', loadComponent: () => import('./features/features.component').then(m => m.FeaturesComponent) },
   { path: 'pricing', loadComponent: () => import('./pricing/pricing-page.component').then(m => m.PricingPageComponent) },
@@ -65,13 +66,15 @@ export const routes: Routes = [
   { path: 'platform/tenants/:tenantId', canActivate: [platformGuard], loadComponent: () => import('./platform/platform-tenant-detail.component').then(m => m.PlatformTenantDetailComponent) },
   { path: 'platform', canActivate: [platformGuard], loadComponent: () => import('./platform/platform-dashboard.component').then(m => m.PlatformDashboardComponent) },
   { path: 'menu/:token', loadComponent: () => import('./menu/menu.component').then(m => m.MenuComponent) },
-  // Customer-facing counter / coffee-shop display (second screen; table token pairing) — #434
+  // Customer-facing counter / coffee-shop display (second screen; table token pairing) â€” #434
   {
     path: 'display/:tableToken',
     loadComponent: () =>
       import('./customer-display/customer-display.component').then((m) => m.CustomerDisplayComponent),
   },
   { path: 'menu/:token/payment-success', loadComponent: () => import('./menu/payment-success.component').then(m => m.PaymentSuccessComponent) },
+  { path: 'public-menu/:tenantId/kategori/:categorySlug/:subcategorySlug', loadComponent: () => import('./public-menu/public-menu.component').then(m => m.PublicMenuComponent) },
+  { path: 'public-menu/:tenantId/kategori/:categorySlug', loadComponent: () => import('./public-menu/public-menu.component').then(m => m.PublicMenuComponent) },
   { path: 'public-menu/:tenantId', loadComponent: () => import('./public-menu/public-menu.component').then(m => m.PublicMenuComponent) },
   {
     path: 'delivery/:tenantId/payment-success',
@@ -92,7 +95,7 @@ export const routes: Routes = [
   { path: 'waitlist/:tenantId', loadComponent: () => import('./waitlist-public/waitlist-public.component').then(m => m.WaitlistPublicComponent) },
   { path: 'feedback/:tenantId', loadComponent: () => import('./feedback-public/feedback-public.component').then(m => m.FeedbackPublicComponent) },
   { path: 'loyalty/card/:memberToken', loadComponent: () => import('./loyalty-public/loyalty-card-public.component').then(m => m.LoyaltyCardPublicComponent) },
-  // Bare /loyalty and /loyalty/ must not fall through to landing (Satisfecho marketing) — #373
+  // Bare /loyalty and /loyalty/ must not fall through to landing (Satisfecho marketing) â€” #373
   { path: 'loyalty', pathMatch: 'full', loadComponent: () => import('./loyalty-public/loyalty-public.component').then(m => m.LoyaltyPublicComponent) },
   { path: 'loyalty/:tenantId', loadComponent: () => import('./loyalty-public/loyalty-public.component').then(m => m.LoyaltyPublicComponent) },
   // Public take-away / home ordering: list tenants with ordering link
@@ -126,6 +129,9 @@ export const routes: Routes = [
     loadComponent: () => import('./tables/tables-canvas.component').then(m => m.TablesCanvasComponent),
   },
   { path: 'tables', canActivate: [authGuard, uiModuleGuard('tables'), tableAccessGuard], loadComponent: () => import('./tables/tables.component').then(m => m.TablesComponent) },
+
+  { path: 'staff/pos', canActivate: [authGuard, orderAccessGuard, permissionGuard('order:update_status')], loadComponent: () => import('./orders/staff-pos.component').then(m => m.StaffPosComponent) },
+  { path: 'staff/order-entry', canActivate: [authGuard, uiModuleGuard('tables'), tableAccessGuard, orderAccessGuard, permissionGuard('order:update_status'), permissionGuard('table:activate')], loadComponent: () => import('./orders/staff-order-entry.component').then(m => m.StaffOrderEntryComponent) },
 
   // Staff orders (list and manage orders)
   { path: 'staff/orders', canActivate: [authGuard, orderAccessGuard], loadComponent: () => import('./orders/orders.component').then(m => m.OrdersComponent) },

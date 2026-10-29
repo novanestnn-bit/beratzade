@@ -12,6 +12,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'zh-CN', label: '中文（简体）', locale: 'zh-CN' },
   { code: 'hi', label: 'हिन्दी', locale: 'hi-IN' },
   { code: 'ur', label: 'اردو', locale: 'ur-PK' },
+  { code: 'tr', label: 'Türkçe', locale: 'tr-TR' },
 ] as const;
 
 export type LanguageCode = typeof SUPPORTED_LANGUAGES[number]['code'];

@@ -185,6 +185,7 @@ class Settings(BaseSettings):
 
     # Production mode (enables secure cookies, stricter CORS, etc.)
     is_production: bool = Field(default=False, validation_alias="PRODUCTION")
+    local_dev_tenant_ref: str = Field(default="", validation_alias="LOCAL_DEV_TENANT_REF")
 
     # Opt-in to mount Swagger/ReDoc/OpenAPI when PRODUCTION=true (default: off in prod).
     # Dev/local keeps docs available without setting this.

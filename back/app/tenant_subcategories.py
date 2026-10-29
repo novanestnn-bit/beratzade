@@ -46,8 +46,10 @@ def normalize_custom_subcategories(stored: dict | None) -> dict[str, list[str]]:
                 continue
             existing.add(name)
             items.append(name)
-        if items:
-            out[cat] = sorted(items)
+        # Empty entries represent tenant-defined top-level categories.
+        # Keep them so the category manager can create a category before any
+        # products or subcategories have been added.
+        out[cat] = sorted(items)
     return out
 
 
@@ -168,6 +170,55 @@ def add_custom_subcategory(
     if sub not in updated[cat]:
         updated[cat] = sorted([*updated[cat], sub])
     _save_custom(tenant, updated)
+    session.add(tenant)
+    session.commit()
+    session.refresh(tenant)
+    return tenant_categories_for_ui(session, tenant_id)
+
+
+def add_custom_category(
+    session: Session, tenant_id: int, name: str
+) -> dict[str, list[str]]:
+    """Create an empty tenant-scoped top-level menu category idempotently."""
+    category = _validate_category_name(name)
+    existing = tenant_categories_for_ui(session, tenant_id)
+    if category in existing:
+        return existing
+    tenant, custom = _load_tenant_custom(session, tenant_id)
+    custom[category] = []
+    _save_custom(tenant, custom)
+    session.add(tenant)
+    session.commit()
+    session.refresh(tenant)
+    return tenant_categories_for_ui(session, tenant_id)
+
+
+def rename_custom_category(
+    session: Session, tenant_id: int, old_name: str, new_name: str
+) -> dict[str, list[str]]:
+    """Rename a tenant-defined category and move its products with it."""
+    old = _validate_category_name(old_name)
+    new = _validate_category_name(new_name)
+    if old == new:
+        return tenant_categories_for_ui(session, tenant_id)
+
+    tenant, custom = _load_tenant_custom(session, tenant_id)
+    if old not in custom:
+        raise ValueError("Only tenant-defined categories can be renamed")
+    existing = tenant_categories_for_ui(session, tenant_id)
+    if new in existing:
+        raise ValueError("Category already exists")
+
+    custom[new] = custom.pop(old)
+    _save_custom(tenant, custom)
+    for product in session.exec(
+        select(models.Product).where(
+            models.Product.tenant_id == tenant_id,
+            models.Product.category == old,
+        )
+    ).all():
+        product.category = new
+        session.add(product)
     session.add(tenant)
     session.commit()
     session.refresh(tenant)

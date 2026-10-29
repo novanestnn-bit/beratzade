@@ -279,13 +279,16 @@ def _add_order_items(
     *,
     order: models.Order,
     tenant_id: int,
-    resolved_lines: list[tuple[models.Product, int, str | None]],
+    resolved_lines: list[tuple],
     order_date: date,
 ) -> None:
     channel = getattr(order, "order_channel", None)
     channel_val = channel.value if hasattr(channel, "value") else (channel or models.OrderChannel.satisfecho_delivery.value)
     eligible = promo_svc.eligible_promos(session, tenant_id=tenant_id, channel=str(channel_val))
-    for product, qty, notes in resolved_lines:
+    for line in resolved_lines:
+        product, qty, notes = line[:3]
+        customization_answers = line[3] if len(line) > 3 else None
+        customization_summary = line[4] if len(line) > 4 else None
         product_tax_id = getattr(product, "tax_id", None)
         effective_tax = _effective_tax(session, tenant_id, product_tax_id, order_date)
         tax_id = effective_tax.id if effective_tax else None
@@ -311,6 +314,8 @@ def _add_order_items(
             price_cents=price_cents,
             cost_cents=getattr(product, "cost_cents", None),
             notes=notes,
+            customization_answers=customization_answers,
+            customization_summary=customization_summary,
             status=models.OrderItemStatus.pending,
             tax_id=tax_id,
             tax_rate_percent=tax_rate if effective_tax else None,

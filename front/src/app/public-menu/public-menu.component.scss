@@ -18,8 +18,9 @@
 }
 
 .public-menu-content {
-  max-width: 42rem;
+  max-width: 70rem;
   margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2.5rem);
 }
 
 .public-menu-readonly-hint {
@@ -35,6 +36,144 @@
   margin: 0 0 var(--space-6);
 }
 
+.public-menu-category-nav {
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  padding: 0.35rem 0 0.85rem;
+  margin-bottom: 0.75rem;
+  scrollbar-width: thin;
+}
+
+.public-menu-product-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.public-menu-product-card:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 1rem;
+}
+
+.public-menu-product-desc {
+  display: block;
+}
+
+.public-menu-category-count {
+  display: none;
+}
+
+.public-menu-tools {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 0.4rem;
+}
+
+.public-menu-search {
+  position: relative;
+  width: min(100%, 25rem);
+  margin: 0 0 0 auto;
+}
+
+.public-menu-category-chip {
+  flex: 0 0 auto;
+  min-height: 2.65rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.public-menu-category-chip:hover,
+.public-menu-category-chip:focus-visible {
+  border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.public-menu-search {
+  display: flex;
+  align-items: center;
+}
+
+.public-menu-search input {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  padding-left: 2.9rem;
+  padding-right: 3rem;
+}
+
+.public-menu-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.public-menu-search-icon {
+  position: absolute;
+  left: 1rem;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 1.6px solid currentColor;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.public-menu-search-icon::after {
+  content: '';
+  position: absolute;
+  width: 0.42rem;
+  height: 1.6px;
+  right: -0.32rem;
+  bottom: -0.16rem;
+  background: currentColor;
+  transform: rotate(45deg);
+  transform-origin: left center;
+}
+
+.public-menu-search-clear {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+.public-menu-search-clear:hover,
+.public-menu-search-clear:focus-visible {
+  background: rgb(0 0 0 / 7%);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
 .public-menu-status {
   text-align: center;
   color: var(--color-text-muted);
@@ -47,6 +186,7 @@
 
 .public-menu-category {
   margin-bottom: var(--space-8);
+  scroll-margin-top: 5rem;
 }
 
 .public-menu-category-title {
@@ -92,26 +232,52 @@
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
   gap: var(--space-4);
 }
 
 .public-menu-product {
   display: flex;
   gap: var(--space-4);
-  align-items: flex-start;
-  padding: var(--space-4);
+  align-items: center;
+  padding: 0.75rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgb(30 20 14 / 6%);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.public-menu-product:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgb(30 20 14 / 11%);
+}
+
+.public-menu-product-image-wrap {
+  width: 6rem;
+  height: 6rem;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: linear-gradient(145deg, #eee4d4, #d9c7ac);
 }
 
 .public-menu-product-image {
-  width: 72px;
-  height: 72px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
+  border-radius: inherit;
+}
+
+.public-menu-product-placeholder {
+  color: #513f2e;
+  font-family: Georgia, serif;
+  font-size: 2rem;
+  font-weight: 700;
 }
 
 .public-menu-product-body {
@@ -142,6 +308,894 @@
   font-size: 0.875rem;
   color: var(--color-text-muted);
   line-height: 1.45;
+}
+
+.public-menu-product-unavailable {
+  margin: var(--space-2) 0 0;
+  color: #7a3028;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.public-menu-product-promo {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: #76283b;
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.public-menu-product-price del,
+.public-menu-detail-price del {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.78em;
+  font-weight: 400;
+}
+
+.public-menu-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: max(1rem, env(safe-area-inset-top, 0px)) 1rem max(1rem, env(safe-area-inset-bottom, 0px));
+  background: rgb(26 20 18 / 64%);
+  backdrop-filter: blur(5px);
+}
+
+.public-menu-detail {
+  position: relative;
+  width: min(100%, 38rem);
+  max-height: min(90dvh, 52rem);
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 1.25rem;
+  background: var(--color-surface, #fffdf9);
+  color: var(--color-text);
+  box-shadow: 0 28px 80px rgb(0 0 0 / 28%);
+}
+
+.public-menu-detail-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid rgb(255 255 255 / 70%);
+  border-radius: 50%;
+  background: rgb(255 253 249 / 94%);
+  color: #2e2520;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.public-menu-detail-close:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.public-menu-detail-image {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(140deg, #f4e9d8, #e5d1b5);
+}
+
+.public-menu-detail-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.public-menu-detail-copy {
+  padding: clamp(1.1rem, 4vw, 1.8rem);
+}
+
+.public-menu-detail-copy h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(1.3rem, 4vw, 1.8rem);
+  line-height: 1.2;
+}
+
+.public-menu-detail-copy > p {
+  margin: 0.8rem 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+.public-menu-detail-price {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 1.2rem;
+}
+
+.public-menu-detail-price del {
+  display: inline;
+}
+
+.public-menu-detail-price strong {
+  color: var(--color-primary);
+  font-size: 1.35rem;
+}
+
+/* Beratzade's menu identity stays scoped to this tenant; other tenant menus keep their theme. */
+.public-menu-page.is-beratzade {
+  --color-bg: #f5efe5;
+  --color-surface: #fffdf9;
+  --color-text: #2b211e;
+  --color-text-muted: #766960;
+  --color-border: #e7d9c8;
+  min-height: 100vh;
+  background: #f5efe5;
+  color: #2b211e;
+  font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+.beratzade-menu-header {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 4rem;
+  padding: 0.45rem clamp(1rem, 4vw, 2.75rem);
+  border-top: 2px solid #a86846;
+  border-bottom: 1px solid rgb(210 166 119 / 35%);
+  background: #2b211e;
+  color: #fffaf2;
+  box-shadow: 0 3px 12px rgb(37 25 20 / 12%);
+  font-family: system-ui, sans-serif;
+}
+
+.beratzade-menu-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.beratzade-menu-logo {
+  width: 2.45rem;
+  height: 2.45rem;
+  flex: 0 0 auto;
+  border: 1px solid rgb(199 145 91 / 55%);
+  border-radius: 0.3rem;
+  object-fit: contain;
+  background: #fffaf2;
+}
+
+.beratzade-menu-brand-copy {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+  padding-left: 0.85rem;
+  border-left: 1px solid #a86846;
+}
+
+.beratzade-menu-brand-copy strong {
+  font: 700 1.02rem/1 Georgia, serif;
+  letter-spacing: 0.12em;
+}
+
+.beratzade-menu-brand-copy small {
+  color: #d8c8b3;
+  font: 600 0.58rem/1 system-ui, sans-serif;
+  letter-spacing: 0.12em;
+}
+
+.beratzade-menu-brand-copy small i {
+  display: inline-block;
+  width: 0.18rem;
+  height: 0.18rem;
+  margin: 0 0.2rem 0.05rem;
+  border-radius: 50%;
+  background: #bd8964;
+}
+
+.beratzade-menu-language {
+  flex: 0 0 auto;
+  margin-left: 0.5rem;
+}
+
+:host ::ng-deep .beratzade-menu-language .language-icon-btn {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.42rem 0.55rem;
+  color: #f3dfc4;
+}
+
+:host ::ng-deep .beratzade-menu-language .language-icon-btn:hover {
+  background: rgb(255 250 242 / 10%);
+  color: #fffaf2;
+}
+
+:host ::ng-deep .beratzade-menu-language .language-menu {
+  right: 0;
+  left: auto;
+}
+
+.beratzade-menu-intro {
+  max-width: 84rem;
+  margin: 0 auto;
+  padding: 0.85rem clamp(1rem, 4vw, 2.75rem) 0.65rem;
+  text-align: left;
+}
+
+.beratzade-menu-intro h1 {
+  margin: 0;
+  color: #2b211e;
+  font: 600 1rem/1.2 Georgia, 'Times New Roman', serif;
+}
+
+.public-menu-page.is-beratzade .public-menu-content {
+  max-width: 84rem;
+  padding-inline: clamp(1rem, 4vw, 2.75rem);
+  font-family: system-ui, sans-serif;
+}
+
+.public-menu-page.is-beratzade .public-menu-tools {
+  justify-content: flex-start;
+  margin: 0 0 1.15rem;
+}
+
+.public-menu-page.is-beratzade .public-menu-search {
+  width: min(100%, 31rem);
+  margin-inline: 0;
+}
+
+.public-menu-page.is-beratzade .public-menu-search input {
+  min-height: 2.85rem;
+  border: 1px solid #dfd0bd;
+  border-radius: 0.45rem;
+  background: #fffaf2;
+  box-shadow: 0 2px 8px rgb(65 42 29 / 4%);
+}
+
+.public-menu-page.is-beratzade .public-menu-search input:focus-visible {
+  border-color: #76283b;
+  outline: 3px solid rgb(118 40 59 / 20%);
+  outline-offset: 1px;
+}
+
+.public-menu-page.is-beratzade .public-menu-category-nav {
+  position: sticky;
+  top: 4.15rem;
+  z-index: 35;
+  gap: 0.55rem;
+  margin: 0.2rem calc(clamp(1rem, 4vw, 2.75rem) * -1) 1rem;
+  padding: 0.75rem clamp(1rem, 4vw, 2.75rem);
+  border-bottom: 1px solid rgb(207 188 166 / 65%);
+  background: rgb(245 239 229 / 92%);
+  backdrop-filter: blur(12px);
+  scrollbar-width: none;
+}
+
+.public-menu-page.is-beratzade .public-menu-category-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.public-menu-page.is-beratzade .public-menu-category-chip {
+  min-height: 2.75rem;
+  padding: 0.6rem 1rem;
+  border-color: #dfd0bd;
+  background: #fffdf9;
+  color: #4b3d36;
+  font: 600 0.82rem/1 system-ui, sans-serif;
+  transition: color 150ms ease, background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.public-menu-page.is-beratzade .public-menu-category-chip:hover {
+  border-color: #a86846;
+  transform: translateY(-1px);
+}
+
+.public-menu-page.is-beratzade .public-menu-category-chip.is-active {
+  border-color: #76283b;
+  background: #76283b;
+  color: #fffaf2;
+}
+
+.public-menu-page.is-beratzade .public-menu-category-chip:focus-visible {
+  outline: 3px solid rgb(118 40 59 / 30%);
+  outline-offset: 2px;
+}
+
+.public-menu-page.is-beratzade .public-menu-category {
+  margin-bottom: 2rem;
+  scroll-margin-top: 8.8rem;
+}
+
+.public-menu-page.is-beratzade .public-menu-category-title {
+  margin-bottom: 1rem;
+  padding: 0 0 0.75rem 0.85rem;
+  border-bottom: 1px solid #dfd0bd;
+  border-left: 3px solid #a86846;
+  color: #302521;
+  font: 600 clamp(1.12rem, 2vw, 1.38rem)/1.2 Georgia, 'Times New Roman', serif;
+}
+
+.public-menu-page.is-beratzade .public-menu-category-toggle {
+  min-height: 2rem;
+}
+
+.public-menu-page.is-beratzade .public-menu-category-name {
+  flex: 1;
+}
+
+.public-menu-page.is-beratzade .public-menu-category-count {
+  display: inline-grid;
+  min-width: 1.7rem;
+  min-height: 1.7rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #efe4d5;
+  color: #765844;
+  font: 600 0.72rem/1 system-ui, sans-serif;
+}
+
+.public-menu-page.is-beratzade .public-menu-category-chevron {
+  color: #986747;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-list {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.public-menu-page.is-beratzade.is-category-view .public-menu-product-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+.public-menu-page.is-beratzade .public-menu-product {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid #e7d9c8;
+  border-radius: 0.6rem;
+  background: #fffdf9;
+  box-shadow: 0 5px 18px rgb(57 38 28 / 6%);
+  transition: transform 170ms ease, box-shadow 170ms ease, border-color 170ms ease;
+}
+
+.public-menu-page.is-beratzade .public-menu-product:hover {
+  transform: translateY(-3px);
+  border-color: #d2b99c;
+  box-shadow: 0 12px 28px rgb(57 38 28 / 11%);
+}
+
+.public-menu-page.is-beratzade .public-menu-product-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  height: 100%;
+  text-align: start;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-card:focus-visible {
+  outline-color: #76283b;
+  outline-offset: 2px;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-image-wrap {
+  position: relative;
+  width: 100%;
+  height: 144px;
+  aspect-ratio: 2 / 1;
+  border-radius: 0.55rem 0.55rem 0 0;
+  background: #e9d8c2;
+}
+
+.beratzade-menu-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 0.7rem;
+  color: #78665a;
+  font: 500 0.88rem/1.4 system-ui, sans-serif;
+}
+
+.beratzade-menu-breadcrumb a,
+.public-menu-page.is-beratzade .public-menu-no-results a {
+  color: #76283b;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.beratzade-menu-breadcrumb a:hover,
+.public-menu-page.is-beratzade .public-menu-no-results a:hover {
+  text-decoration: underline;
+}
+
+.beratzade-category-switcher {
+  display: flex;
+  gap: 0.4rem;
+  margin: -0.25rem 0 0.8rem;
+  overflow-x: auto;
+  padding: 0.2rem 0 0.35rem;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.beratzade-category-switcher::-webkit-scrollbar {
+  display: none;
+}
+
+.beratzade-category-switcher a {
+  flex: 0 0 auto;
+  min-height: 2.5rem;
+  padding: 0.58rem 0.78rem;
+  border: 1px solid #e1d1bf;
+  border-radius: 999px;
+  background: rgb(255 253 249 / 76%);
+  color: #5f5047;
+  font: 600 0.72rem/1 system-ui, sans-serif;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.beratzade-category-switcher a:hover,
+.beratzade-category-switcher a:focus-visible,
+.beratzade-category-switcher a.is-active {
+  border-color: #76283b;
+  background: #76283b;
+  color: #fffaf4;
+}
+
+.beratzade-category-index {
+  margin: 0 0 1.1rem;
+}
+
+.beratzade-category-index h2 {
+  margin: 0 0 0.65rem;
+  color: #302521;
+  font: 600 1.05rem/1.25 Georgia, 'Times New Roman', serif;
+}
+
+.beratzade-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 0.65rem;
+}
+
+.beratzade-category-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  grid-template-rows: minmax(6.4rem, auto);
+  min-height: 7.2rem;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid #d9c6ad;
+  border-radius: 0.6rem;
+  background: #fbf6ed;
+  color: #302521;
+  text-decoration: none;
+  transition: border-color 150ms ease;
+}
+
+.beratzade-category-card:hover,
+.beratzade-category-card:focus-visible {
+  border-color: #76283b;
+}
+
+.beratzade-category-copy {
+  position: relative;
+  display: flex;
+  grid-column: 1;
+  grid-row: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 0.8rem 2.8rem 0.75rem 0.9rem;
+  background: #fbf6ed;
+}
+
+.beratzade-category-title {
+  color: inherit;
+  font: 700 1.06rem/1.2 Georgia, 'Times New Roman', serif;
+  overflow-wrap: anywhere;
+}
+
+.beratzade-category-copy small {
+  min-width: 0;
+  margin-top: 0.35rem;
+  color: #7d6a5a;
+  font: 500 0.68rem/1.2 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.beratzade-category-arrow {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.7rem;
+  display: grid;
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: #f3eadc;
+  color: #76283b;
+  font-size: 0.8rem;
+}
+
+.beratzade-category-photo {
+  position: relative;
+  display: block;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 100%;
+  overflow: hidden;
+  background: #e8ddce;
+}
+
+.beratzade-category-photo img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.beratzade-category-photo-fallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #eadfce, #d6c3a9);
+}
+
+@media (max-width: 699px) {
+  .beratzade-category-copy {
+    padding: 0.7rem 2.5rem 0.65rem 0.75rem;
+  }
+
+  .beratzade-category-title {
+    font-size: 0.98rem;
+  }
+
+  .beratzade-category-arrow {
+    right: 0.65rem;
+    bottom: 0.6rem;
+  }
+}
+
+.public-menu-page.is-beratzade .public-menu-product-image {
+  border-radius: 0;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #946c4e;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-placeholder svg {
+  width: 42%;
+  max-width: 8rem;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-placeholder svg path:last-child {
+  fill: #a86846;
+  stroke: none;
+  opacity: 0.65;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-body {
+  display: block;
+  padding: 0.9rem 1rem 1rem;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-header {
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-name {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #302521;
+  font: 650 0.98rem/1.35 system-ui, sans-serif;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-price {
+  flex: 0 0 auto;
+  color: #76283b;
+  font: 700 0.95rem/1.3 system-ui, sans-serif;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0.45rem 0 0;
+  color: #766960;
+  font: 400 0.82rem/1.5 system-ui, sans-serif;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-unavailable {
+  display: block;
+  margin-top: 0.55rem;
+  color: #7b2836;
+}
+
+.public-menu-page.is-beratzade .public-menu-product-card.is-unavailable .public-menu-product-image-wrap {
+  filter: saturate(0.55);
+}
+
+.public-menu-page.is-beratzade .public-menu-no-results {
+  padding: 2rem 1rem;
+  border: 1px dashed #cdb69d;
+  border-radius: 1rem;
+  background: rgb(255 253 249 / 70%);
+  color: #66564c;
+}
+
+.public-menu-page.is-beratzade .public-menu-contact-footer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem 1.1rem;
+  margin-top: 1.35rem;
+  padding: 0.85rem 0;
+  border: 0;
+  border-top: 1px solid #d9c6ad;
+  border-bottom: 1px solid #d9c6ad;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.public-menu-page.is-beratzade .public-menu-contact-title {
+  grid-row: span 2;
+  margin: 0;
+  color: #8a5a40;
+  font: 700 0.64rem/1.2 system-ui, sans-serif;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.public-menu-page.is-beratzade .public-menu-contact-footer .restaurant-contact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.35rem 0.75rem;
+}
+
+.public-menu-page.is-beratzade .public-menu-contact-footer .restaurant-location {
+  margin: 0;
+}
+
+.public-menu-page.is-beratzade .public-menu-contact-footer .restaurant-address {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.public-menu-page.is-beratzade .public-menu-contact-footer .contact-link,
+.public-menu-page.is-beratzade .public-menu-back-link {
+  color: #76283b;
+}
+
+.public-menu-page.is-beratzade .public-menu-footer-actions {
+  margin-top: 0.6rem;
+  gap: 0.5rem;
+  padding-bottom: 1rem;
+}
+
+@media (min-width: 700px) and (max-width: 1040px) {
+  .public-menu-page.is-beratzade .public-menu-product-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 699px) {
+  .beratzade-menu-header {
+    min-height: 3.6rem;
+    padding-inline: 0.75rem;
+  }
+
+  .beratzade-menu-logo {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+
+  .beratzade-menu-brand-copy strong {
+    font-size: 0.9rem;
+  }
+
+  .beratzade-menu-brand-copy small {
+    font-size: 0.54rem;
+    letter-spacing: 0.08em;
+  }
+
+  :host ::ng-deep .beratzade-menu-language .language-code {
+    display: none;
+  }
+
+  .beratzade-menu-intro {
+    padding-top: 0.65rem;
+    padding-bottom: 0.275rem;
+  }
+
+  .beratzade-menu-intro h1 {
+    font-size: 0.9775rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-content {
+    padding-inline: 0.8rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-tools {
+    margin-top: -0.18rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-search-icon {
+    width: 0.9025rem;
+    height: 0.9025rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-search-icon::after {
+    width: 0.399rem;
+  }
+
+  .public-menu-page.is-beratzade .beratzade-menu-tools .public-menu-search input {
+    height: 1.716rem;
+    min-height: 1.716rem;
+    padding-block: 0;
+    transition: height 160ms ease, min-height 160ms ease;
+  }
+
+  .public-menu-page.is-beratzade .beratzade-menu-tools .public-menu-search:focus-within input {
+    height: 2.85rem;
+    min-height: 2.85rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-category-nav {
+    top: 3.85rem;
+    margin-inline: -0.85rem;
+    padding-inline: 0.85rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-category {
+    margin-bottom: 1.4rem;
+    scroll-margin-top: 7.4rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-category-title {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.6rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-product-list {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-product {
+    border-radius: 0.65rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-product-card {
+    display: grid;
+    grid-template-columns: minmax(6rem, 105px) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-product-image-wrap {
+    height: 105px;
+    min-height: 105px;
+    aspect-ratio: 1 / 1;
+    border-radius: 0.85rem 0 0 0.85rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-product-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.65rem 0.7rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-product-name {
+    font-size: 0.9rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-product-price {
+    font-size: 0.87rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-product-desc {
+    font-size: 0.76rem;
+    -webkit-line-clamp: 2;
+  }
+
+  .beratzade-category-switcher {
+    gap: 0.35rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .beratzade-category-switcher a {
+    padding-inline: 0.68rem;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 699px) {
+  .public-menu-page.is-beratzade .public-menu-contact-footer {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-contact-title {
+    grid-row: auto;
+  }
+}
+
+@media (min-width: 700px) and (max-width: 799px) {
+  .public-menu-page.is-beratzade .public-menu-product-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 380px) {
+  .beratzade-menu-brand {
+    gap: 0.45rem;
+  }
+
+  .beratzade-menu-brand-copy small {
+    letter-spacing: 0;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-product-card {
+    grid-template-columns: 6rem minmax(0, 1fr);
+  }
+
+  .public-menu-page.is-beratzade .public-menu-product-image-wrap {
+    height: 96px;
+    min-height: 96px;
+  }
+
+  .public-menu-page.is-beratzade .public-menu-product-body {
+    padding-inline: 0.65rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-menu-page.is-beratzade *,
+  .public-menu-detail-backdrop * {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .public-menu-contact-footer {
@@ -207,4 +1261,15 @@
 
 .public-menu-back-link:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .public-menu-content {
+    padding-inline: 0.875rem;
+  }
+
+  .public-menu-product-image-wrap {
+    width: 5rem;
+    height: 5rem;
+  }
 }

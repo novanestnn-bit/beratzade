@@ -1,18 +1,35 @@
 <div
   class="book-page public-menu-page"
+  [class.is-beratzade]="isBeratzadeMenuOnly()"
+  [class.is-category-view]="isCategoryRoute()"
   [style.--color-bg]="tenant()?.public_background_color ?? null"
   [style.--hero-header-bg]="tenant()?.public_background_color ?? null"
-  [style.--color-primary]="resolvePublicPrimaryColor(tenant()?.public_primary_color)"
+  [style.--color-primary]="isBeratzadeMenuOnly() ? '#76283b' : resolvePublicPrimaryColor(tenant()?.public_primary_color)"
 >
-  <app-public-guest-header
-    [tenantId]="tenantId()"
-    [publicMenuRef]="tenant()?.public_slug?.trim() || tenantId()"
-    [publicBookSlug]="tenant()?.public_slug?.trim() || null"
-    [tenantName]="tenant()?.name ?? null"
-    [logoUrl]="logoUrl()"
-    [headerBackgroundColor]="tenant()?.public_background_color ?? null"
-    activePage="menu"
-  />
+  @if (isBeratzadeMenuOnly()) {
+    <header class="beratzade-menu-header" data-testid="beratzade-menu-header">
+      <a class="beratzade-menu-brand" [routerLink]="['/public-menu', tenant()?.public_slug?.trim() || tenantId()]">
+        @if (logoUrl()) {
+          <img [src]="logoUrl()!" [alt]="displayName()" class="beratzade-menu-logo" />
+        }
+        <span class="beratzade-menu-brand-copy">
+          <strong>BERATZADE</strong>
+          <small>KEBAP <i aria-hidden="true"></i> KAHVALTI SALONU</small>
+        </span>
+      </a>
+      <app-language-picker appearance="icon" class="beratzade-menu-language" />
+    </header>
+  } @else {
+    <app-public-guest-header
+      [tenantId]="tenantId()"
+      [publicMenuRef]="tenant()?.public_slug?.trim() || tenantId()"
+      [publicBookSlug]="tenant()?.public_slug?.trim() || null"
+      [tenantName]="tenant()?.name ?? null"
+      [logoUrl]="logoUrl()"
+      [headerBackgroundColor]="tenant()?.public_background_color ?? null"
+      activePage="menu"
+    />
+  }
   @if (loading()) {
     <div class="public-menu-shell">
       <div class="loading-screen">
@@ -40,7 +57,7 @@
               data-testid="public-menu-back-home"
             >{{ 'PUBLIC_MENU.BACK_HOME' | translate }}</a>
           } @else {
-            <a routerLink="/features" class="public-menu-back-link" data-testid="public-menu-back-home">{{
+            <a routerLink="/" class="public-menu-back-link" data-testid="public-menu-back-home">{{
               'PUBLIC_MENU.BACK_HOME' | translate
             }}</a>
           }
@@ -48,43 +65,207 @@
       </main>
     </div>
   } @else {
-    <header
-      class="hero-header"
-      [class.has-bg-image]="tenant()?.header_background_filename"
-      [style.background-image]="headerBackgroundStyle()"
-    >
-      <div class="hero-overlay"></div>
-      <div class="hero-content">
-        <div class="hero-top-row">
-          @if (logoUrl()) {
-            <div class="logo-container">
-              <img [src]="getLogoSafeUrl(logoUrl())" [alt]="displayName()" class="tenant-logo" />
-            </div>
-          }
+    @if (isBeratzadeMenuOnly()) {
+      @if (!isCategoryRoute()) {
+        <section class="beratzade-menu-intro" aria-labelledby="beratzade-menu-title">
+          <h1 id="beratzade-menu-title">Menümüz</h1>
+        </section>
+      }
+    } @else {
+      <header
+        class="hero-header"
+        [class.has-bg-image]="tenant()?.header_background_filename"
+        [style.background-image]="headerBackgroundStyle()"
+      >
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <div class="hero-top-row">
+            @if (logoUrl()) {
+              <div class="logo-container">
+                <img [src]="getLogoSafeUrl(logoUrl())" [alt]="displayName()" class="tenant-logo" />
+              </div>
+            }
+          </div>
+          <div class="hero-info">
+            <h1 class="restaurant-name">{{ displayName() }}</h1>
+            @if (tenant()?.description?.trim()) {
+              <p class="restaurant-description">{{ tenant()!.description }}</p>
+            }
+          </div>
         </div>
-        <div class="hero-info">
-          <h1 class="restaurant-name">{{ displayName() }}</h1>
-          @if (tenant()?.description?.trim()) {
-            <p class="restaurant-description">{{ tenant()!.description }}</p>
-          }
-        </div>
-      </div>
-    </header>
+      </header>
+    }
 
     <main class="book-content public-menu-content">
-      <p class="public-menu-readonly-hint">{{ 'PUBLIC_MENU.READ_ONLY_HINT' | translate }}</p>
-      <p class="public-menu-delivery-cta">
-        <a [routerLink]="['/delivery', tenantId()]" class="btn btn-primary">
-          {{ 'PUBLIC_MENU.ORDER_DELIVERY' | translate }}
-        </a>
-      </p>
+      @if (!isBeratzadeMenuOnly()) {
+        <p class="public-menu-readonly-hint">{{ 'PUBLIC_MENU.READ_ONLY_HINT' | translate }}</p>
+      }
+      @if (hasAnyProducts()) {
+        <div class="public-menu-tools" [class.beratzade-menu-tools]="isBeratzadeMenuOnly()">
+          <div class="public-menu-search">
+            <span class="public-menu-search-icon" aria-hidden="true"></span>
+            <input
+              #searchInput
+              type="search"
+              [value]="searchTerm()"
+              (input)="setSearchTerm($any($event.target).value)"
+              [placeholder]="'COMMON.SEARCH' | translate"
+              [attr.aria-label]="'COMMON.SEARCH' | translate"
+              autocomplete="off"
+            />
+            @if (searchTerm()) {
+              <button
+                class="public-menu-search-clear"
+                type="button"
+                (click)="clearSearch(searchInput)"
+                [attr.aria-label]="'COMMON.CLOSE' | translate"
+              >×</button>
+            }
+          </div>
+        </div>
+        @if (!isBeratzadeMenuOnly()) {
+          <nav class="public-menu-category-nav" [attr.aria-label]="'PUBLIC_MENU.PAGE_TITLE' | translate">
+            @for (cat of visibleCategories(); track cat.id) {
+              <button
+                type="button"
+                class="public-menu-category-chip"
+                [class.is-active]="activeCategoryId() === cat.id"
+                [attr.aria-current]="activeCategoryId() === cat.id ? 'location' : null"
+                (click)="scrollToCategory(cat.id)"
+              >
+                {{ getCategoryLabel(cat.name) }}
+              </button>
+            }
+          </nav>
+        } @else if (isCategoryRoute()) {
+          <nav class="beratzade-menu-breadcrumb" aria-label="Sayfa konumu">
+            <a [routerLink]="menuRouterLink()" [queryParams]="languageQueryParams()">← Menüye dön</a>
+            @if (activeCategory(); as selected) {
+              @if (activeSubcategory(); as selectedSubcategory) {
+                <a [routerLink]="categoryRouterLink(selected)" [queryParams]="languageQueryParams()">
+                  {{ getCategoryLabel(selected.name) }}
+                </a>
+                <span aria-hidden="true">/</span>
+                <span aria-current="page">{{ getCategoryLabel(selectedSubcategory.name) }}</span>
+              } @else {
+                <span aria-current="page">{{ getCategoryLabel(selected.name) }}</span>
+              }
+            }
+          </nav>
+          <nav class="beratzade-category-switcher" aria-label="Diğer menü kategorileri">
+            @for (category of orderedCategories(); track category.id) {
+              <a
+                [routerLink]="categoryRouterLink(category)"
+                [queryParams]="languageQueryParams()"
+                [class.is-active]="categoryRouteSlug(category.id) === categorySlug()"
+                [attr.aria-current]="categoryRouteSlug(category.id) === categorySlug() ? 'page' : null"
+              >{{ getCategoryLabel(category.name) }}</a>
+            }
+          </nav>
+          @if (activeCategory(); as selectedCategory) {
+            @if (selectedCategory.subcategories?.length) {
+              <nav
+                class="beratzade-category-switcher beratzade-subcategory-switcher"
+                [attr.aria-label]="getCategoryLabel(selectedCategory.name) + ' alt kategorileri'"
+              >
+                @for (subcategory of orderedSubcategories(selectedCategory); track subcategory.id) {
+                  <a
+                    [routerLink]="subcategoryRouterLink(selectedCategory, subcategory.id)"
+                    [queryParams]="languageQueryParams()"
+                    [class.is-active]="activeSubcategory()?.id === subcategory.id"
+                    [attr.aria-current]="activeSubcategory()?.id === subcategory.id ? 'page' : null"
+                  >{{ getCategoryLabel(subcategory.name) }}</a>
+                }
+              </nav>
+            }
+          }
+        }
+      }
+      @if (!isBeratzadeMenuOnly()) {
+        <p class="public-menu-delivery-cta">
+          <a [routerLink]="['/delivery', tenantId()]" class="btn btn-primary">
+            {{ 'PUBLIC_MENU.ORDER_DELIVERY' | translate }}
+          </a>
+        </p>
+      }
 
       @if (menuLoading()) {
         <p class="public-menu-status">{{ 'COMMON.LOADING' | translate }}</p>
       } @else if (categories().length === 0) {
         <p class="public-menu-status public-menu-empty">{{ 'PUBLIC_MENU.EMPTY_MENU' | translate }}</p>
       } @else {
-        @for (cat of categories(); track cat.id) {
+        @if (isBeratzadeMenuOnly() && !isCategoryRoute() && !searchTerm()) {
+          <section class="beratzade-category-index" aria-labelledby="beratzade-category-index-title">
+            <h2 id="beratzade-category-index-title">Kategoriler</h2>
+            <div class="beratzade-category-grid">
+              @for (cat of visibleCategories(); track cat.id) {
+                <a
+                  class="beratzade-category-card"
+                  [routerLink]="categoryRouterLink(cat)"
+                  [queryParams]="languageQueryParams()"
+                >
+                  <span class="beratzade-category-copy">
+                    <span class="beratzade-category-title">{{ getCategoryLabel(cat.name) }}</span>
+                    <span class="beratzade-category-arrow" aria-hidden="true">→</span>
+                  </span>
+                  <span
+                    class="beratzade-category-photo"
+                    [class.is-fallback]="hasCategoryImageFailed(cat.id)"
+                  >
+                    @if (categoryVisual(cat.id); as visual) {
+                      @if (!hasCategoryImageFailed(cat.id)) {
+                        <img
+                          [src]="visual.src"
+                          [alt]="visual.alt"
+                          [style.object-position]="visual.objectPosition"
+                          [attr.loading]="$first ? 'eager' : 'lazy'"
+                          decoding="async"
+                          (error)="categoryImageFailed(cat.id)"
+                        />
+                      }
+                    } @else {
+                      <span class="beratzade-category-photo-fallback"></span>
+                    }
+                    @if (hasCategoryImageFailed(cat.id)) {
+                      <span class="beratzade-category-photo-fallback"></span>
+                    }
+                  </span>
+                </a>
+              }
+            </div>
+          </section>
+        }
+        @if (!hasAnyProducts()) {
+          <p class="public-menu-status public-menu-empty">{{ 'PUBLIC_MENU.EMPTY_MENU' | translate }}</p>
+        } @else if (isCategoryRoute() && !activeCategory()) {
+          <p class="public-menu-status public-menu-empty public-menu-no-results" role="status">
+            Bu kategori bulunamadı. <a [routerLink]="menuRouterLink()" [queryParams]="languageQueryParams()">Genel menüye dön</a>
+          </p>
+        } @else if (isCategoryRoute() && activeCategory() && subcategorySlug() && !activeSubcategory()) {
+          <p class="public-menu-status public-menu-empty public-menu-no-results" role="status">
+            Bu alt kategori bulunamadı.
+            <a [routerLink]="categoryRouterLink(activeCategory()!)" [queryParams]="languageQueryParams()">Ana kategoriye dön</a>
+          </p>
+        } @else if (
+          isCategoryRoute() &&
+          activeCategory() &&
+          ((!activeSubcategory() && !activeCategory()!.subcategories?.length && !activeCategory()!.products.length) ||
+            (activeSubcategory() && !activeSubcategory()!.products.length))
+        ) {
+          <p class="public-menu-status public-menu-empty public-menu-no-results" role="status">
+            Bu kategoride henüz ürün bulunmuyor.
+          </p>
+        } @else if (searchTerm() && !hasSearchResults()) {
+          <p class="public-menu-status public-menu-empty public-menu-no-results" role="status">
+            @if (isBeratzadeMenuOnly()) {
+              Aramanızla eşleşen ürün bulunamadı.
+            } @else {
+              {{ 'PUBLIC_MENU.EMPTY_MENU' | translate }}
+            }
+          </p>
+        }
+        @if (!isBeratzadeMenuOnly() || isCategoryRoute() || searchTerm()) {
+        @for (cat of visibleCategories(); track cat.id) {
           <section class="public-menu-category" [attr.aria-labelledby]="'cat-' + cat.id">
             <h2 class="public-menu-category-title" [id]="'cat-' + cat.id">
               <button
@@ -99,6 +280,7 @@
                 <span class="public-menu-category-chevron" aria-hidden="true">{{
                   isCategoryExpanded(cat.id) ? '▾' : '▸'
                 }}</span>
+                <span class="public-menu-category-count">{{ cat.products.length }}</span>
               </button>
             </h2>
             @if (isCategoryExpanded(cat.id)) {
@@ -110,30 +292,112 @@
               >
                 @for (product of cat.products; track product.id) {
                   <li class="public-menu-product">
-                    @if (product.image_url) {
-                      <img
-                        class="public-menu-product-image"
-                        [src]="productImageUrl(product.image_url)"
-                        [alt]="product.name"
-                        loading="lazy"
-                        (error)="$any($event.target).style.display = 'none'"
-                      />
-                    }
-                    <div class="public-menu-product-body">
-                      <div class="public-menu-product-header">
-                        <span class="public-menu-product-name">{{ product.name }}</span>
-                        <span class="public-menu-product-price">{{ formatPrice(product) }}</span>
-                      </div>
-                      @if (product.description?.trim()) {
-                        <p class="public-menu-product-desc">{{ product.description }}</p>
-                      }
-                    </div>
+                    <button
+                      class="public-menu-product-card"
+                      [class.is-unavailable]="!product.available"
+                      type="button"
+                      [attr.aria-label]="product.name"
+                      (click)="openProductDetails(product)"
+                    >
+                      <span class="public-menu-product-image-wrap">
+                        @if (hasProductImage(product)) {
+                          <img
+                            class="public-menu-product-image"
+                            [src]="productImageUrl(product.image_url)"
+                            [alt]="product.name"
+                            loading="lazy"
+                            decoding="async"
+                            (error)="productImageFailed(product.id)"
+                          />
+                        } @else {
+                          <span class="public-menu-product-placeholder" aria-hidden="true">
+                            <svg viewBox="0 0 96 96" fill="none">
+                              <circle cx="48" cy="48" r="28" />
+                              <circle cx="48" cy="48" r="19" />
+                              <path d="M48 33c-6 7-8 13 0 22 8-9 6-15 0-22Z" />
+                              <path d="M40 47c-7-2-11 1-12 6 6 3 10 1 12-6Zm16 0c7-2 11 1 12 6-6 3-10 1-12-6Z" />
+                            </svg>
+                          </span>
+                        }
+                        @if (product.promo_label) {
+                          <span class="public-menu-product-promo">{{ product.promo_label }}</span>
+                        }
+                      </span>
+                      <span class="public-menu-product-body">
+                        <span class="public-menu-product-header">
+                          <span class="public-menu-product-name">{{ product.name }}</span>
+                          <span class="public-menu-product-price">
+                            @if (product.list_price_formatted && product.promo_label) {
+                              <del>{{ product.list_price_formatted }}</del>
+                            }
+                            {{ formatPrice(product) }}
+                          </span>
+                        </span>
+                        @if (product.description?.trim()) {
+                          <span class="public-menu-product-desc">{{ product.description }}</span>
+                        }
+                        @if (!product.available) {
+                          <span class="public-menu-product-unavailable">Şu anda mevcut değil</span>
+                        }
+                      </span>
+                    </button>
                   </li>
                 }
               </ul>
             }
           </section>
         }
+        }
+      }
+
+      @if (selectedProduct(); as product) {
+        <div
+          class="public-menu-detail-backdrop"
+          role="presentation"
+          (click)="closeProductDetails()"
+          (keydown.escape)="closeProductDetails()"
+          tabindex="-1"
+        >
+          <section
+            class="public-menu-detail"
+            role="dialog"
+            aria-modal="true"
+            [attr.aria-labelledby]="'product-detail-title-' + product.id"
+            (click)="$event.stopPropagation()"
+            (keydown.escape)="closeProductDetails()"
+            tabindex="-1"
+          >
+            <button class="public-menu-detail-close" type="button" (click)="closeProductDetails()" [attr.aria-label]="'COMMON.CLOSE' | translate">×</button>
+            <div class="public-menu-detail-image">
+              @if (hasProductImage(product)) {
+                <img [src]="productImageUrl(product.image_url)" [alt]="product.name" decoding="async" />
+              } @else {
+                <span class="public-menu-product-placeholder" aria-hidden="true">
+                  <svg viewBox="0 0 96 96" fill="none">
+                    <circle cx="48" cy="48" r="28" />
+                    <circle cx="48" cy="48" r="19" />
+                    <path d="M48 33c-6 7-8 13 0 22 8-9 6-15 0-22Z" />
+                  </svg>
+                </span>
+              }
+            </div>
+            <div class="public-menu-detail-copy">
+              <h2 [id]="'product-detail-title-' + product.id">{{ product.name }}</h2>
+              @if (product.description?.trim()) {
+                <p>{{ product.description }}</p>
+              }
+              <div class="public-menu-detail-price">
+                @if (product.list_price_formatted && product.promo_label) {
+                  <del>{{ product.list_price_formatted }}</del>
+                }
+                <strong>{{ formatPrice(product) }}</strong>
+              </div>
+              @if (!product.available) {
+                <p class="public-menu-product-unavailable">Şu anda mevcut değil</p>
+              }
+            </div>
+          </section>
+        </div>
       }
 
       @if (
@@ -213,11 +477,13 @@
       }
 
       <div class="public-menu-footer-actions">
-        <a
-          [routerLink]="bookRouterLink()"
-          class="public-menu-back-link"
-          data-testid="public-menu-back-home"
-        >{{ 'PUBLIC_MENU.BACK_HOME' | translate }}</a>
+        @if (!isBeratzadeMenuOnly()) {
+          <a
+            [routerLink]="bookRouterLink()"
+            class="public-menu-back-link"
+            data-testid="public-menu-back-home"
+          >{{ 'PUBLIC_MENU.BACK_HOME' | translate }}</a>
+        }
         <app-legal-links
           [termsUrl]="tenant()?.terms_of_service_url"
           [privacyUrl]="tenant()?.privacy_policy_url"

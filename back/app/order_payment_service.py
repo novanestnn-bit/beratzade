@@ -110,8 +110,10 @@ def payment_to_dict(session: Session, p: models.OrderPayment) -> dict:
         "payment_method": p.payment_method,
         "payer_label": p.payer_label,
         "tip_amount_cents": p.tip_amount_cents,
+        "idempotency_key": p.idempotency_key,
         "stripe_payment_intent_id": p.stripe_payment_intent_id,
         "paid_by_user_id": p.paid_by_user_id,
+        "cash_register_session_id": p.cash_register_session_id,
         "paid_at": p.paid_at.isoformat() if p.paid_at else None,
         "voided_at": p.voided_at.isoformat() if p.voided_at else None,
         "note": p.note,
@@ -198,6 +200,41 @@ def settlement_payment_method(payments: list[models.OrderPayment]) -> str:
     return "cash"
 
 
+def close_paid_table_session(session: Session, order: models.Order) -> bool:
+    """Release the table in the same transaction that settles its active order."""
+    if not order.paid_at or not order.id or not order.table_id:
+        return False
+    table = session.exec(
+        select(models.Table)
+        .where(
+            models.Table.id == order.table_id,
+            models.Table.tenant_id == order.tenant_id,
+        )
+        .with_for_update()
+    ).first()
+    if not table or table.active_order_id != order.id:
+        return False
+    table.is_active = False
+    table.active_order_id = None
+    table.order_pin = None
+    session.add(table)
+    reservations = session.exec(
+        select(models.Reservation).where(
+            models.Reservation.tenant_id == order.tenant_id,
+            models.Reservation.table_id == table.id,
+            models.Reservation.status == models.ReservationStatus.seated,
+        )
+    ).all()
+    now = datetime.now(timezone.utc)
+    for reservation in reservations:
+        reservation.status = models.ReservationStatus.finished
+        reservation.table_id = None
+        reservation.seated_at = None
+        reservation.updated_at = now
+        session.add(reservation)
+    return True
+
+
 def record_payment(
     session: Session,
     *,
@@ -205,11 +242,13 @@ def record_payment(
     amount_cents: int | None,
     payment_method: str,
     paid_by_user_id: int | None,
+    cash_register_session_id: int | None = None,
     payer_label: str | None = None,
     tip_amount_cents: int | None = None,
     note: str | None = None,
     stripe_payment_intent_id: str | None = None,
     order_item_ids: list[int] | None = None,
+    idempotency_key: str | None = None,
     settle_if_covered: bool = True,
 ) -> tuple[models.OrderPayment, dict]:
     """Append a payment leg. When settle_if_covered and remaining hits 0, mark order paid.
@@ -217,6 +256,31 @@ def record_payment(
     Pass ``order_item_ids`` for split-by-line (amount derived from lines). Otherwise
     ``amount_cents`` is required (split by amount).
     """
+    key = (idempotency_key or "").strip() or None
+    method = (payment_method or "cash").strip().lower()[:32] or "cash"
+    if key:
+        existing = session.exec(
+            select(models.OrderPayment).where(
+                models.OrderPayment.tenant_id == order.tenant_id,
+                models.OrderPayment.idempotency_key == key,
+            )
+        ).first()
+        if existing:
+            existing_line_ids = set(payment_line_ids(session, existing.id)) if existing.id else set()
+            requested_line_ids = {int(value) for value in (order_item_ids or [])}
+            same_request = (
+                existing.order_id == order.id
+                and existing.payment_method == method
+                and (int(existing.amount_cents) == int(amount_cents) if amount_cents is not None else bool(requested_line_ids))
+                and (not requested_line_ids or requested_line_ids == existing_line_ids)
+                and int(existing.tip_amount_cents or 0) == int(tip_amount_cents or 0)
+            )
+            if not same_request:
+                raise HTTPException(status_code=409, detail="Idempotency key was already used for a different payment")
+            if existing.voided_at is not None:
+                raise HTTPException(status_code=409, detail="This payment request was already voided")
+            return existing, reconciliation_dict(session, order)
+
     if order.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Order not found")
     if order.status == models.OrderStatus.cancelled:
@@ -246,7 +310,6 @@ def record_payment(
         if amt < 1:
             raise HTTPException(status_code=400, detail="amount_cents must be at least 1")
 
-    method = (payment_method or "cash").strip().lower()[:32] or "cash"
     label = (payer_label or "").strip()[:120] or None
     tip = int(tip_amount_cents) if tip_amount_cents is not None else None
     if tip is not None and tip < 0:
@@ -274,8 +337,10 @@ def record_payment(
         payment_method=method,
         payer_label=label,
         tip_amount_cents=tip if tip else None,
+        idempotency_key=key,
         stripe_payment_intent_id=stripe_payment_intent_id,
         paid_by_user_id=paid_by_user_id,
+        cash_register_session_id=cash_register_session_id,
         paid_at=now,
         note=(note or "").strip()[:500] or None,
     )
@@ -306,6 +371,9 @@ def record_payment(
         order.payment_method = settlement_payment_method(payments)
         order.status = status_after_full_payment(session, order)
         session.add(order)
+
+    if order.paid_at:
+        close_paid_table_session(session, order)
 
     session.commit()
     session.refresh(row)
@@ -340,6 +408,7 @@ def ensure_full_payment_leg(
     """
     if not order.id or not order.paid_at:
         return None
+    close_paid_table_session(session, order)
     due = order_due_cents(session, order, include_tip=True)
     paid = amount_paid_cents(session, order.id)
     remaining = max(0, due - paid)

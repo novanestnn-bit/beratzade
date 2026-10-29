@@ -932,10 +932,10 @@ def _is_take_away_table(table) -> bool:
 STAFF_MENU_TOKEN_EXPIRY = 3600  # 1 hour
 
 
-def _sign_staff_menu_token(table_token: str) -> str:
+def _sign_staff_menu_token(table_token: str, user_id: int | None = None) -> str:
     """Produce a signed token for staff to open menu for this table without PIN."""
     expiry = int(_time.time()) + STAFF_MENU_TOKEN_EXPIRY
-    payload = f"{table_token}:{expiry}"
+    payload = f"{table_token}:{expiry}:{user_id}" if user_id is not None else f"{table_token}:{expiry}"
     sig = hmac.new(
         settings.secret_key.encode("utf-8"),
         payload.encode("utf-8"),
@@ -944,31 +944,42 @@ def _sign_staff_menu_token(table_token: str) -> str:
     return base64.urlsafe_b64encode(f"{payload}".encode("utf-8") + b"." + sig).decode("ascii").rstrip("=")
 
 
-def _verify_staff_menu_token(table_token: str, token: str) -> bool:
-    """Verify staff_access token for this table_token; returns True if valid and not expired."""
+def _staff_menu_token_claims(table_token: str, token: str) -> tuple[bool, int | None]:
+    """Verify a short-lived staff table token and return its issuing user id."""
     if not token or not table_token:
-        return False
+        return False, None
     try:
         # Restore padding if stripped
         padded = token + "=" * (4 - len(token) % 4) if len(token) % 4 else token
         raw = base64.urlsafe_b64decode(padded)
-        payload_b, _, sig_b = raw.rpartition(b".")
-        if not payload_b or not sig_b:
-            return False
+        if len(raw) <= 33 or raw[-33:-32] != b".":
+            return False, None
+        payload_b, sig_b = raw[:-33], raw[-32:]
         payload = payload_b.decode("utf-8")
-        tt, exp_str = payload.split(":", 1)
+        parts = payload.split(":", 2)
+        if len(parts) < 2:
+            return False, None
+        tt, exp_str = parts[:2]
+        staff_user_id = int(parts[2]) if len(parts) == 3 and parts[2] else None
         if tt != table_token:
-            return False
+            return False, None
         if int(exp_str) < _time.time():
-            return False
+            return False, None
         expected = hmac.new(
             settings.secret_key.encode("utf-8"),
             payload.encode("utf-8"),
             hashlib.sha256,
         ).digest()
-        return hmac.compare_digest(sig_b, expected)
+        if not hmac.compare_digest(sig_b, expected):
+            return False, None
+        return True, staff_user_id
     except Exception:
-        return False
+        return False, None
+
+
+def _verify_staff_menu_token(table_token: str, token: str) -> bool:
+    """Verify staff_access token for this table_token; returns True if valid and not expired."""
+    return _staff_menu_token_claims(table_token, token)[0]
 
 
 # Public Satisfecho Delivery checkout + track: signed token covers pay and track (24h)
@@ -1331,6 +1342,216 @@ def get_public_tenant_menu(
     if body is None:
         raise HTTPException(status_code=404, detail=api_error_payload("tenant_not_found", lang))
     return body
+
+
+@app.get("/staff/pos-menu", tags=["Staff POS"])
+def get_staff_pos_menu(
+    current_user: Annotated[models.User, Depends(require_permission(Permission.PRODUCT_READ))],
+    sale_type: str = Query(models.StaffSaleType.quick_sale.value, max_length=32),
+    lang: str = Query("tr", max_length=8),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Authenticated POS catalog with source IDs needed for unambiguous order writes."""
+    from .public_tenant_menu import build_public_tenant_menu
+
+    if sale_type not in {
+        models.OrderChannel.table.value,
+        models.StaffSaleType.quick_sale.value,
+        models.StaffSaleType.takeaway.value,
+    }:
+        raise HTTPException(status_code=400, detail="Unsupported POS sale type")
+
+    body = build_public_tenant_menu(
+        session,
+        current_user.tenant_id,
+        lang,
+        include_source=True,
+        order_channel=sale_type,
+    )
+    if body is None:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    return body
+
+
+@app.post("/orders/staff-sale", tags=["Staff POS"])
+def create_staff_sale(
+    body: models.StaffSaleCreate,
+    current_user: Annotated[
+        models.User, Depends(require_permission(Permission.ORDER_UPDATE_STATUS))
+    ],
+    session: Session = Depends(get_session),
+) -> dict:
+    """Create an unpaid counter or pickup order through the shared order ledger."""
+    if not body.items:
+        raise HTTPException(status_code=400, detail="Order must contain at least one item")
+    if any(item.quantity < 1 or item.quantity > 99 for item in body.items):
+        raise HTTPException(status_code=400, detail="Item quantity must be between 1 and 99")
+
+    payload = body.model_dump(mode="json", exclude={"idempotency_key"})
+    payload_hash = hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    key = body.idempotency_key.strip()
+    existing = session.exec(
+        select(models.Order).where(
+            models.Order.tenant_id == current_user.tenant_id,
+            models.Order.staff_sale_idempotency_key == key,
+        )
+    ).first()
+    if existing:
+        if existing.staff_sale_payload_hash != payload_hash:
+            raise HTTPException(status_code=409, detail="Idempotency key was used for another sale")
+        from app.order_payment_service import order_due_cents
+
+        return {
+            "id": existing.id,
+            "status": existing.status.value,
+            "order_channel": _order_channel_value(existing),
+            "table_id": None,
+            "customer_name": existing.customer_name,
+            "total_cents": order_due_cents(session, existing),
+            "created_at": existing.created_at,
+            "duplicate": True,
+        }
+
+    from .public_tenant_menu import build_public_tenant_menu
+    from .delivery_order_service import _add_order_items, _product_from_tenant_product
+    from .order_notes import normalize_order_note
+    from app.order_payment_service import order_due_cents
+
+    channel = body.sale_type.value
+    menu = build_public_tenant_menu(
+        session,
+        current_user.tenant_id,
+        "tr",
+        include_source=True,
+        order_channel=channel,
+    )
+    sellable = {}
+    for category in menu.get("category_tree", []):
+        category_products = list(category.get("products", []))
+        for subcategory in category.get("subcategories", []):
+            category_products.extend(subcategory.get("products", []))
+        for product in category_products:
+            sellable[(product.get("source"), int(product["id"]))] = product
+
+    from .product_customization import validate_and_normalize_customization_answers
+
+    resolved_lines = []
+    for item in body.items:
+        source = item.source or ""
+        if source not in {"tenant_product", "product"} or (source, item.product_id) not in sellable:
+            raise HTTPException(status_code=400, detail=f"Product {item.product_id} is unavailable for sale")
+        if source == "tenant_product":
+            tenant_product = session.exec(
+                select(models.TenantProduct).where(
+                    models.TenantProduct.id == item.product_id,
+                    models.TenantProduct.tenant_id == current_user.tenant_id,
+                )
+            ).first()
+            product = _product_from_tenant_product(
+                session, tenant_id=current_user.tenant_id, tp=tenant_product
+            ) if tenant_product else None
+        else:
+            product = session.exec(
+                select(models.Product).where(
+                    models.Product.id == item.product_id,
+                    models.Product.tenant_id == current_user.tenant_id,
+                    models.Product.is_active == True,  # noqa: E712
+                )
+            ).first()
+        if not product:
+            raise HTTPException(status_code=400, detail=f"Product {item.product_id} is unavailable for sale")
+        answers, customization_summary = validate_and_normalize_customization_answers(
+            session,
+            current_user.tenant_id,
+            int(product.id),
+            item.customization_answers,
+        )
+        if item.line_modifiers:
+            raise HTTPException(status_code=422, detail="Line modifiers are not configured for this POS")
+        resolved_lines.append((
+            product,
+            item.quantity,
+            normalize_order_note(item.notes),
+            answers,
+            customization_summary,
+        ))
+
+    customer_phone = None
+    if body.customer_phone and body.customer_phone.strip():
+        try:
+            customer_phone = normalize_phone_e164(body.customer_phone, settings.default_phone_country)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid customer_phone")
+
+    order = models.Order(
+        tenant_id=current_user.tenant_id,
+        table_id=None,
+        status=models.OrderStatus.pending,
+        created_by_user_id=current_user.id,
+        customer_name=(body.customer_name or "").strip() or None,
+        customer_phone=customer_phone,
+        notes=normalize_order_note(body.notes),
+        order_channel=body.sale_type,
+        staff_sale_idempotency_key=key,
+        staff_sale_payload_hash=payload_hash,
+    )
+    session.add(order)
+    session.flush()
+    _add_order_items(
+        session,
+        order=order,
+        tenant_id=current_user.tenant_id,
+        resolved_lines=resolved_lines,
+        order_date=order.created_at.date(),
+    )
+    session.flush()
+    total_cents = order_due_cents(session, order)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        existing = session.exec(
+            select(models.Order).where(
+                models.Order.tenant_id == current_user.tenant_id,
+                models.Order.staff_sale_idempotency_key == key,
+            )
+        ).first()
+        if existing and existing.staff_sale_payload_hash == payload_hash:
+            return {
+                "id": existing.id,
+                "status": existing.status.value,
+                "order_channel": _order_channel_value(existing),
+                "table_id": None,
+                "customer_name": existing.customer_name,
+                "total_cents": order_due_cents(session, existing),
+                "created_at": existing.created_at,
+                "duplicate": True,
+            }
+        raise HTTPException(status_code=409, detail="Sale could not be recorded; retry with a new key")
+    session.refresh(order)
+
+    display_name = "Gel-Al" if channel == models.OrderChannel.takeaway.value else "Hızlı Satış"
+    try:
+        from app.delivery_order_service import _publish_and_deduct
+
+        _publish_and_deduct(session, order, current_user.tenant_id, display_name)
+    except Exception:
+        logger.exception("Unable to publish staff POS sale order_id=%s", order.id)
+
+    return {
+        "id": order.id,
+        "status": order.status.value,
+        "order_channel": channel,
+        "table_id": None,
+        "customer_name": order.customer_name,
+        "total_cents": total_cents,
+        "created_at": order.created_at,
+        "duplicate": False,
+    }
+
+
 
 
 @app.get(
@@ -12199,7 +12420,7 @@ def get_staff_menu_token(
     ).first()
     if not table:
         raise HTTPException(status_code=404, detail="Table not found")
-    token = _sign_staff_menu_token(table.token)
+    token = _sign_staff_menu_token(table.token, current_user.id)
     return {
         "token": token,
         "table_token": table.token,
@@ -13593,11 +13814,16 @@ def create_order(
                 status_code=400,
                 detail="Add at least one product to place an order.",
             )
+        staff_token_valid, staff_user_id = _staff_menu_token_claims(table_token, order_data.staff_access or "")
+        if staff_user_id is not None and not session.exec(select(models.User).where(models.User.id == staff_user_id, models.User.tenant_id == table.tenant_id)).first():
+            staff_user_id = None
+            staff_token_valid = False
         new_order = models.Order(
             table_id=table.id,
             tenant_id=table.tenant_id,
             status=models.OrderStatus.pending,
             session_id=None,
+            created_by_user_id=staff_user_id if staff_token_valid else None,
         )
         session.add(new_order)
         session.flush()
@@ -14809,7 +15035,14 @@ def mark_order_paid(
     already = order_pay_svc.amount_paid_cents(session, order.id)
     remaining = max(0, due - already)
     method = (payment_data.payment_method or "cash").strip() or "cash"
-
+    cash_register = None
+    if method.lower() == "cash":
+        cash_register = session.exec(
+            select(models.CashRegisterSession).where(
+                models.CashRegisterSession.tenant_id == current_user.tenant_id,
+                models.CashRegisterSession.status == "open",
+            ).with_for_update()
+        ).first()
     if remaining > 0:
         _payment, recon = order_pay_svc.record_payment(
             session,
@@ -14817,6 +15050,7 @@ def mark_order_paid(
             amount_cents=remaining,
             payment_method=method,
             paid_by_user_id=current_user.id,
+            cash_register_session_id=cash_register.id if cash_register else None,
             tip_amount_cents=None,
             note="Full settlement (mark-paid)",
             settle_if_covered=True,
@@ -14830,6 +15064,7 @@ def mark_order_paid(
         ) or method
         order.status = order_pay_svc.status_after_full_payment(session, order)
         session.add(order)
+        order_pay_svc.close_paid_table_session(session, order)
         session.commit()
         session.refresh(order)
         recon = order_pay_svc.reconciliation_dict(session, order)
@@ -14873,6 +15108,205 @@ def mark_order_paid(
     }
 
 
+def _cash_register_expected_cents(
+    session: Session, cash_session: models.CashRegisterSession
+) -> int:
+    payments = session.exec(
+        select(models.OrderPayment).where(
+            models.OrderPayment.tenant_id == cash_session.tenant_id,
+            models.OrderPayment.cash_register_session_id == cash_session.id,
+            models.OrderPayment.payment_method == "cash",
+            models.OrderPayment.voided_at.is_(None),
+        )
+    ).all()
+    movements = session.exec(
+        select(models.CashRegisterMovement).where(
+            models.CashRegisterMovement.tenant_id == cash_session.tenant_id,
+            models.CashRegisterMovement.session_id == cash_session.id,
+        )
+    ).all()
+    cash_sales = sum(int(row.amount_cents or 0) + int(row.tip_amount_cents or 0) for row in payments)
+    movement_total = sum(
+        int(row.amount_cents) if row.movement_type == "cash_in" else -int(row.amount_cents)
+        for row in movements
+    )
+    return max(0, int(cash_session.opening_cash_cents) + cash_sales + movement_total)
+
+
+def _cash_register_session_payload(
+    session: Session, cash_session: models.CashRegisterSession
+) -> dict:
+    expected = _cash_register_expected_cents(session, cash_session)
+    opened_by = session.get(models.User, cash_session.opened_by_user_id)
+    closed_by = session.get(models.User, cash_session.closed_by_user_id) if cash_session.closed_by_user_id else None
+    movement_rows = session.exec(
+        select(models.CashRegisterMovement).where(
+            models.CashRegisterMovement.session_id == cash_session.id,
+            models.CashRegisterMovement.tenant_id == cash_session.tenant_id,
+        ).order_by(models.CashRegisterMovement.created_at, models.CashRegisterMovement.id)
+    ).all()
+    payments = session.exec(
+        select(models.OrderPayment).where(
+            models.OrderPayment.cash_register_session_id == cash_session.id,
+            models.OrderPayment.tenant_id == cash_session.tenant_id,
+        ).order_by(models.OrderPayment.paid_at, models.OrderPayment.id)
+    ).all()
+    return {
+        "id": cash_session.id,
+        "status": cash_session.status,
+        "opened_at": cash_session.opened_at.isoformat(),
+        "opened_by_user_id": cash_session.opened_by_user_id,
+        "opened_by_name": (opened_by.full_name or opened_by.email) if opened_by else None,
+        "opening_cash_cents": cash_session.opening_cash_cents,
+        "expected_cash_cents": expected if cash_session.status == "open" else cash_session.expected_cash_cents,
+        "closed_at": cash_session.closed_at.isoformat() if cash_session.closed_at else None,
+        "closed_by_user_id": cash_session.closed_by_user_id,
+        "closed_by_name": (closed_by.full_name or closed_by.email) if closed_by else None,
+        "counted_cash_cents": cash_session.counted_cash_cents,
+        "variance_cents": cash_session.variance_cents,
+        "note": cash_session.note,
+        "movements": [{
+            "id": row.id,
+            "movement_type": row.movement_type,
+            "amount_cents": row.amount_cents,
+            "note": row.note,
+            "created_at": row.created_at.isoformat(),
+            "created_by_user_id": row.created_by_user_id,
+        } for row in movement_rows],
+        "cash_payments": [{
+            "id": row.id,
+            "order_id": row.order_id,
+            "amount_cents": row.amount_cents,
+            "tip_amount_cents": row.tip_amount_cents or 0,
+            "paid_at": row.paid_at.isoformat(),
+            "paid_by_user_id": row.paid_by_user_id,
+            "voided_at": row.voided_at.isoformat() if row.voided_at else None,
+        } for row in payments],
+    }
+
+
+
+
+@app.get("/cash-register/current", tags=["Cash Register"])
+def get_current_cash_register(
+    current_user: Annotated[models.User, Depends(require_permission(Permission.ORDER_READ))],
+    session: Session = Depends(get_session),
+) -> dict | None:
+    row = session.exec(
+        select(models.CashRegisterSession).where(
+            models.CashRegisterSession.tenant_id == current_user.tenant_id,
+            models.CashRegisterSession.status == "open",
+        ).order_by(models.CashRegisterSession.opened_at.desc())
+    ).first()
+    return _cash_register_session_payload(session, row) if row else None
+
+
+@app.get("/cash-register/sessions", tags=["Cash Register"])
+def list_cash_register_sessions(
+    current_user: Annotated[models.User, Depends(require_permission(Permission.REPORT_READ))],
+    session: Session = Depends(get_session),
+    limit: int = Query(30, ge=1, le=100),
+) -> list[dict]:
+    rows = session.exec(
+        select(models.CashRegisterSession).where(
+            models.CashRegisterSession.tenant_id == current_user.tenant_id,
+        ).order_by(models.CashRegisterSession.opened_at.desc()).limit(limit)
+    ).all()
+    return [_cash_register_session_payload(session, row) for row in rows]
+
+
+@app.post("/cash-register/open", tags=["Cash Register"])
+def open_cash_register(
+    body: models.CashRegisterOpen,
+    current_user: Annotated[models.User, Depends(require_permission(Permission.ORDER_UPDATE_STATUS))],
+    session: Session = Depends(get_session),
+) -> dict:
+    active = session.exec(
+        select(models.CashRegisterSession).where(
+            models.CashRegisterSession.tenant_id == current_user.tenant_id,
+            models.CashRegisterSession.status == "open",
+        ).with_for_update()
+    ).first()
+    if active:
+        raise HTTPException(status_code=409, detail="Kasada açık bir vardiya zaten bulunuyor")
+    row = models.CashRegisterSession(
+        tenant_id=current_user.tenant_id,
+        opened_by_user_id=current_user.id,
+        opening_cash_cents=body.opening_cash_cents,
+        note=(body.note or "").strip() or None,
+    )
+    session.add(row)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(status_code=409, detail="Kasada açık bir vardiya zaten bulunuyor") from None
+    session.refresh(row)
+    return _cash_register_session_payload(session, row)
+
+
+@app.post("/cash-register/movements", tags=["Cash Register"])
+def create_cash_register_movement(
+    body: models.CashRegisterMovementCreate,
+    current_user: Annotated[models.User, Depends(require_permission(Permission.ORDER_MARK_PAID))],
+    session: Session = Depends(get_session),
+) -> dict:
+    if body.movement_type not in {"cash_in", "cash_out"}:
+        raise HTTPException(status_code=422, detail="Geçersiz kasa hareketi")
+    cash_session = session.exec(
+        select(models.CashRegisterSession).where(
+            models.CashRegisterSession.tenant_id == current_user.tenant_id,
+            models.CashRegisterSession.status == "open",
+        ).with_for_update()
+    ).first()
+    if not cash_session:
+        raise HTTPException(status_code=409, detail="Önce kasa vardiyası açılmalı")
+    if body.movement_type == "cash_out" and body.amount_cents > _cash_register_expected_cents(session, cash_session):
+        raise HTTPException(status_code=400, detail="Kasadan çıkış tutarı mevcut beklenen nakdi aşamaz")
+    row = models.CashRegisterMovement(
+        tenant_id=current_user.tenant_id,
+        session_id=cash_session.id,
+        movement_type=body.movement_type,
+        amount_cents=body.amount_cents,
+        note=body.note.strip(),
+        created_by_user_id=current_user.id,
+    )
+    session.add(row)
+    session.commit()
+    return _cash_register_session_payload(session, cash_session)
+
+
+@app.post("/cash-register/close", tags=["Cash Register"])
+def close_cash_register(
+    body: models.CashRegisterClose,
+    current_user: Annotated[models.User, Depends(require_permission(Permission.ORDER_UPDATE_STATUS))],
+    session: Session = Depends(get_session),
+) -> dict:
+    cash_session = session.exec(
+        select(models.CashRegisterSession).where(
+            models.CashRegisterSession.tenant_id == current_user.tenant_id,
+            models.CashRegisterSession.status == "open",
+        ).with_for_update()
+    ).first()
+    if not cash_session:
+        raise HTTPException(status_code=409, detail="Kapatılacak açık kasa vardiyası bulunamadı")
+    expected = _cash_register_expected_cents(session, cash_session)
+    cash_session.status = "closed"
+    cash_session.closed_at = datetime.now(timezone.utc)
+    cash_session.closed_by_user_id = current_user.id
+    cash_session.expected_cash_cents = expected
+    cash_session.counted_cash_cents = body.counted_cash_cents
+    cash_session.variance_cents = body.counted_cash_cents - expected
+    if body.note and body.note.strip():
+        cash_session.note = body.note.strip()
+    session.add(cash_session)
+    session.commit()
+    session.refresh(cash_session)
+    return _cash_register_session_payload(session, cash_session)
+
+
+
+
 @app.get("/orders/{order_id}/payments")
 def get_order_payments(
     order_id: int,
@@ -14909,12 +15343,27 @@ def post_order_payment(
     if not order or order.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Order not found")
 
+    payment_method = (body.payment_method or "cash").strip().lower()
+    cash_session_id = None
+    if payment_method == "cash":
+        previous = None
+        if body.idempotency_key:
+            previous = session.exec(select(models.OrderPayment).where(models.OrderPayment.tenant_id == current_user.tenant_id, models.OrderPayment.idempotency_key == body.idempotency_key)).first()
+        if previous:
+            cash_session_id = previous.cash_register_session_id
+        else:
+            cash_session = session.exec(select(models.CashRegisterSession).where(models.CashRegisterSession.tenant_id == current_user.tenant_id, models.CashRegisterSession.status == "open").with_for_update()).first()
+            if not cash_session:
+                raise HTTPException(status_code=409, detail="Open a cash register session before recording cash payments")
+            cash_session_id = cash_session.id
     payment, recon = order_pay_svc.record_payment(
         session,
         order=order,
         amount_cents=body.amount_cents,
-        payment_method=body.payment_method,
+        payment_method=payment_method,
         paid_by_user_id=current_user.id,
+        cash_register_session_id=cash_session_id,
+        idempotency_key=body.idempotency_key,
         payer_label=body.payer_label,
         tip_amount_cents=body.tip_amount_cents,
         note=body.note,
@@ -15065,6 +15514,7 @@ def finish_order(
         ) or method
         order.status = order_pay_svc.status_after_full_payment(session, order)
         session.add(order)
+        order_pay_svc.close_paid_table_session(session, order)
         session.commit()
         session.refresh(order)
         recon = order_pay_svc.reconciliation_dict(session, order)

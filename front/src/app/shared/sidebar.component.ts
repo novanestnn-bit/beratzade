@@ -132,6 +132,12 @@ type NavGroupKey = 'operations' | 'planning' | 'catalog' | 'admin';
             </svg>
             <span>{{ 'NAV.ORDERS' | translate }}</span>
           </a>
+          @if (canUseStaffPos()) {
+            <a routerLink="/staff/pos" routerLinkActive="active" class="nav-link" data-testid="nav-main-sales" (click)="closeSidebar()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M7 15h3"/></svg>
+              <span>{{ 'STAFF_POS.NAV_LABEL' | translate }}</span>
+            </a>
+          }
 
           @if (showOperationsGroup()) {
             <div class="nav-section">
@@ -160,7 +166,11 @@ type NavGroupKey = 'operations' | 'planning' | 'catalog' | 'admin';
                       <span>{{ 'NAV.TABLES' | translate }}</span>
                     </a>
                   }
-                  @if (moduleEnabled('kitchen_bar')) {
+                  @if (canEnterStaffOrder() && moduleEnabled('tables')) {
+                    <a routerLink="/staff/order-entry" routerLinkActive="active" class="nav-sublink" data-testid="nav-staff-order-entry" (click)="closeSidebar()">
+                      <span>{{ 'STAFF_ORDER_ENTRY.NAV_LABEL' | translate }}</span>
+                    </a>
+                  }                  @if (moduleEnabled('kitchen_bar')) {
                     <a routerLink="/kitchen" routerLinkActive="active" class="nav-sublink" (click)="closeSidebar()">
                       <span>{{ 'NAV.KITCHEN_DISPLAY' | translate }}</span>
                     </a>
@@ -416,6 +426,8 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
       (this.connectivity.status() !== 'online' || this.offlineQueue.pendingCount() > 0)
   );
 
+  canUseStaffPos = computed(() => this.permissions.hasAllPermissions(this.user(), 'product:read', 'order:update_status'));
+  canEnterStaffOrder = computed(() => this.permissions.hasAllPermissions(this.user(), 'order:update_status', 'table:activate'));
   canViewTables = computed(() => this.permissions.canAccessRoute(this.user(), '/tables'));
   canViewReservations = computed(() => this.permissions.hasPermission(this.user(), 'reservation:read'));
   canViewCustomers = computed(() => this.permissions.canAccessRoute(this.user(), '/customers'));
@@ -433,6 +445,8 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
   showOperationsGroup = computed(
     () =>
       (this.canViewTables() && this.moduleEnabled('tables')) ||
+      (this.canEnterStaffOrder() && this.moduleEnabled('tables')) ||
+      this.canUseStaffPos() ||
       this.moduleEnabled('kitchen_bar') ||
       this.canViewCustomers()
   );

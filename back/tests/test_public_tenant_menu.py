@@ -40,6 +40,67 @@ class TestPublicTenantMenu(PgClientTestCase):
         self.assertEqual(data["lang"], "en")
         self.assertEqual(data["categories"], [])
 
+    def test_custom_empty_categories_are_visible_in_public_menu(self):
+        self.tenant.custom_subcategories = {
+            "Kahvaltı": [],
+            "Kebaplar ve Izgaralar": [],
+        }
+        self.session.add(self.tenant)
+        self.session.commit()
+
+        response = self.client.get(f"/public/tenants/{self.tenant.id}/menu?lang=tr")
+        self.assertEqual(response.status_code, 200, response.text)
+        categories = response.json()["categories"]
+        self.assertEqual(
+            [item["name"] for item in categories],
+            ["Kahvaltı", "Kebaplar ve Izgaralar"],
+        )
+        self.assertTrue(all(item["products"] == [] for item in categories))
+
+    def test_category_tree_includes_empty_subcategories_and_keeps_products_separate(self):
+        self.tenant.custom_subcategories = {
+            "Kahvaltı": ["Fırın Ürünleri", "Menemenler"],
+            "Kebaplar ve Izgaralar": ["Et", "Tavuk"],
+        }
+        self.session.add(self.tenant)
+        self.session.add(
+            models.Product(
+                tenant_id=self.tenant.id,
+                name="DEMO — Menemen",
+                price_cents=16500,
+                category="Kahvaltı",
+                subcategory="Menemenler",
+            )
+        )
+        self.session.add(
+            models.Product(
+                tenant_id=self.tenant.id,
+                name="DEMO — Kahvaltı Tabağı",
+                price_cents=28500,
+                category="Kahvaltı",
+            )
+        )
+        self.session.commit()
+
+        response = self.client.get(f"/public/tenants/{self.tenant.id}/menu?lang=tr")
+        self.assertEqual(response.status_code, 200, response.text)
+        data = response.json()
+        breakfast = next(item for item in data["category_tree"] if item["name"] == "Kahvaltı")
+        bakery = next(item for item in breakfast["subcategories"] if item["name"] == "Fırın Ürünleri")
+        menemen = next(item for item in breakfast["subcategories"] if item["name"] == "Menemenler")
+        kebabs = next(item for item in data["category_tree"] if item["name"] == "Kebaplar ve Izgaralar")
+        chicken = next(item for item in kebabs["subcategories"] if item["name"] == "Tavuk")
+
+        self.assertEqual(bakery["products"], [])
+        self.assertEqual([item["name"] for item in menemen["products"]], ["DEMO — Menemen"])
+        self.assertEqual(chicken["products"], [])
+        self.assertEqual([item["name"] for item in breakfast["products"]], ["DEMO — Kahvaltı Tabağı"])
+        self.assertEqual(len(data["categories"]), 3, "the legacy flat menu response remains unchanged")
+        self.assertEqual(
+            {item["name"] for item in data["categories"]},
+            {"Kahvaltı", "Menemenler", "Kebaplar ve Izgaralar"},
+        )
+
     def test_happy_path_grouped_by_category(self):
         self.session.add(
             models.Product(

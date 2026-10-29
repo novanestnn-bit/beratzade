@@ -634,15 +634,81 @@ export interface PublicTenantMenuCategory {
   id: string;
   name: string;
   products: PublicTenantMenuProduct[];
+  subcategories?: PublicTenantMenuSubcategory[];
 }
 
-/** GET /public/tenants/{id}/menu — read-only grouped menu (no auth). */
+export interface PublicTenantMenuSubcategory {
+  id: string;
+  name: string;
+  products: PublicTenantMenuProduct[];
+}
+
+/** Public menu response; category_tree is an optional hierarchy for custom subcategories. */
 export interface PublicTenantMenuResponse {
   tenant_id: number;
   tenant_name: string;
   currency: string;
   lang: string;
   categories: PublicTenantMenuCategory[];
+  category_tree?: PublicTenantMenuCategory[];
+}
+
+export interface StaffPosMenuProduct extends PublicTenantMenuProduct {
+  source: 'tenant_product' | 'product';
+  questions?: ProductQuestion[];
+}
+
+export interface StaffPosMenuCategory {
+  id: string;
+  name: string;
+  products: StaffPosMenuProduct[];
+  subcategories?: Array<{ id: string; name: string; products: StaffPosMenuProduct[] }>;
+}
+
+export interface StaffPosMenuResponse {
+  tenant_id: number;
+  tenant_name: string;
+  currency: string;
+  categories: StaffPosMenuCategory[];
+  category_tree: StaffPosMenuCategory[];
+}
+
+export interface StaffSaleCreate {
+  idempotency_key: string;
+  sale_type: 'quick_sale' | 'takeaway';
+  items: OrderItemCreate[];
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  notes?: string | null;
+}
+
+export interface StaffSaleCreateResponse {
+  id: number;
+  status: string;
+  order_channel: 'quick_sale' | 'takeaway';
+  table_id: null;
+  customer_name: string | null;
+  total_cents: number;
+  created_at: string;
+  duplicate: boolean;
+}
+
+export interface CashRegisterSession {
+  id: number;
+  status: 'open' | 'closed';
+  opened_at: string;
+  opened_by_user_id: number;
+  opened_by_name: string | null;
+  opening_cash_cents: number;
+  expected_cash_cents: number;
+  closed_at: string | null;
+  closed_by_user_id: number | null;
+  closed_by_name: string | null;
+  counted_cash_cents: number | null;
+  variance_cents: number | null;
+  note: string | null;
+  movements: Array<{ id: number; movement_type: 'cash_in' | 'cash_out'; amount_cents: number; note: string; created_at: string; created_by_user_id: number }>;
+  cash_payments: Array<{ id: number; order_id: number; amount_cents: number; tip_amount_cents: number; paid_at: string; paid_by_user_id: number | null; voided_at: string | null }>;
 }
 
 /** Public tenant info for landing page / tenant picker / book page. */
@@ -1748,6 +1814,30 @@ export interface MenuResponse {
   /** When true, draft cart is shared across devices on this table token (#349). */
   table_shared_cart?: boolean;
   products: Product[];
+}
+
+export interface CurrentTableOrderItem {
+  id: number;
+  product_id: number;
+  product_name: string;
+  quantity: number;
+  price_cents: number;
+  notes?: string | null;
+  status?: string;
+  customization_summary?: string | null;
+  line_modifiers_summary?: string | null;
+}
+
+export interface CurrentTableOrder {
+  id: number;
+  status: string;
+  notes?: string | null;
+  total_cents: number;
+  items: CurrentTableOrderItem[];
+}
+
+export interface CurrentTableOrderResponse {
+  order: CurrentTableOrder | null;
 }
 
 export interface TableCartLine {
@@ -2929,6 +3019,29 @@ export class ApiService {
     return this.http.put<SatisfechoDeliveryOrderResponse>(`${this.apiUrl}/orders/${orderId}/delivery`, body);
   }
 
+  getStaffPosMenu(saleType: 'table' | 'quick_sale' | 'takeaway'): Observable<StaffPosMenuResponse> {
+    return this.http.get<StaffPosMenuResponse>(`${this.apiUrl}/staff/pos-menu`, { params: { sale_type: saleType } });
+  }
+
+  createStaffSale(body: StaffSaleCreate): Observable<StaffSaleCreateResponse> {
+    return this.http.post<StaffSaleCreateResponse>(`${this.apiUrl}/orders/staff-sale`, body);
+  }
+
+  getCurrentCashRegister(): Observable<CashRegisterSession | null> {
+    return this.http.get<CashRegisterSession | null>(`${this.apiUrl}/cash-register/current`);
+  }
+
+  openCashRegister(body: { opening_cash_cents: number; note?: string | null }): Observable<CashRegisterSession> {
+    return this.http.post<CashRegisterSession>(`${this.apiUrl}/cash-register/open`, body);
+  }
+
+  addCashRegisterMovement(body: { movement_type: 'cash_in' | 'cash_out'; amount_cents: number; note: string }): Observable<CashRegisterSession> {
+    return this.http.post<CashRegisterSession>(`${this.apiUrl}/cash-register/movements`, body);
+  }
+
+  closeCashRegister(body: { counted_cash_cents: number; note?: string | null }): Observable<CashRegisterSession> {
+    return this.http.post<CashRegisterSession>(`${this.apiUrl}/cash-register/close`, body);
+  }
   /** Staff-only: get a short-lived token to open the public menu for a table without PIN. */
   getStaffMenuToken(tableId: number): Observable<{ token: string; table_token: string; expires_in: number }> {
     return this.http.get<{ token: string; table_token: string; expires_in: number }>(
@@ -3035,6 +3148,7 @@ export class ApiService {
       tip_amount_cents?: number | null;
       note?: string | null;
       order_item_ids?: number[] | null;
+      idempotency_key?: string | null;
     }
   ): Observable<{
     status: string;
