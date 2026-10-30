@@ -13,10 +13,12 @@ import argparse
 import logging
 import re
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
 from sqlmodel import Session, text
+from sqlalchemy import inspect
 
 from app.db import engine
 from app.settings import settings
@@ -31,6 +33,22 @@ class MigrationRunner:
     def __init__(self, migrations_dir: Path):
         self.migrations_dir = migrations_dir
         self.schema_version_table = "schema_version"
+
+    @contextmanager
+    def _locked_session(self):
+        """Serialize initialisation across workers, retaining one PostgreSQL connection."""
+        with engine.connect() as connection:
+            connection.exec_driver_sql("SET lock_timeout = '60s'")
+            connection.exec_driver_sql("SELECT pg_advisory_lock(731940281)")
+            connection.exec_driver_sql("RESET lock_timeout")
+            connection.commit()
+            try:
+                with Session(bind=connection) as session:
+                    yield session
+            finally:
+                connection.rollback()
+                connection.exec_driver_sql("SELECT pg_advisory_unlock(731940281)")
+                connection.commit()
 
     def _split_sql_statements(self, sql: str) -> list[str]:
         """
@@ -154,25 +172,21 @@ class MigrationRunner:
     def ensure_version_table(self, session: Session) -> None:
         """Create the schema_version table if it doesn't exist."""
         # Check if table exists and if version column needs to be upgraded to BIGINT
-        try:
-            result = session.exec(text(f"""
+        result = session.exec(text(f"""
                 SELECT data_type 
                 FROM information_schema.columns 
-                WHERE table_name = '{self.schema_version_table}' 
+                WHERE table_schema = current_schema()
+                AND table_name = '{self.schema_version_table}'
                 AND column_name = 'version'
             """))
-            existing_type = result.first()
-            if existing_type and existing_type[0] == 'integer':
-                # Upgrade existing table from INTEGER to BIGINT
-                logger.info("Upgrading schema_version.version column from INTEGER to BIGINT for timestamp support")
-                session.exec(text(f"""
-                    ALTER TABLE {self.schema_version_table} 
-                    ALTER COLUMN version TYPE BIGINT
-                """))
-                session.commit()
-        except Exception:
-            # Table doesn't exist yet, create it with BIGINT
-            pass
+        existing_type = result.first()
+        if existing_type and existing_type[0] == 'integer':
+            logger.info("Upgrading schema_version.version column from INTEGER to BIGINT for timestamp support")
+            session.exec(text(f"""
+                ALTER TABLE {self.schema_version_table}
+                ALTER COLUMN version TYPE BIGINT
+            """))
+            session.commit()
         
         # Create table if it doesn't exist (or recreate if needed)
         session.exec(text(f"""
@@ -202,22 +216,19 @@ class MigrationRunner:
     
     def _get_current_version_internal(self, session: Session) -> int:
         """Internal method to get version from a session."""
-        try:
-            result = session.exec(
+        if not inspect(session.connection()).has_table(self.schema_version_table):
+            return 0
+        result = session.exec(
                 text(f"SELECT MAX(version) FROM {self.schema_version_table}")
             ).first()
-            return result[0] if result and result[0] is not None else 0
-        except Exception:
-            return 0
+        return result[0] if result and result[0] is not None else 0
 
     def get_applied_versions(self, session: Session) -> set[int]:
         """All migration version numbers recorded in schema_version (one row per applied file)."""
-        try:
-            result = session.exec(text(f"SELECT version FROM {self.schema_version_table}"))
-            rows = result.all()
-            return {int(row[0]) for row in rows if row[0] is not None}
-        except Exception:
+        if not inspect(session.connection()).has_table(self.schema_version_table):
             return set()
+        result = session.exec(text(f"SELECT version FROM {self.schema_version_table}"))
+        return {int(row[0]) for row in result.all() if row[0] is not None}
 
     def get_migration_files(self) -> list[tuple[int, Path]]:
         """
@@ -256,11 +267,15 @@ class MigrationRunner:
                 version = int(match.group(1))
                 migrations.append((version, file))
 
+        versions = [version for version, _ in migrations]
+        if len(versions) != len(set(versions)):
+            raise RuntimeError("Duplicate migration versions; give each migration a unique version")
         return sorted(migrations, key=lambda x: x[0])
 
     def apply_migration(self, session: Session, version: int, file_path: Path) -> bool:
         """Apply a single migration file."""
         try:
+            self._check_legacy_cleanup(session, version)
             version_type = "timestamp" if len(str(version)) == 14 else "sequential"
             logger.info(f"Applying migration {version} ({version_type}): {file_path.name}")
 
@@ -269,7 +284,7 @@ class MigrationRunner:
             
             # Execute the migration (split into statements for Postgres compatibility)
             statements = self._split_sql_statements(sql)
-            for stmt in statements:
+            for statement_number, stmt in enumerate(statements, start=1):
                 session.exec(text(stmt))
             
             # Record the migration
@@ -292,8 +307,23 @@ class MigrationRunner:
 
         except Exception as e:
             session.rollback()
-            logger.error(f"Migration {version} failed: {e}")
+            original = getattr(e, "orig", e)
+            logger.error(
+                "Migration %s failed (%s), statement %s, SQLSTATE=%s",
+                file_path.name, type(original).__name__,
+                locals().get("statement_number", 0), getattr(original, "sqlstate", None),
+            )
             raise
+
+    def _check_legacy_cleanup(self, session: Session, version: int) -> None:
+        """Do not replay the historical order deletion against existing order data."""
+        if version != 20260315120000:
+            return
+        if session.exec(text('SELECT EXISTS (SELECT 1 FROM "order")')).scalar_one():
+            raise RuntimeError(
+                "Migration 20260315120000 deletes historical orders. Existing orders detected; "
+                "stop and review backup/schema history with the operator before proceeding."
+            )
 
     def run_migrations(self, dry_run: bool = False) -> int:
         """
@@ -303,12 +333,12 @@ class MigrationRunner:
             int: The current database version after migrations
         """
         if not self.migrations_dir.exists():
-            logger.warning(f"Migrations directory not found: {self.migrations_dir}")
-            return 0
+            raise RuntimeError(f"Migrations directory not found: {self.migrations_dir}")
 
-        with Session(engine) as session:
+        with self._locked_session() as session:
             # Ensure version table exists
-            self.ensure_version_table(session)
+            if not dry_run:
+                self.ensure_version_table(session)
 
             applied = self.get_applied_versions(session)
             current_version = self._get_current_version_internal(session)
@@ -318,8 +348,7 @@ class MigrationRunner:
             migration_files = self.get_migration_files()
             
             if not migration_files:
-                logger.info("No migration files found")
-                return current_version
+                raise RuntimeError("No migration files found")
             
             # Log migration file details
             logger.info(f"Found {len(migration_files)} migration file(s):")
@@ -353,8 +382,8 @@ class MigrationRunner:
             for version, path in pending:
                 try:
                     self.apply_migration(session, version, path)
-                except Exception as e:
-                    logger.error(f"Migration failed. Database may be in an inconsistent state.")
+                except Exception:
+                    logger.error("Migration failed and was rolled back; startup must stop.")
                     logger.error(f"Max recorded version before failure: {current_version}")
                     raise
 
@@ -371,29 +400,27 @@ class MigrationRunner:
         or be otherwise idempotent.
         """
         if not self.migrations_dir.exists():
-            logger.warning(f"Migrations directory not found: {self.migrations_dir}")
-            return
+            raise RuntimeError(f"Migrations directory not found: {self.migrations_dir}")
 
         migration_files = self.get_migration_files()
         if not migration_files:
-            logger.info("No migration files to sync")
-            return
+            raise RuntimeError("No migration files to sync")
 
-        with Session(engine) as session:
+        with self._locked_session() as session:
             self.ensure_version_table(session)
-        for version, file_path in migration_files:
-            version_type = "timestamp" if len(str(version)) == 14 else "sequential"
-            logger.info(f"Sync (idempotent): {file_path.name} (version: {version}, type: {version_type})")
-            sql = file_path.read_text(encoding="utf-8")
-            statements = self._split_sql_statements(sql)
-            for stmt in statements:
+            for version, file_path in migration_files:
+                logger.info("Sync (idempotent): %s", file_path.name)
+                statements = self._split_sql_statements(file_path.read_text(encoding="utf-8"))
                 try:
-                    with Session(engine) as session:
+                    self._check_legacy_cleanup(session, version)
+                    for stmt in statements:
                         session.exec(text(stmt))
-                        session.commit()
-                except Exception as e:
-                    logger.debug(f"Statement skipped (may already exist): {e}")
-        logger.info("Sync-idempotent finished (missing columns/tables may now be present)")
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    logger.error("Schema repair failed: %s; transaction rolled back", file_path.name)
+                    raise
+        logger.info("Sync-idempotent finished successfully")
 
 
 def main():
@@ -453,7 +480,10 @@ def main():
                     logger.info("Public slug backfill: %s", slug_stats)
             print(f"✅ Database schema version: {version}")
     except Exception as e:
-        logger.error(f"Migration runner failed: {e}")
+        original = getattr(e, "orig", e)
+        logger.error("Migration runner failed (%s), SQLSTATE=%s", type(original).__name__, getattr(original, "sqlstate", None))
+        if isinstance(e, RuntimeError):
+            logger.error("%s", e)
         sys.exit(1)
 
 

@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import URL, make_url
 
 
 _SETTINGS_FILE = Path(__file__).resolve()
@@ -40,13 +41,20 @@ class Settings(BaseSettings):
         env_file=_ENV_FILE_PATHS if _ENV_FILE_PATHS else None,
         env_file_encoding="utf-8",
         extra="ignore",
+        hide_input_in_errors=True,
     )
 
     db_host: str = Field(default="localhost", validation_alias="DB_HOST")
     db_port: int = Field(default=5432, validation_alias="DB_PORT")
     db_user: str = Field(default="pos", validation_alias="DB_USER")
-    db_password: str = Field(default="pos", validation_alias="DB_PASSWORD")
+    db_password: str = Field(default="pos", validation_alias="DB_PASSWORD", repr=False)
     db_name: str = Field(default="pos", validation_alias="DB_NAME")
+    database_url_override: str = Field(default="", validation_alias="DATABASE_URL", repr=False)
+    db_pool_size: int = Field(default=5, ge=1, validation_alias="DB_POOL_SIZE")
+    db_max_overflow: int = Field(default=5, ge=0, validation_alias="DB_MAX_OVERFLOW")
+    db_pool_timeout: int = Field(default=30, ge=1, validation_alias="DB_POOL_TIMEOUT")
+    db_pool_recycle: int = Field(default=1800, ge=1, validation_alias="DB_POOL_RECYCLE")
+    db_connect_timeout: int = Field(default=10, ge=1, validation_alias="DB_CONNECT_TIMEOUT")
 
     secret_key: str = Field(
         default="CHANGE_THIS_IN_PRODUCTION", validation_alias="SECRET_KEY"
@@ -351,6 +359,14 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
+    def _validate_database_configuration(self) -> "Settings":
+        self.database_url
+        if self.is_production and not self.database_url_override.strip():
+            if "db_host" not in self.model_fields_set:
+                raise ValueError("Production requires DATABASE_URL or an explicit DB_HOST")
+        return self
+
+    @model_validator(mode="after")
     def _reject_placeholder_secrets_in_production(self) -> "Settings":
         """Refuse to boot in production with world-known JWT/crypto placeholder secrets (#423)."""
         if not self.is_production:
@@ -421,12 +437,24 @@ class Settings(BaseSettings):
         return not self.is_production
 
     @property
-    def database_url(self) -> str:
-        # SQLModel uses SQLAlchemy under the hood; this uses the psycopg driver (v3).
-        # If you prefer psycopg2, change to: postgresql://user:pass@host:port/db
-        return (
-            f"postgresql+psycopg://{self.db_user}:{self.db_password}"
-            f"@{self.db_host}:{self.db_port}/{self.db_name}"
+    def database_url(self) -> URL:
+        """Render's DATABASE_URL takes precedence; DB_* remains supported locally."""
+        if self.database_url_override.strip():
+            raw_url = self.database_url_override.strip()
+            if raw_url.startswith("postgres://"):
+                raw_url = "postgresql://" + raw_url[len("postgres://"):]
+            try:
+                url = make_url(raw_url)
+                if url.drivername not in ("postgresql", "postgresql+psycopg"):
+                    raise ValueError("unsupported database driver")
+                if not url.host or not url.database:
+                    raise ValueError("missing database host or name")
+            except Exception:
+                raise ValueError("DATABASE_URL must be a valid PostgreSQL URL with host and database") from None
+            return url.set(drivername="postgresql+psycopg")
+        return URL.create(
+            "postgresql+psycopg", username=self.db_user, password=self.db_password,
+            host=self.db_host, port=self.db_port, database=self.db_name,
         )
 
 

@@ -16,4 +16,4 @@ RUN mkdir -p /app/uploads/providers
 EXPOSE 8020
 
 # Run uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8020", "--reload"]
+CMD ["python", "-m", "app.start"]

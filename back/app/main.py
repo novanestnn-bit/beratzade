@@ -37,7 +37,7 @@ from sqlmodel import Session, select
 
 from . import models, security
 from . import otp_recovery
-from .db import check_db_connection, create_db_and_tables, get_session, engine
+from .db import check_db_connection, get_session, engine
 from .provider_images import (
     provider_product_image_url,
     provider_product_stored_image_path,
@@ -307,8 +307,8 @@ _openapi_url = "/openapi.json" if _api_docs_enabled else None
 @asynccontextmanager
 async def _app_lifespan(app: FastAPI):
     logger.info("Starting application...")
-    create_db_and_tables()
     try:
+        check_db_connection()
         from .migrate import MigrationRunner
         from pathlib import Path
 
@@ -316,8 +316,13 @@ async def _app_lifespan(app: FastAPI):
         runner = MigrationRunner(migrations_dir)
         db_version = runner.run_migrations()
         logger.info(f"Database schema version: {db_version}")
-    except Exception as e:
-        logger.warning(f"Migration check failed: {e}", exc_info=True)
+    except Exception as exc:
+        original = getattr(exc, "orig", exc)
+        logger.error(
+            "Database initialization failed (%s), SQLSTATE=%s; application startup aborted",
+            type(original).__name__, getattr(original, "sqlstate", None),
+        )
+        raise RuntimeError("Database initialization failed; run python -m app.migrate for diagnostics") from None
     from .reservation_reminder_heartbeat import reservation_reminder_heartbeat_loop
 
     stop_heartbeat = asyncio.Event()
@@ -869,8 +874,8 @@ def health_db(session: Session = Depends(get_session)) -> dict:
             db_version = None
 
         return {"status": "ok", "database": "connected", "schema_version": db_version}
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Database error: {e}")
+    except Exception:
+        raise HTTPException(status_code=503, detail="Database unavailable") from None
 
 
 # ============ PUBLIC TENANTS (no auth) ============

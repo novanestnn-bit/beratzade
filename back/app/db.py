@@ -8,10 +8,18 @@ from .settings import settings
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_max_overflow,
+    pool_timeout=settings.db_pool_timeout,
+    pool_recycle=settings.db_pool_recycle,
+    connect_args={"connect_timeout": settings.db_connect_timeout},
+    hide_parameters=True,
 )
 
 
 def create_db_and_tables() -> None:
+    if settings.is_production:
+        raise RuntimeError("Production schema changes must use python -m app.migrate")
     SQLModel.metadata.create_all(engine)
 
 

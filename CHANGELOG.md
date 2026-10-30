@@ -17,6 +17,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ### Fixed
 
+- **Beratzade backend startup:** Added Render DATABASE_URL/PORT support, a versioned initial PostgreSQL schema, serialized migrations, explicit startup failure on database errors, and protection against replaying historical order deletion.
+
 
 ## [2.1.186] - 2026-10-22
 

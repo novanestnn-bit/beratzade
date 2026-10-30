@@ -64,6 +64,15 @@ Using timestamps (YYYYMMDDHHMMSS) eliminates conflicts:
 
 ## Running Migrations
 
+`000_initial_schema.sql` creates the initial model schema on an empty database,
+including native enum types required before historical ALTER migrations. Existing
+tables and rows are preserved. Application startup no longer calls `create_all()`;
+it checks connectivity and completes pending migrations before accepting traffic.
+Migration failures abort startup. Concurrent runners serialize through a PostgreSQL
+advisory lock. `--check` does not write schema/history. Explicit
+`--sync-idempotent` repair now stops and rolls back the failing file instead of
+skipping errors. See [Render preparation](../../docs/beratzade-render-backend.md).
+
 Migrations are automatically run on application startup, or you can run them manually:
 
 ```bash
