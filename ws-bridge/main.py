@@ -19,9 +19,8 @@ import redis.asyncio as redis
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp, Receive, Scope, Send
 from jose import JWTError, jwt
+from safe_logging import install_secret_redaction
 
 # Configure logging
 logging.basicConfig(
@@ -29,6 +28,8 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+install_secret_redaction()
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 # Store connected clients
@@ -51,7 +52,7 @@ async def validate_table_token(table_token: str) -> Optional[dict]:
                 return response.json()
             return None
     except Exception as e:
-        logger.error(f"Error validating table token {table_token}: {e}", exc_info=True)
+        logger.error("Table token validation failed (%s)", type(e).__name__)
         return None
 
 
@@ -114,7 +115,7 @@ async def redis_listener():
                                 tenant_connections[entity_id] -= dead_connections
                         
         except Exception as e:
-            logger.error(f"Redis connection error: {e}", exc_info=True)
+            logger.error("Redis connection error (%s)", type(e).__name__)
             await asyncio.sleep(5)  # Retry after 5 seconds
 
 
@@ -129,99 +130,21 @@ async def lifespan(app: FastAPI):
 app_base = FastAPI(title="WS Bridge", lifespan=lifespan)
 
 
-class ASGIRequestLoggingMiddleware:
-    """
-    ASGI middleware to log all requests including malformed ones.
-    
-    Note: "Invalid HTTP request received" warnings from uvicorn occur when
-    uvicorn itself cannot parse the HTTP request (before it reaches this middleware).
-    This middleware logs all requests that successfully reach the ASGI layer.
-    """
-    def __init__(self, app: ASGIApp):
-        self.app = app
-    
-    async def __call__(self, scope: Scope, receive: Receive, send: Send):
-        # Log all incoming requests at ASGI level (catches malformed requests too)
-        try:
-            if scope["type"] == "http":
-                client_host = scope.get("client", ("unknown", 0))[0] if scope.get("client") else "unknown"
-                method = scope.get("method", "UNKNOWN")
-                path = scope.get("path", "UNKNOWN")
-                query_string = scope.get("query_string", b"").decode("utf-8", errors="replace")
-                headers = {k.decode("utf-8", errors="replace"): v.decode("utf-8", errors="replace") 
-                          for k, v in scope.get("headers", [])}
-                
-                # Filter sensitive headers
-                safe_headers = {k: v for k, v in headers.items() 
-                              if k.lower() not in ['authorization', 'cookie', 'x-api-key']}
-                
-                logger.info(
-                    f"HTTP Request: {method} {path} "
-                    f"from {client_host} "
-                    f"(query: {query_string or 'none'}, "
-                    f"headers: {json.dumps(safe_headers, indent=2)})"
-                )
-            elif scope["type"] == "websocket":
-                client_host = scope.get("client", ("unknown", 0))[0] if scope.get("client") else "unknown"
-                path = scope.get("path", "UNKNOWN")
-                query_string = scope.get("query_string", b"").decode("utf-8", errors="replace")
-                headers = {k.decode("utf-8", errors="replace"): v.decode("utf-8", errors="replace") 
-                          for k, v in scope.get("headers", [])}
-                
-                logger.info(
-                    f"WebSocket Request: {path} "
-                    f"from {client_host} "
-                    f"(query: {query_string or 'none'}, "
-                    f"Upgrade: {headers.get('upgrade', 'N/A')}, "
-                    f"Connection: {headers.get('connection', 'N/A')}, "
-                    f"Sec-WebSocket-Key: {headers.get('sec-websocket-key', 'N/A')[:20] if headers.get('sec-websocket-key') else 'N/A'}..., "
-                    f"Sec-WebSocket-Version: {headers.get('sec-websocket-version', 'N/A')})"
-                )
-            elif scope["type"] == "lifespan":
-                # Lifespan events are normal (startup/shutdown), don't log as warning
-                pass
-            else:
-                logger.warning(f"Unknown scope type: {scope.get('type', 'UNKNOWN')} from {scope.get('client', ('unknown', 0))[0] if scope.get('client') else 'unknown'}")
-        except Exception as e:
-            logger.error(f"Error logging request details: {e}", exc_info=True)
-        
-        try:
-            await self.app(scope, receive, send)
-        except Exception as e:
-            logger.error(
-                f"Error processing {scope.get('type', 'UNKNOWN')} request "
-                f"{scope.get('method', '')} {scope.get('path', 'UNKNOWN')}: {e}",
-                exc_info=True
-            )
-            raise
-
-
-class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """HTTP middleware to log all incoming requests for debugging."""
-    async def dispatch(self, request: Request, call_next):
-        # Log request details
-        client_host = request.client.host if request.client else "unknown"
-        logger.debug(
-            f"Request: {request.method} {request.url.path} "
-            f"from {client_host} "
-            f"(query: {dict(request.query_params)}, "
-            f"headers: {dict(request.headers)})"
-        )
-        
-        try:
-            response = await call_next(request)
-            return response
-        except Exception as e:
-            logger.error(f"Error processing request {request.method} {request.url.path}: {e}", exc_info=True)
-            raise
-
-
-# Configure CORS
+# Log neither request headers/query strings nor table tokens.
+# Uvicorn access logs are disabled by start.py for the same reason.
 cors_origins_str = os.getenv("CORS_ORIGINS", "*")
-allow_origins = ["*"] if cors_origins_str == "*" else [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+allow_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+is_production = os.getenv("PRODUCTION", "").lower() in ("true", "1")
+if is_production:
+    if not SECRET_KEY or SECRET_KEY.upper().startswith("CHANGE_THIS"):
+        raise RuntimeError("Production WebSocket bridge requires SECRET_KEY")
+    if not allow_origins or "*" in allow_origins:
+        raise RuntimeError("Production WebSocket bridge requires explicit CORS_ORIGINS")
+    if not os.getenv("REDIS_URL"):
+        raise RuntimeError("Production WebSocket bridge requires REDIS_URL")
+    if not os.getenv("API_URL"):
+        raise RuntimeError("Production WebSocket bridge requires API_URL")
 
-# Add HTTP middleware to base app
-app_base.add_middleware(RequestLoggingMiddleware)
 app_base.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
@@ -229,48 +152,17 @@ app_base.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Wrap with ASGI middleware to catch all requests including malformed ones
-# This must be the outermost wrapper to catch everything
-app = ASGIRequestLoggingMiddleware(app_base)
-
-
-@app_base.exception_handler(404)
-async def not_found_handler(request: Request, exc):
-    """Log 404 errors with full request details."""
-    client_host = request.client.host if request.client else "unknown"
-    logger.warning(
-        f"404 Not Found: {request.method} {request.url.path} "
-        f"from {client_host} "
-        f"(query: {dict(request.query_params)}, "
-        f"headers: Upgrade={request.headers.get('upgrade', 'N/A')}, "
-        f"Connection={request.headers.get('connection', 'N/A')}, "
-        f"Sec-WebSocket-Key={request.headers.get('sec-websocket-key', 'N/A')})"
-    )
-    return JSONResponse(
-        status_code=404,
-        content={"detail": f"Not found: {request.url.path}"}
-    )
-
-
-@app_base.exception_handler(405)
-async def method_not_allowed_handler(request: Request, exc):
-    """Log 405 errors with full request details."""
-    client_host = request.client.host if request.client else "unknown"
-    logger.warning(
-        f"405 Method Not Allowed: {request.method} {request.url.path} "
-        f"from {client_host} "
-        f"(query: {dict(request.query_params)}, "
-        f"headers: {dict(request.headers)})"
-    )
-    return JSONResponse(
-        status_code=405,
-        content={"detail": f"Method {request.method} not allowed for {request.url.path}"}
-    )
+app = app_base
 
 
 @app_base.get("/health")
-def health():
+async def health():
+    if is_production:
+        try:
+            async with redis.from_url(os.environ["REDIS_URL"], socket_connect_timeout=3, socket_timeout=3) as client:
+                await client.ping()
+        except Exception:
+            raise HTTPException(status_code=503, detail="Realtime service unavailable") from None
     table_count = sum(len(c) for c in table_connections.values())
     tenant_count = sum(len(c) for c in tenant_connections.values())
     return {
@@ -289,20 +181,11 @@ def health():
 @app_base.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
 async def catch_all(request: Request, path: str):
     """Catch-all route to log unmatched requests."""
-    client_host = request.client.host if request.client else "unknown"
-    headers_dict = dict(request.headers)
-    
-    logger.warning(
-        f"Unmatched request: {request.method} /{path} "
-        f"from {client_host} "
-        f"(query: {dict(request.query_params)}, "
-        f"headers: {json.dumps({k: v for k, v in headers_dict.items() if k.lower() not in ['authorization', 'cookie']}, indent=2)})"
-    )
     
     return JSONResponse(
         status_code=404,
         content={
-            "detail": f"Endpoint not found: /{path}",
+            "detail": "Endpoint not found",
             "available_endpoints": [
                 "/health",
                 "/ws/table/{table_token}",
@@ -317,18 +200,18 @@ async def catch_all(request: Request, path: str):
 async def websocket_table_endpoint(websocket: WebSocket, table_token: str):
     """WebSocket endpoint for customers - validates table_token and only sends table-specific updates."""
     client_host = websocket.client.host if websocket.client else "unknown"
-    logger.info(f"WebSocket connection attempt: /ws/table/{table_token} from {client_host}")
+    logger.info("Table WebSocket connection attempt from %s", client_host)
     
     try:
         await websocket.accept()
     except Exception as e:
-        logger.error(f"Failed to accept WebSocket connection for /ws/table/{table_token}: {e}")
+        logger.error("Failed to accept table WebSocket connection (%s)", type(e).__name__)
         return
     
     # Validate table token
     table_info = await validate_table_token(table_token)
     if not table_info:
-        logger.warning(f"Invalid table token: {table_token} from {client_host}")
+        logger.warning("Invalid table token from %s", client_host)
         await websocket.close(code=1008, reason="Invalid table token")
         return
     

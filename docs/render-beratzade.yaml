@@ -1,0 +1,55 @@
+# Preparation template only. Applying it creates/updates services and requires approval.
+# Reuses an existing database via secrets; declares no database or migration command.
+services:
+  - type: web
+    name: beratzade
+    runtime: docker
+    repo: https://github.com/novanestnn-bit/beratzade
+    branch: integrate/beratzade-pos
+    dockerContext: ./back
+    dockerfilePath: ./back/Dockerfile
+    autoDeployTrigger: "off"
+    healthCheckPath: /health/db
+    disk:
+      name: beratzade-uploads
+      mountPath: /app/uploads
+      sizeGB: 1
+    envVars:
+      - key: PRODUCTION
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: REFRESH_SECRET_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PUBLIC_APP_BASE_URL
+        sync: false
+      - key: ROOT_PATH
+        value: ""
+      - key: REDIS_URL
+        sync: false
+      - key: RATE_LIMIT_REDIS_URL
+        sync: false
+  - type: web
+    name: beratzade-ws
+    runtime: docker
+    repo: https://github.com/novanestnn-bit/beratzade
+    branch: integrate/beratzade-pos
+    dockerContext: ./ws-bridge
+    dockerfilePath: ./ws-bridge/Dockerfile.render
+    autoDeployTrigger: "off"
+    healthCheckPath: /health
+    envVars:
+      - key: PRODUCTION
+        value: "true"
+      - key: API_URL
+        value: https://beratzade.onrender.com
+      - key: SECRET_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

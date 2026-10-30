@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.env
+.env.*
+config.env
+.secrets
+.secrets.*
+*.log

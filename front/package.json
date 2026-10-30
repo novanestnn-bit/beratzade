@@ -6,6 +6,8 @@
     "prebuild": "node scripts/get-commit-hash.js",
     "start": "node scripts/get-commit-hash.js && ng serve",
     "build": "ng build",
+    "build:vercel": "node scripts/write-vercel-runtime.mjs && npm run build -- --configuration production-static && node scripts/inject-version-into-index.js",
+    "test:deployment-config": "node --test scripts/deployment-config.test.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:front": "node dist/front/server/server.mjs",

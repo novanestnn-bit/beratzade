@@ -1,5 +1,7 @@
 # Beratzade backend üretim hazırlığı - ilk aşama
 
+Bu ilk aşama raporunun ardından tam testler, frontend production build'i ve HTTPS/WS kontrolleri tamamlandı. Güncel durum ve kalan gerçek ortam engelleri için [dağıtım öncesi doğrulama raporuna](beratzade-deployment-readiness.md) bakın.
+
 Bu aşama PostgreSQL, SQLAlchemy f405, migration ve Render backend başlangıcı kapsamındadır. Uygulama bütünüyle üretime hazır ilan edilmemiştir. Render veya Vercel dağıtımı yapılmamıştır. Proje dosyaları yalnızca `pos-beratzade-integration` içinde değiştirilmiştir; `pos-master` kullanılmamıştır. Git worktree metaverisi mevcut ortak Git dizininde tutulmaktadır.
 
 ## Düzeltilen hatalar

@@ -84,6 +84,13 @@ class TestSplitBill(PgClientTestCase):
         self.session.commit()
         self.session.refresh(self.product)
 
+        opened = self.client.post(
+            "/cash-register/open",
+            headers=_bearer_headers(self.admin),
+            json={"opening_cash_cents": 0},
+        )
+        self.assertEqual(opened.status_code, 200, opened.text)
+
     def _make_order(self, *, qty: int = 2) -> models.Order:
         order = models.Order(
             tenant_id=self.tenant.id,

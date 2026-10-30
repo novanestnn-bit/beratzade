@@ -24,6 +24,8 @@ _A point-of-sale system with a customer-facing menu, table management, and reser
 ---
 </div>
 
+Beratzade deployment preparation: see [the verified local checks and cloud deployment prerequisites](docs/beratzade-deployment-readiness.md). Cloud publishing and production migrations require explicit approval.
+
 
 ## About the Project
 

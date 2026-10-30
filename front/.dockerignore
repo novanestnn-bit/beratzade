@@ -3,3 +3,9 @@ dist
 .angular
 npm-debug.log
 yarn-error.log
+.env
+.env.*
+config.env
+.secrets
+.secrets.*
+.vercel

@@ -20,6 +20,7 @@ on:
 
 jobs:
   deploy:
+    if: github.repository == 'satisfecho/pos'
     runs-on: ubuntu-latest
     # One deploy at a time to the same host/path regardless of branch (avoids overlapping git/build/up).
     concurrency:

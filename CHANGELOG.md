@@ -17,6 +17,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ### Fixed
 
+- **Beratzade deployment preparation:** Added Vercel static build/API proxy and public runtime configuration, standalone Render WebSocket startup, secret-safe request logging and Docker contexts, safe current-user responses, and correct staff-sale labels/staff attribution. Isolated full backend, frontend and HTTPS/WebSocket checks cover the prepared changes; cloud deployment remains manual.
+
 - **Beratzade backend startup:** Added Render DATABASE_URL/PORT support, a versioned initial PostgreSQL schema, serialized migrations, explicit startup failure on database errors, and protection against replaying historical order deletion.
 
 

@@ -1,29 +1,32 @@
 import { commitHash, version } from './commit-hash';
 
-/** Use same-origin /api when configured URL points to another host (e.g. server has API_URL=http://localhost:4202/api). */
+/** Explicit HTTPS origins support split hosting; Vercel uses the same-origin /api proxy. */
 function getApiUrl(): string {
   if (typeof window === 'undefined') return '/api';
   const raw = (window as any).__API_URL__;
   if (!raw) return '/api';
-  if (raw.startsWith('/')) return raw;
+  if (raw.startsWith('/') && !raw.startsWith('//')) return raw.replace(/\/$/, '');
   try {
     const u = new URL(raw);
-    if (u.host !== window.location.host) return '/api';
+    if (u.protocol !== 'https:' && !(u.protocol === 'http:' && window.location.protocol === 'http:')) return '/api';
+    if (u.username || u.password) return '/api';
+    return raw.replace(/\/$/, '');
   } catch (_) {}
-  return raw;
+  return '/api';
 }
 
 function getWsUrl(): string {
   if (typeof window === 'undefined') return '';
   const raw = (window as any).__WS_URL__;
   if (!raw) return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
-  if (raw.startsWith('ws')) {
-    try {
-      const u = new URL(raw);
-      if (u.host !== window.location.host) return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
-    } catch (_) {}
-  }
-  return raw;
+  if (raw.startsWith('/') && !raw.startsWith('//')) return raw.replace(/\/$/, '');
+  try {
+    const u = new URL(raw);
+    if (u.protocol === 'wss:' || (u.protocol === 'ws:' && window.location.protocol === 'http:')) {
+      if (!u.username && !u.password) return raw.replace(/\/$/, '');
+    }
+  } catch (_) {}
+  return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
 }
 
 export const environment = {

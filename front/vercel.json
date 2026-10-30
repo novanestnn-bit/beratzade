@@ -1,0 +1,23 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci --ignore-scripts",
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "dist/front/browser",
+  "git": { "deploymentEnabled": false },
+  "routes": [
+    {
+      "src": "/api(?:/(.*))?",
+      "dest": "https://beratzade.onrender.com/$1",
+      "headers": { "Cache-Control": "private, no-store" }
+    },
+    { "src": "/", "status": 307, "headers": { "Location": "/beratzade" } },
+    {
+      "src": "/runtime-config.js",
+      "headers": { "Cache-Control": "no-store" },
+      "continue": true
+    },
+    { "handle": "filesystem" },
+    { "src": "/[^.]*", "dest": "/index.html" }
+  ]
+}

@@ -10,7 +10,6 @@ from pathlib import Path
 
 from fastapi.responses import Response
 from pg_client_mixin import PgClientTestCase
-from sqlmodel import select
 
 _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
@@ -20,6 +19,21 @@ from app import models
 
 
 class TestCustomerDisplayInvoiceEmail(PgClientTestCase):
+    def setUp(self):
+        super().setUp()
+        tenant = models.Tenant(name="Customer display test")
+        self.session.add(tenant)
+        self.session.commit()
+        self.session.refresh(tenant)
+        self.tenant = tenant
+        self.table = models.Table(
+            tenant_id=tenant.id, name="Take Away", token=uuid.uuid4().hex,
+            is_active=True,
+        )
+        self.session.add(self.table)
+        self.session.commit()
+        self.session.refresh(self.table)
+
     def test_endpoint_accepts_slowapi_response_param(self):
         """SlowAPI injects rate-limit headers via `response: Response` under uvicorn."""
         from app.main import set_order_invoice_email
@@ -33,17 +47,7 @@ class TestCustomerDisplayInvoiceEmail(PgClientTestCase):
         )
 
     def _take_away_table(self):
-        tenant = self.session.exec(select(models.Tenant).order_by(models.Tenant.id)).first()
-        self.assertIsNotNone(tenant)
-        tables = self.session.exec(
-            select(models.Table).where(models.Table.tenant_id == tenant.id)
-        ).all()
-        for t in tables:
-            name = (t.name or "").strip().lower()
-            if name in ("take away", "home ordering", "takeaway", "take-away"):
-                return t, tenant
-        self.assertTrue(tables, "expected at least one table")
-        return tables[0], tenant
+        return self.table, self.tenant
 
     def _make_active_order(self):
         table, tenant = self._take_away_table()

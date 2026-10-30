@@ -3564,7 +3564,7 @@ def get_ws_token(
     return {"access_token": token}
 
 
-@app.get("/users/me", response_model=models.User | None)
+@app.get("/users/me", response_model=models.UserResponse | None)
 def read_users_me(
     current_user: Annotated[models.User | None, Depends(security.get_current_user_optional)],
 ) -> models.User | None:
@@ -14756,6 +14756,15 @@ def list_orders(
         and group_for_user.hub_tenant_id != current_user.tenant_id
     )
 
+    creator_ids = {order.created_by_user_id for order in orders if order.created_by_user_id is not None}
+    creators = session.exec(
+        select(models.User).where(
+            models.User.tenant_id == current_user.tenant_id,
+            models.User.id.in_(creator_ids),
+        )
+    ).all() if creator_ids else []
+    staff_by_id = {user.id: user.full_name for user in creators}
+
     result = []
     for order in orders:
         table = session.exec(select(models.Table).where(models.Table.id == order.table_id)).first()
@@ -14873,7 +14882,11 @@ def list_orders(
 
         channel = _order_channel_value(order)
         table_display = "Unknown"
-        if channel == models.OrderChannel.satisfecho_delivery.value:
+        if channel == models.OrderChannel.quick_sale.value:
+            table_display = "Hızlı Satış"
+        elif channel == models.OrderChannel.takeaway.value:
+            table_display = "Gel-Al"
+        elif channel == models.OrderChannel.satisfecho_delivery.value:
             table_display = "Satisfecho Delivery"
         elif getattr(order, "delivery_integration_id", None) or channel == models.OrderChannel.marketplace.value:
             table_display = "Delivery"
@@ -14883,6 +14896,8 @@ def list_orders(
         row_out = {
             "id": order.id,
             "table_name": table_display,
+            "created_by_user_id": order.created_by_user_id,
+            "staff_name": staff_by_id.get(order.created_by_user_id),
             "table_id": table.id if table else None,
             "table_token": table.token if table else None,
             "status": computed_status.value,

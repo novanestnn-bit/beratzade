@@ -10,8 +10,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py .
+COPY main.py start.py safe_logging.py ./
 
 EXPOSE 8021
 # Standalone FastAPI app in this folder (not backend `app.main`)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8021", "--log-level", "info", "--access-log"]
+CMD ["python", "start.py"]
