@@ -164,6 +164,39 @@ describe('KitchenDisplayComponent', () => {
     expect(setItemSpy).toHaveBeenCalledWith('kitchen-display-sound', 'false');
   });
 
+  it('uses backend prep routing for custom categories without configured stations', () => {
+    mockApi.getOrders.and.returnValue(of([{
+      id: 10, status: 'pending', table_name: 'T1', created_at: new Date().toISOString(),
+      items: [
+        { id: 1, product_name: 'Breakfast', status: 'pending', category: 'Kahvaltı', kitchen_station_route: 'kitchen' },
+        { id: 2, product_name: 'Drink', status: 'pending', category: 'İçecekler', kitchen_station_route: 'bar' },
+        { id: 3, product_name: 'Finished', status: 'delivered', category: 'Kahvaltı', kitchen_station_route: 'kitchen' },
+      ],
+    }]));
+    const fixture = TestBed.createComponent(KitchenDisplayComponent);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.activeOrders()[0].items.map(item => item.id)).toEqual([1]);
+    fixture.componentInstance.viewMode.set('bar');
+    expect(fixture.componentInstance.activeOrders()[0].items.map(item => item.id)).toEqual([2]);
+  });
+
+  it('routes unassigned non-beverage categories to kitchen and still filters selected stations', () => {
+    mockApi.getOrders.and.returnValue(of([{
+      id: 11, status: 'pending', table_name: 'T1', created_at: new Date().toISOString(),
+      items: [
+        { id: 1, product_name: 'Breakfast', status: 'pending', category: 'Kahvaltı', kitchen_station_id: 7 },
+        { id: 2, product_name: 'Soup', status: 'pending', category: 'Soups', kitchen_station_id: 8 },
+        { id: 3, product_name: 'Drink', status: 'pending', category: 'Beverages' },
+      ],
+    }]));
+    const fixture = TestBed.createComponent(KitchenDisplayComponent);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.activeOrders()[0].items.map(item => item.id)).toEqual([1, 2]);
+    fixture.componentInstance.kitchenStations.set([{ id: 7, tenant_id: 1, name: 'Prep', display_route: 'kitchen', sort_order: 0 }]);
+    fixture.componentInstance.stationSelection.set(7);
+    expect(fixture.componentInstance.activeOrders()[0].items.map(item => item.id)).toEqual([1]);
+  });
+
   it('should auto-refresh after interval', fakeAsync(() => {
     const fixture = TestBed.createComponent(KitchenDisplayComponent);
     fixture.detectChanges();

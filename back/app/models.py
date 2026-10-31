@@ -1437,6 +1437,7 @@ class UserResponse(SQLModel):
 
 
 class ProductUpdate(SQLModel):
+    is_active: bool | None = None
     name: str | None = None
     price_cents: int | None = None
     cost_cents: int | None = None

@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 from pg_client_mixin import PgClientTestCase
 
-from app import models
+from app import models, security
 from app.public_tenant_menu import (
     assert_no_sensitive_product_fields,
     format_public_price,
@@ -55,6 +55,28 @@ class TestPublicTenantMenu(PgClientTestCase):
         response = self.client.get(f"/menu/{table.token}")
         self.assertEqual(response.status_code, 200)
         self.assertEqual([product["name"] for product in response.json()["products"]], ["Published product"])
+
+    def test_owner_visibility_updates_reach_public_and_table_menus(self):
+        owner = models.User(email="visibility-owner@amvara.de", hashed_password="unused", role=models.UserRole.owner, tenant_id=self.tenant.id)
+        product = models.Product(name="Visibility lifecycle", tenant_id=self.tenant.id, price_cents=15000, is_active=True)
+        table = models.Table(name="Visibility table", tenant_id=self.tenant.id, is_active=True)
+        self.session.add_all([owner, product, table])
+        self.session.commit()
+        self.session.refresh(owner)
+        self.session.refresh(product)
+        self.session.refresh(table)
+        token = security.create_access_token({"sub": owner.email, "tenant_id": owner.tenant_id, "provider_id": None, "token_version": owner.token_version})
+        headers = {"Authorization": f"Bearer {token}"}
+        for active in (False, True):
+            response = self.client.put(f"/products/{product.id}", headers=headers, json={"is_active": active})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["is_active"], active)
+            self.assertEqual(response.json()["price_cents"], 15000)
+            menu = self.client.get(f"/public/tenants/{self.tenant.id}/menu").json()
+            public_ids = [row["id"] for category in menu["categories"] for row in category["products"]]
+            self.assertEqual(product.id in public_ids, active)
+            qr_menu = self.client.get(f"/menu/{table.token}").json()
+            self.assertEqual(product.id in [row["id"] for row in qr_menu["products"]], active)
 
     def test_custom_empty_categories_are_visible_in_public_menu(self):
         self.tenant.custom_subcategories = {

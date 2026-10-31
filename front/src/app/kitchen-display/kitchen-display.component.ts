@@ -80,12 +80,6 @@ function exitDocumentFullscreen(): Promise<void> | void {
   }
 }
 
-/** Category filter: kitchen = main course only, bar = beverages only. */
-const VIEW_CATEGORY: Record<string, string> = {
-  kitchen: 'Main Course',
-  bar: 'Beverages',
-};
-
 @Component({
   selector: 'app-kitchen-display',
   standalone: true,
@@ -751,7 +745,6 @@ export class KitchenDisplayComponent implements OnInit, AfterViewInit, OnDestroy
   /** Orders that are active (including paid but not yet delivered); category or station filter. */
   activeOrders = computed(() => {
     const view = this.viewMode();
-    const category = VIEW_CATEGORY[view] ?? '';
     const routeKey = view === 'bar' ? 'bar' : 'kitchen';
     const useStations = this.stationsForCurrentView().length > 0;
     const sel = this.stationSelection();
@@ -759,14 +752,11 @@ export class KitchenDisplayComponent implements OnInit, AfterViewInit, OnDestroy
     const itemVisible = (i: OrderItem): boolean => {
       if (i.removed_by_customer) return false;
       if (!(i.status === 'pending' || i.status === 'preparing' || i.status === 'ready')) return false;
-      if (!useStations) {
-        return i.category === category;
-      }
       const kr =
         i.kitchen_station_route ||
         (i.category === 'Beverages' ? 'bar' : 'kitchen');
       if (kr !== routeKey) return false;
-      if (sel === 'all') return true;
+      if (!useStations || sel === 'all') return true;
       return i.kitchen_station_id === sel;
     };
 

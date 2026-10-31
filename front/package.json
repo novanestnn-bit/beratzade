@@ -8,6 +8,7 @@
     "build": "node scripts/build.mjs",
     "build:vercel": "npm run build -- --vercel",
     "test:deployment-config": "node --test scripts/deployment-config.test.mjs",
+    "test:three-panel-operations": "node scripts/test-three-panel-operations.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:front": "node dist/front/server/server.mjs",

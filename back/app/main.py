@@ -6245,6 +6245,8 @@ def update_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    if product_update.is_active is not None:
+        product.is_active = product_update.is_active
     if product_update.name is not None:
         product.name = product_update.name
     if product_update.price_cents is not None:

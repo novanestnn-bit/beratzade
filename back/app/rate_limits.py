@@ -87,7 +87,7 @@ class _NoOpLimiter:
 
 
 if _SLOWAPI_AVAILABLE and Limiter is not None:
-    _storage_uri = settings.rate_limit_redis_url or os.getenv("REDIS_URL", "redis://localhost:6379")
+    _storage_uri = settings.rate_limit_redis_url or os.getenv("REDIS_URL") or "memory://"
     _global_limit = f"{settings.rate_limit_global_per_minute}/minute"
     limiter = Limiter(
         key_func=rate_limit_key,
