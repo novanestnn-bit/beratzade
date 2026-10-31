@@ -12548,7 +12548,10 @@ def get_menu(
     ).all()
 
     legacy_products = session.exec(
-        select(models.Product).where(models.Product.tenant_id == table.tenant_id)
+        select(models.Product).where(
+            models.Product.tenant_id == table.tenant_id,
+            models.Product.is_active == True,
+        )
     ).all()
 
     tenant = session.exec(

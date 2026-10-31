@@ -40,6 +40,22 @@ class TestPublicTenantMenu(PgClientTestCase):
         self.assertEqual(data["lang"], "en")
         self.assertEqual(data["categories"], [])
 
+    def test_table_menu_excludes_inactive_legacy_products(self):
+        table = models.Table(tenant_id=self.tenant.id, name="Visibility check", is_active=True)
+        self.session.add(table)
+        self.session.add(models.Product(tenant_id=self.tenant.id, name="Published product", price_cents=3000, is_active=True))
+        self.session.add(models.Product(tenant_id=self.tenant.id, name="Unverified product", price_cents=3000, is_active=False))
+        other_tenant = models.Tenant(name="Other tenant")
+        self.session.add(other_tenant)
+        self.session.flush()
+        self.session.add(models.Product(tenant_id=other_tenant.id, name="Other tenant product", price_cents=3000, is_active=True))
+        self.session.commit()
+        self.session.refresh(table)
+
+        response = self.client.get(f"/menu/{table.token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([product["name"] for product in response.json()["products"]], ["Published product"])
+
     def test_custom_empty_categories_are_visible_in_public_menu(self):
         self.tenant.custom_subcategories = {
             "Kahvaltı": [],
