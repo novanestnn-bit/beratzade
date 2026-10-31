@@ -99,7 +99,7 @@ test('API rewrite strips only the API prefix and precedes the SPA fallback', () 
 });
 test('Vercel uses a static Angular build and requires manual Git deployment', () => {
   assert.equal(deployment.outputDirectory, 'dist/front/browser');
-  assert.equal(deployment.buildCommand, 'npm run build');
+  assert.equal(deployment.buildCommand, 'npm run build:vercel');
   assert.equal(deployment.installCommand, 'npm ci --ignore-scripts');
   assert.equal(deployment.git.deploymentEnabled, false);
   assert.equal(deployment.routes.find((route) => route.src === '/').headers.Location, '/beratzade');
