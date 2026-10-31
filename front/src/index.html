@@ -29,7 +29,7 @@
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     window.__API_URL__ = window.__API_URL__ || `${protocol}//${host}/api`;
-    window.__WS_URL__ = window.__WS_URL__ || `${wsProtocol}//${host}/ws`;
+    window.__WS_URL__ = window.__REALTIME_ENABLED__ === false ? '' : window.__WS_URL__ || `${wsProtocol}//${host}/ws`;
     window.__STRIPE_PUBLISHABLE_KEY__ = window.__STRIPE_PUBLISHABLE_KEY__ || '';
     // Google Analytics (GA4). Prefer window.__GA_MEASUREMENT_ID__ from /runtime-config.js
     // (written by docker entrypoints from GOOGLE_ANALYTICS_MEASUREMENT_ID / .secrets).

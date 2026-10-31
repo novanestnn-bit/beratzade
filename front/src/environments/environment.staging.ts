@@ -14,6 +14,7 @@ function getApiUrl(): string {
 }
 
 function getWsUrl(): string {
+  if (typeof window !== 'undefined' && (window as any).__REALTIME_ENABLED__ === false) return '';
   if (typeof window === 'undefined') return '';
   const raw = (window as any).__WS_URL__;
   if (!raw) return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
@@ -29,6 +30,7 @@ function getWsUrl(): string {
 export const environment = {
   production: true,
   staging: true,
+  realtimeEnabled: typeof window === 'undefined' || (window as any).__REALTIME_ENABLED__ !== false,
   apiUrl: getApiUrl(),
   wsUrl: getWsUrl(),
   stripePublishableKey: (typeof window !== 'undefined' && (window as any).__STRIPE_PUBLISHABLE_KEY__) || '',

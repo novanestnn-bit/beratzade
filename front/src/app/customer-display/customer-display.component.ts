@@ -492,6 +492,7 @@ export class CustomerDisplayComponent implements OnInit, OnDestroy {
   }
 
   private connectWebSocket(): void {
+    if (!environment.realtimeEnabled) return;
     if (this.ws || !this.tableToken) return;
     let wsUrl = environment.wsUrl;
     if (wsUrl.startsWith('/')) {

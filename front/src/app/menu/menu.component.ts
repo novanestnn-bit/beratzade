@@ -389,6 +389,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   // WEBSOCKET
   // ============================================
   connectWebSocket() {
+    if (!environment.realtimeEnabled) return;
     if (this.ws || !this.tableToken) return;
     
     let wsUrl = environment.wsUrl;

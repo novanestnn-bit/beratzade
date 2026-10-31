@@ -1,5 +1,6 @@
 {
   "COMMON": {
+    "REALTIME_DISABLED": "实时更新已暂时关闭。请刷新页面查看最新信息。",
     "ACTIONS": "操作",
     "COPY": "复制",
     "SAVE": "保存",

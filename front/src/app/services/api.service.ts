@@ -4289,6 +4289,7 @@ export class ApiService {
 
   // WebSocket for real-time updates (restaurant owners only)
   connectWebSocket(): void {
+    if (!environment.realtimeEnabled) return;
     const user = this.getCurrentUser();
     if (!user || this.ws) return;
 
@@ -4303,6 +4304,7 @@ export class ApiService {
   }
 
   private connectWebSocketWithToken(tenantId: number, token: string | null): void {
+    if (!environment.realtimeEnabled) return;
     if (this.ws) return;
 
     let wsUrl = this.wsUrl;

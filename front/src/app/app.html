@@ -1,1 +1,6 @@
+@if (!realtimeEnabled) {
+  <div class="realtime-notice" role="status" data-testid="http-only-notice">
+    {{ 'COMMON.REALTIME_DISABLED' | translate }}
+  </div>
+}
 <router-outlet />

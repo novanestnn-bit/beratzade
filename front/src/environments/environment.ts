@@ -13,6 +13,7 @@ const getWindowConfig = (key: string, fallback: string): string => {
 export const environment = {
   production: false,
   staging: false,
+  realtimeEnabled: typeof window === 'undefined' || (window as any).__REALTIME_ENABLED__ !== false,
   apiUrl: getWindowConfig('__API_URL__', '/api'),
   wsUrl: getWindowConfig('__WS_URL__', '/ws'),
   stripePublishableKey: getWindowConfig('__STRIPE_PUBLISHABLE_KEY__', ''),

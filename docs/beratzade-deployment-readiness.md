@@ -75,7 +75,7 @@ Kullanıcının verdiği API adresi: `https://beratzade.onrender.com`.
 - Git repo: yalnızca Beratzade reposu. Production branch, onaydan sonra entegrasyon dalı olarak seçilmeli.
 - Root Directory: `front`; Framework Preset: Other (`framework: null`); Node: 22.
 - Install: `npm ci --ignore-scripts`.
-- Build: `npm run build:vercel`; static output: `dist/front/browser`.
+- Build: `npm run build`; static output: `dist/front/browser`. Vercel'in `VERCEL=1` ortamı statik Angular yapılandırmasını seçer; yerel eşdeğeri `npm run build:vercel` komutudur.
 - `/api/...` rewrite hedefi: `https://beratzade.onrender.com/...`. API yanıtları private/no-store; API hataları SPA HTML'ine çevrilmez.
 - `/` Beratzade ana sayfasına yönlenir. Statik dosyalar önce sunulur; login/personel/yönetim/müşteri deep link'leri `index.html` ile açılır.
 - Tek Angular uygulaması korunur; üç ayrı frontend projesi yoktur.
@@ -84,12 +84,19 @@ Vercel build ortamı:
 
 | Ad | Gereksinim |
 | --- | --- |
-| `WS_URL` | Zorunlu; gerçek bridge `wss://.../ws` adresi. Eksik veya güvensiz değer build'i durdurur. Yerel derleme testi yalnızca sentetik bir WSS adresi kullandı. |
+| `REALTIME_ENABLED` | İsteğe bağlı `false` canlı bağlantıları kapatır. `WS_URL` yoksa bu değişken tanımlanmadan da HTTP-only yayın seçilir; geçersiz değer derlemeyi durdurur. |
+| `WS_URL` | İsteğe bağlı gerçek bridge `wss://.../ws` adresi. Eksik veya boş olduğunda bağlantılar kapatılır; tanımlı güvensiz adres derlemeyi durdurur. Sahte adres kullanılmaz. |
 | `STRIPE_PUBLISHABLE_KEY` | İsteğe bağlı, yalnızca public `pk_...` anahtarı. Secret key kabul edilmez. |
 | `GOOGLE_ANALYTICS_MEASUREMENT_ID` | İsteğe bağlı public measurement ID |
 | `API_URL` | Eklenmesi gerekmez; bu Vercel yapılandırması güvenli aynı-origin `/api` proxy'sini üretir. |
 
 DB parolaları, JWT secret'ları, Stripe secret key veya Render token'ları frontend ortamına eklenmemelidir. Build script'i yalnızca public alanları runtime-config.js'ye aktarır; process.env nesnesini serileştirmez.
+
+### Geçici HTTP-only yayın doğrulaması (31 Ekim 2026)
+
+`REALTIME_ENABLED=false` ile gerçek Vercel üretim derlemesi, 11 dağıtım testi ve 20 Angular testi geçti. Yalıtılmış yerel HTTPS tarayıcı testinde müşteri menüsü, QR menüsü, müşteri ekranı, personel girişi/satışı ve yönetim yetkileri doğrulandı. WebSocket bağlantı denemesi ve `/ws-token` isteği sıfırdı; sipariş HTTP ile kaydedilip yenilemeyle görüntülendi. Canlı güncellemeler yerine tüm ekranlarda yenileme uyarısı gösterilir; operasyon sırasında yeni siparişler için manuel yenileme gerekir. Mevcut müşteri ekranı HTTP sorgulaması korunur.
+
+Bu değişiklikler henüz commit edilmedi veya gönderilmedi; production dağıtımı yapılmadı. Vercel projesi ve gerçek edge proxy/cookie davranışı canlı dağıtımda ayrıca doğrulanmalıdır. Çeviri kontrolü mevcut Arapça 41 ve Türkçe 64 eksik anahtar bildirdi; yeni uyarı 11 dilin tamamında eklendi.
 
 ## Otomatik deploy riski
 
@@ -102,7 +109,7 @@ DB parolaları, JWT secret'ları, Stripe secret key veya Render token'ları fron
 1. Bu ortamdan Render `/health` ve `/health/db` çağrılarında yanıt alınamadı; son HTTP denemesi zaman aşımı/HTTP 000 verdi. Bu bulgu servisin neden yanıt vermediğini belirlemez. Render'ın gerçek logu ve servis ayarları incelenmeli.
 2. Render/Vercel hesap bağlantıları henüz doğrulanmadı. Vercel proje/domain bilgisi ve mevcut bridge adresi verilmedi. Güvenli erişim için ilgili hesap bağlantıları kullanılmalı; sırlar sohbete yapıştırılmamalı.
 3. Mevcut PostgreSQL schema/history, güncel yedek ve mevcut upload diski üretimde salt okunur incelenmeli. Başlangıç migration'ı üretimde kendiliğinden çalışacağından Render deploy onayı migration kapsamını açıkça içermeli.
-4. Redis ve bridge yoksa oluşturulmaları/planları onaylanmalı; gerçek `WS_URL` girilmeli. Frontend'in gerçek WS adresi olmadan yayınlanması engellendi.
+4. Canlı güncellemeler için Redis ve bridge yoksa oluşturulmaları/planları onaylanmalı; gerçek `WS_URL` girilmeli. Geçici HTTP-only alternatifinde `REALTIME_ENABLED=false` seçilir ve `WS_URL` boş bırakılır; yeni servis gerekmez.
 5. Gerçek Vercel edge rewrite, domain/HTTPS ve canlı login/refresh/WS kontrolleri ancak onaylı staging/production dağıtımı sonrasında doğrulanabilir. Yerel proxy testi bunun yerine geçmez.
 
 ## Hazırlık kararı

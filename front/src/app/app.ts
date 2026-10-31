@@ -4,14 +4,16 @@ import { filter, Subscription } from 'rxjs';
 import { LanguageService } from './services/language.service';
 import { SeoService } from './services/seo.service';
 import { environment } from '../environments/environment';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, TranslateModule],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
 export class App implements OnInit, OnDestroy {
+  protected readonly realtimeEnabled = environment.realtimeEnabled;
   protected readonly title = signal('front');
   private router = inject(Router);
   private routerSub?: Subscription;

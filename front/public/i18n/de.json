@@ -1,5 +1,6 @@
 {
   "COMMON": {
+    "REALTIME_DISABLED": "Live-Aktualisierungen sind vorübergehend deaktiviert. Lade die Seite neu, um die neuesten Informationen zu sehen.",
     "ACTIONS": "Aktionen",
     "COPY": "Kopieren",
     "SAVE": "Speichern",

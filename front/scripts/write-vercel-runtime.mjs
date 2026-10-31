@@ -3,14 +3,21 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
 export function runtimeConfig(env) {
-  let ws;
-  try {
-    ws = new URL(env.WS_URL);
-  } catch {
-    throw new Error('WS_URL must be the public wss:// WebSocket bridge URL');
+  if (env.REALTIME_ENABLED !== undefined && !['true', 'false'].includes(env.REALTIME_ENABLED)) {
+    throw new Error('REALTIME_ENABLED must be true or false');
   }
-  if (ws.protocol !== 'wss:' || ws.username || ws.password || ws.search || ws.hash) {
-    throw new Error('WS_URL must use wss:// without credentials, query parameters or fragments');
+  const wsUrl = env.WS_URL?.trim();
+  const realtimeEnabled = Boolean(wsUrl) && env.REALTIME_ENABLED !== 'false';
+  let ws;
+  if (realtimeEnabled) {
+    try {
+      ws = new URL(wsUrl);
+    } catch {
+      throw new Error('WS_URL must be the public wss:// WebSocket bridge URL');
+    }
+    if (ws.protocol !== 'wss:' || ws.username || ws.password || ws.search || ws.hash) {
+      throw new Error('WS_URL must use wss:// without credentials, query parameters or fragments');
+    }
   }
   const stripe = env.STRIPE_PUBLISHABLE_KEY || '';
   if (stripe && !/^pk_(test|live)_[A-Za-z0-9]+$/.test(stripe)) {
@@ -21,7 +28,8 @@ export function runtimeConfig(env) {
   // Only these public values enter the browser. Never serialize process.env.
   return {
     __API_URL__: '/api',
-    __WS_URL__: ws.href.replace(/\/$/, ''),
+    __REALTIME_ENABLED__: realtimeEnabled,
+    __WS_URL__: ws ? ws.href.replace(/\/$/, '') : '',
     __STRIPE_PUBLISHABLE_KEY__: stripe,
     __GA_MEASUREMENT_ID__: ga,
   };

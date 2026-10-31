@@ -1,5 +1,6 @@
 {
   "COMMON": {
+    "REALTIME_DISABLED": "Live updates are temporarily disabled. Refresh the page to see the latest information.",
     "ACTIONS": "Actions",
     "COPY": "Copy",
     "SAVE": "Save",

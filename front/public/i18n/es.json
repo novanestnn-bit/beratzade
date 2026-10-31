@@ -1,5 +1,6 @@
 {
   "COMMON": {
+    "REALTIME_DISABLED": "Las actualizaciones en tiempo real están desactivadas temporalmente. Actualiza la página para ver la información más reciente.",
     "ACTIONS": "Acciones",
     "COPY": "Copiar",
     "SAVE": "Guardar",

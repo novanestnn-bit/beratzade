@@ -1,5 +1,6 @@
 {
   "COMMON": {
+    "REALTIME_DISABLED": "Canlı güncellemeler geçici olarak kapalı. Son bilgileri görmek için sayfayı yenileyin.",
     "ACTIONS": "İşlemler",
     "COPY": "Kopyala",
     "SAVE": "Kaydet",
