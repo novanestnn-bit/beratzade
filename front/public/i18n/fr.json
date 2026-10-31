@@ -3457,5 +3457,18 @@
     "EMAIL_ERROR": "Veuillez saisir un e-mail valide.",
     "INVOICE_SAVED": "E-mail de facture",
     "THANK_YOU": "Merci !"
+  },
+  "SERVICE_REQUESTS": {
+    "TITLE": "Demandes clients",
+    "WAITER": "Appel serveur",
+    "PAYMENT": "Demande de paiement",
+    "PENDING": "En attente",
+    "ACKNOWLEDGED": "En cours",
+    "RESOLVED": "Terminée",
+    "ACK": "Prendre en charge",
+    "RESOLVE": "Terminer",
+    "OFFLINE": "Connexion indisponible. Les dernières informations et les brouillons sont conservés.",
+    "PAYMENT_UNCERTAIN": "Résultat du paiement incertain. Vérifiez la même opération avant de modifier le montant ou le moyen.",
+    "CLOSED_DRAFT": "Brouillon conservé. La table enregistrée est fermée ; vérifiez avant de l’ouvrir."
   }
 }

@@ -3457,5 +3457,18 @@
     "EMAIL_ERROR": "Please enter a valid email.",
     "INVOICE_SAVED": "Invoice email",
     "THANK_YOU": "Thank you!"
+  },
+  "SERVICE_REQUESTS": {
+    "TITLE": "Customer requests",
+    "WAITER": "Waiter call",
+    "PAYMENT": "Payment request",
+    "PENDING": "Pending",
+    "ACKNOWLEDGED": "Being handled",
+    "RESOLVED": "Completed",
+    "ACK": "Handle",
+    "RESOLVE": "Complete",
+    "OFFLINE": "Connection unavailable. Last information and drafts are preserved.",
+    "PAYMENT_UNCERTAIN": "Payment result is uncertain. Verify the same transaction before changing its amount or method.",
+    "CLOSED_DRAFT": "Draft preserved. The saved table is closed; check before opening it."
   }
 }

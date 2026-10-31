@@ -1,3 +1,4 @@
+import { pendingRequest } from '../shared/durable-request-key';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import {
@@ -1993,6 +1994,7 @@ export interface OrderItemCreate {
 }
 
 export interface OrderCreate {
+  idempotency_key?: string;
   items: OrderItemCreate[];
   notes?: string;
   session_id?: string;  // Session identifier for order isolation
@@ -3024,7 +3026,9 @@ export class ApiService {
   }
 
   createStaffSale(body: StaffSaleCreate): Observable<StaffSaleCreateResponse> {
-    return this.http.post<StaffSaleCreateResponse>(`${this.apiUrl}/orders/staff-sale`, body);
+    const { idempotency_key, ...content } = body;
+    const request = pendingRequest(`sale:${this.getCurrentUser()?.tenant_id}:${this.getCurrentUser()?.id}`, content);
+    return this.http.post<StaffSaleCreateResponse>(`${this.apiUrl}/orders/staff-sale`, { ...body, idempotency_key: request.key }).pipe(tap(() => request.done()));
   }
 
   getCurrentCashRegister(): Observable<CashRegisterSession | null> {
@@ -3497,9 +3501,9 @@ export class ApiService {
   }
 
   submitOrder(tableToken: string, order: OrderCreate): Observable<any> {
-    return this.http.post(`${this.apiUrl}/menu/${tableToken}/order`, order, {
-      withCredentials: true,
-    });
+    const { pin, staff_access, latitude, longitude, idempotency_key, ...content } = order;
+    const request = pendingRequest(`order:${this.getCurrentUser()?.id || 'guest'}:${tableToken}`, content);
+    return this.http.post(`${this.apiUrl}/menu/${tableToken}/order`, { ...order, idempotency_key: request.key }, { withCredentials: true }).pipe(tap(() => request.done()));
   }
 
   getCurrentOrder(tableToken: string, sessionId?: string, forDisplay = false): Observable<any> {
@@ -3647,16 +3651,26 @@ export class ApiService {
   }
 
   requestPayment(tableToken: string, orderId: number, paymentMethod: string, message?: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/menu/${tableToken}/order/${orderId}/request-payment`, {
-      payment_method: paymentMethod,
-      message: message || null,
-    });
+    const body = { payment_method: paymentMethod, message: message || null };
+    const request = pendingRequest(`${tableToken}:payment:${orderId}`, body);
+    return this.http.post(`${this.apiUrl}/menu/${tableToken}/order/${orderId}/request-payment`, { ...body, idempotency_key: request.key }).pipe(tap(() => request.done()));
   }
 
   callWaiter(tableToken: string, message?: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/menu/${tableToken}/call-waiter`, {
-      message: message || null,
-    });
+    const body = { message: message || null };
+    const request = pendingRequest(`${tableToken}:waiter`, body);
+    return this.http.post(`${this.apiUrl}/menu/${tableToken}/call-waiter`, { ...body, idempotency_key: request.key }).pipe(tap(() => request.done()));
+  }
+
+
+  getPublicServiceRequests(tableToken: string): Observable<Array<{id: number; kind: string; status: string}>> {
+    return this.http.get<Array<{id: number; kind: string; status: string}>>(`${this.apiUrl}/menu/${tableToken}/service-requests`);
+  }
+  getServiceRequests(includeResolved = false): Observable<ServiceRequest[]> {
+    return this.http.get<ServiceRequest[]>(`${this.apiUrl}/service-requests`, { params: { include_resolved: includeResolved } });
+  }
+  updateServiceRequest(id: number, status: 'acknowledged' | 'resolved'): Observable<ServiceRequest> {
+    return this.http.patch<ServiceRequest>(`${this.apiUrl}/service-requests/${id}`, { status });
   }
 
   private tenantStripeKey = signal<string | null>(null);
@@ -4799,4 +4813,11 @@ export class ApiService {
   getChangelog(): Observable<string> {
     return this.http.get(`${this.apiUrl}/changelog`, { responseType: 'text' });
   }
+}
+
+export interface ServiceRequest {
+  id: number; table_id: number; table_name?: string; order_id?: number | null;
+  kind: 'call_waiter' | 'payment_requested'; status: 'pending' | 'acknowledged' | 'resolved';
+  message?: string | null; payment_method?: string | null;
+  assigned_waiter_id?: number | null; handled_by_user_id?: number | null;
 }

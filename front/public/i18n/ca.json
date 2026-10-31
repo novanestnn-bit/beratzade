@@ -3457,5 +3457,18 @@
     "EMAIL_ERROR": "Introduïu un correu vàlid.",
     "INVOICE_SAVED": "Correu de factura",
     "THANK_YOU": "Gràcies!"
+  },
+  "SERVICE_REQUESTS": {
+    "TITLE": "Sol·licituds de clients",
+    "WAITER": "Crida al cambrer",
+    "PAYMENT": "Sol·licitud de pagament",
+    "PENDING": "Pendent",
+    "ACKNOWLEDGED": "En atenció",
+    "RESOLVED": "Completada",
+    "ACK": "Atendre",
+    "RESOLVE": "Completar",
+    "OFFLINE": "Sense connexió. Es conserven les darreres dades i els esborranys.",
+    "PAYMENT_UNCERTAIN": "Resultat del pagament incert. Verifiqueu la mateixa operació abans de canviar l’import o el mètode.",
+    "CLOSED_DRAFT": "Esborrany conservat. La taula desada està tancada; reviseu-la abans d’obrir-la."
   }
 }

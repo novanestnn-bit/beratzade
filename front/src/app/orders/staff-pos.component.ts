@@ -1,6 +1,8 @@
+import { ServiceRequestsComponent } from '../shared/service-requests.component';
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RouterLink } from '@angular/router';
 import { ApiService, CurrentTableOrder, Order, OrderPaymentLeg, ProductQuestion, StaffPosMenuProduct, Table } from '../services/api.service';
 import { SidebarComponent } from '../shared/sidebar.component';
@@ -45,9 +47,10 @@ interface CompletedPaymentEntry {
 @Component({
   selector: 'app-staff-pos',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, SidebarComponent],
+  imports: [ServiceRequestsComponent, CommonModule, FormsModule, RouterLink, SidebarComponent, TranslateModule],
   template: `
     <app-sidebar>
+      <app-service-requests />
       <main class="pos-page" data-testid="staff-pos">
         <header class="pos-header">
           <div>
@@ -66,6 +69,8 @@ interface CompletedPaymentEntry {
           <button type="button" [class.active]="mode() === 'takeaway'" (click)="setMode('takeaway')" data-testid="pos-mode-takeaway">Gel-al</button>
         </nav>
 
+        @if (syncOffline()) { <p role="status" data-testid="pos-offline">{{ 'SERVICE_REQUESTS.OFFLINE' | translate }}</p> }
+        @if (paymentUncertain()) { <p role="status">{{ 'SERVICE_REQUESTS.PAYMENT_UNCERTAIN' | translate }}</p> }
         @if (error()) { <div class="pos-alert error" role="alert">{{ error() }}</div> }
         @if (success()) { <div class="pos-alert success" role="status">{{ success() }}</div> }
 
@@ -109,8 +114,8 @@ interface CompletedPaymentEntry {
 
               @if (mode() === 'takeaway' && !payableOrder()) {
                 <div class="customer-fields">
-                  <label>Müşteri adı<input [(ngModel)]="customerName" maxlength="160" autocomplete="name" placeholder="İsteğe bağlı" /></label>
-                  <label>Telefon<input [(ngModel)]="customerPhone" maxlength="40" autocomplete="tel" placeholder="İsteğe bağlı" /></label>
+                  <label>Müşteri adı<input [(ngModel)]="customerName" (ngModelChange)="persistDraft()" maxlength="160" autocomplete="name" placeholder="İsteğe bağlı" /></label>
+                  <label>Telefon<input [(ngModel)]="customerPhone" (ngModelChange)="persistDraft()" maxlength="40" autocomplete="tel" placeholder="İsteğe bağlı" /></label>
                 </div>
               }
 
@@ -218,7 +223,7 @@ interface CompletedPaymentEntry {
                     } @else {
                       <label class="amount-field">Tahsil edilecek tutar<input type="number" min="0.01" step="0.01" [ngModel]="paymentAmount" (ngModelChange)="setPaymentAmount($event)" /></label>
                     }
-                    <button type="button" class="primary-button pay-button" (click)="collectPayment()" [disabled]="processingPayment() ||  paymentAmountCents() < 1 || paymentAmountCents() > payable.amountRemaining" data-testid="pos-collect-payment">
+                    <button type="button" class="primary-button pay-button" (click)="collectPayment()" [disabled]="processingPayment() || paymentAmountCents() < 1 || (!paymentUncertain() && paymentAmountCents() > payable.amountRemaining)" data-testid="pos-collect-payment">
                       {{ processingPayment() ? 'Kaydediliyor…' : 'Tahsilatı kaydet' }}
                     </button>
                     <p class="payment-hint">Ödeme seçimi POS veya yemek kartı cihazını çalıştırmaz; seçilen yöntemi tahsilat kaydına işler.</p>
@@ -438,7 +443,7 @@ interface CompletedPaymentEntry {
     @media print { :host { color:#000; } .pos-header,.sale-modes,.category-panel,.product-panel,.pos-header-actions,.collect-payment,.primary-button,.secondary-button,.text-button { display:none !important; } .pos-page { max-width:none; padding:0; } .pos-workspace { display:block; } .receipt-panel { position:static; max-height:none; overflow:visible; border:0; box-shadow:none; } .paid-summary { border:0; background:#fff; color:#000; } }
   `],
 })
-export class StaffPosComponent {
+export class StaffPosComponent implements OnDestroy {
   private readonly api = inject(ApiService);
 
   readonly mode = signal<SaleMode>('quick_sale');
@@ -524,15 +529,69 @@ export class StaffPosComponent {
     return category.subcategories.find((subcategory) => subcategory.id === this.selectedSubcategory())?.name ?? category.name;
   });
 
+  readonly syncOffline = signal(false);
+  private translate = inject(TranslateService);
+  readonly paymentUncertain = signal(false);
+  private restoredTableId: number | null = null;
+  private restoredPaymentOrderId: number | null = null;
+  private syncTimer: ReturnType<typeof setInterval>;
+  private beforeUnload = (event: BeforeUnloadEvent) => {
+    this.persistDraft();
+    if (this.cart().length || this.submitting() || this.processingPayment() || this.paymentUncertain()) { event.preventDefault(); event.returnValue = ''; }
+  };
+  private draftKey(): string {
+    const user = this.api.getCurrentUser();
+    return `pos-draft:v1:${user?.tenant_id}:${user?.id}`;
+  }
+  persistDraft(): void {
+    try {
+      localStorage.setItem(this.draftKey(), JSON.stringify({ at: Date.now(), mode: this.mode(), tableId: this.selectedTable()?.id ?? this.restoredTableId, cart: this.cart(), notes: this.orderNotesValue, customerName: this.customerName, customerPhone: this.customerPhone, paymentOrderId: this.paymentKey ? (this.payableOrder()?.id ?? this.restoredPaymentOrderId) : null, paymentKey: this.paymentKey, paymentFingerprint: this.paymentKeyFingerprint, paymentMethod: this.paymentMethod, paymentAmount: this.paymentAmount, cashReceived: this.cashReceived, paymentUncertain: this.paymentUncertain() }));
+    } catch { this.error.set('Taslak bu cihazda saklanamadı. Sayfayı yenilemeden önce siparişi gönderin.'); }
+  }
+  private restoreDraft(): void {
+    try {
+      const draft = JSON.parse(localStorage.getItem(this.draftKey()) || 'null');
+      if (!draft || Date.now() - draft.at > 8 * 3600000) return;
+      if (!['table', 'quick_sale', 'takeaway'].includes(draft.mode) || !Array.isArray(draft.cart)) return;
+      this.mode.set(draft.mode);
+      this.cart.set(draft.cart.filter((line: CartLine) => line.product?.id && line.quantity > 0));
+      this.restoredTableId = draft.tableId || null;
+      this.orderNotesValue = draft.notes || '';
+      this.customerName = draft.customerName || '';
+      this.customerPhone = draft.customerPhone || '';
+      this.restoredPaymentOrderId = draft.paymentOrderId || null;
+      this.paymentKey = draft.paymentKey || '';
+      this.paymentKeyFingerprint = draft.paymentFingerprint || '';
+      this.paymentMethod = draft.paymentMethod || 'cash';
+      this.paymentAmount = draft.paymentAmount || '0.00';
+      this.cashReceived = draft.cashReceived || '0.00';
+      this.paymentUncertain.set(draft.paymentUncertain === true);
+    } catch { }
+  }
+  ngOnDestroy() { clearInterval(this.syncTimer); window.removeEventListener('beforeunload', this.beforeUnload); this.persistDraft(); }
+
   constructor() {
+    this.restoreDraft();
+    effect(() => { this.processingPayment(); this.persistDraft(); });
+    window.addEventListener('beforeunload', this.beforeUnload);
+    this.syncTimer = setInterval(() => {
+      if (!this.submitting() && !this.processingPayment() && document.visibilityState === 'visible') this.refresh();
+    }, 10000);
     this.api.getTables().subscribe({
       next: (tables) => {
         this.tables.set([...tables].sort((a, b) => a.name.localeCompare(b.name, 'tr')));
         this.tablesLoading.set(false);
+        if (this.restoredPaymentOrderId) this.loadOrderRecord(this.restoredPaymentOrderId);
+        if (this.restoredTableId) {
+          const table = tables.find(row => row.id === this.restoredTableId);
+          if (table?.is_active) this.openTable(table, true);
+          else if (this.cart().length) this.error.set(this.translate.instant('SERVICE_REQUESTS.CLOSED_DRAFT'));
+        }
       },
       error: () => {
         this.tables.set([]);
         this.tablesLoading.set(false);
+        this.syncOffline.set(false);
       },
     });
     this.loadMenu();
@@ -554,11 +613,12 @@ export class StaffPosComponent {
   }
 
   setMode(mode: SaleMode): void {
-    if (this.submitting() || this.processingPayment()) return;
+    if (this.submitting() || this.processingPayment() || this.paymentUncertain()) return;
     if (this.cart().length > 0) {
       this.error.set('Önce taslağı kaydet veya taslaktaki ürünleri kaldır.');
       return;
     }
+    this.restoredTableId = null;
     this.mode.set(mode);
     this.selectedSubcategory.set('all');
     this.error.set('');
@@ -610,19 +670,23 @@ export class StaffPosComponent {
       next: (tables) => {
         this.tables.set([...tables].sort((a, b) => a.name.localeCompare(b.name, 'tr')));
         this.tablesLoading.set(false);
+        this.syncOffline.set(false);
       },
       error: (err) => {
+        this.syncOffline.set(true);
         this.tablesLoading.set(false);
         this.error.set(err.error?.detail || 'Masalar yenilenemedi.');
       },
     });
+    if (this.tableToken()) this.refreshTableOrder();
     this.loadMenu();
     this.loadCompletedPayments();
     const order = this.payableOrder();
     if (order) this.loadOrderRecord(order.id);
   }
 
-  openTable(table: Table): void {
+  openTable(table: Table, restoring = false): void {
+    if (!restoring && (this.processingPayment() || this.paymentUncertain())) return;
     if (table.id == null || this.openingTable()) return;
     this.error.set('');
     this.openingTable.set(true);
@@ -654,10 +718,12 @@ export class StaffPosComponent {
   }
 
   changeTable(): void {
+    if (this.processingPayment() || this.paymentUncertain()) return;
     if (this.cart().length > 0 || this.submitting()) {
       this.error.set('Masa değiştirmeden önce taslağı gönder veya ürünleri kaldır.');
       return;
     }
+    this.restoredTableId = null;
     this.selectedTable.set(null);
     this.currentOrder.set(null);
     this.payableOrder.set(null);
@@ -824,6 +890,7 @@ export class StaffPosComponent {
   }
 
   setPaymentMethod(method: PaymentMethod): void {
+    if (this.paymentUncertain() || this.processingPayment()) { this.error.set(this.translate.instant('SERVICE_REQUESTS.PAYMENT_UNCERTAIN')); return; }
     this.paymentMethod = method;
     this.resetPaymentKey();
     const remaining = this.payableOrder()?.amountRemaining ?? 0;
@@ -831,16 +898,18 @@ export class StaffPosComponent {
     if (method === 'cash') this.cashReceived = (remaining / 100).toFixed(2);
   }
 
-  setCashReceived(value: string): void {
-    this.cashReceived = value;
-    const received = this.parseMoney(value);
+  setCashReceived(value: string | number): void {
+    if (this.paymentUncertain() || this.processingPayment()) return;
+    this.cashReceived = String(value ?? '');
+    const received = this.parseMoney(this.cashReceived);
     const remaining = this.payableOrder()?.amountRemaining ?? 0;
     this.paymentAmount = (Math.min(received, remaining) / 100).toFixed(2);
     this.resetPaymentKey();
   }
 
-  setPaymentAmount(value: string): void {
-    this.paymentAmount = value;
+  setPaymentAmount(value: string | number): void {
+    if (this.paymentUncertain() || this.processingPayment()) return;
+    this.paymentAmount = String(value ?? '');
     this.resetPaymentKey();
   }
 
@@ -855,7 +924,7 @@ export class StaffPosComponent {
   collectPayment(): void {
     const order = this.payableOrder();
     const amount = this.paymentAmountCents();
-    if (!order || amount < 1 || amount > order.amountRemaining || this.processingPayment()) return;
+    if (!order || amount < 1 || (!this.paymentUncertain() && amount > order.amountRemaining) || this.processingPayment()) return;
     this.processingPayment.set(true);
     this.error.set('');
     this.api.recordOrderPayment(order.id, {
@@ -865,6 +934,7 @@ export class StaffPosComponent {
     }).subscribe({
       next: (response) => {
         this.processingPayment.set(false);
+        this.paymentUncertain.set(false);
         this.paymentKey = '';
         this.paymentKeyFingerprint = '';
         this.payableOrder.update((current) => current ? {
@@ -902,6 +972,8 @@ export class StaffPosComponent {
       },
       error: (err) => {
         this.processingPayment.set(false);
+        this.paymentUncertain.set(err.status === 0 || err.status >= 500);
+        this.persistDraft();
         this.error.set(err.error?.detail || 'Tahsilat kaydedilemedi. Masa açık kaldı; aynı işlemi güvenle yeniden deneyebilirsin.');
       },
     });
@@ -1000,8 +1072,16 @@ export class StaffPosComponent {
           payments: (order.payments ?? []).filter((payment) => !payment.voided_at),
         });
         const remaining = order.amount_remaining_cents ?? order.total_cents;
-        this.paymentAmount = (remaining / 100).toFixed(2);
-        if (this.paymentMethod === 'cash') this.cashReceived = this.paymentAmount;
+        if (remaining === 0) {
+          this.paymentUncertain.set(false);
+          this.resetPaymentKey();
+          this.restoredPaymentOrderId = null;
+        }
+        if (!this.paymentKey) {
+          this.paymentAmount = (remaining / 100).toFixed(2);
+          if (this.paymentMethod === 'cash') this.cashReceived = this.paymentAmount;
+        }
+        this.persistDraft();
         afterLoad?.();
       },
       error: () => {
@@ -1042,6 +1122,7 @@ export class StaffPosComponent {
       this.paymentKeyFingerprint = fingerprint;
       this.paymentKey = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 18)}`;
     }
+    this.persistDraft();
     return this.paymentKey;
   }
 

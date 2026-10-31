@@ -3477,5 +3477,18 @@
   },
   "STAFF_POS": {
     "NAV_LABEL": "Satış ekranı"
+  },
+  "SERVICE_REQUESTS": {
+    "TITLE": "Müşteri talepleri",
+    "WAITER": "Garson çağrısı",
+    "PAYMENT": "Ödeme talebi",
+    "PENDING": "Bekliyor",
+    "ACKNOWLEDGED": "İlgileniliyor",
+    "RESOLVED": "Tamamlandı",
+    "ACK": "İlgilen",
+    "RESOLVE": "Tamamla",
+    "OFFLINE": "Bağlantı kurulamadı. Son bilgiler ve taslaklar korunuyor.",
+    "PAYMENT_UNCERTAIN": "Tahsilat sonucu belirsiz. Aynı işlemi tekrar doğrulamadan tutarı veya ödeme yöntemini değiştirmeyin.",
+    "CLOSED_DRAFT": "Taslak korundu. Kayıtlı masa kapalı; masayı açmadan önce kontrol edin."
   }
 }

@@ -106,7 +106,9 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
     afterNextRender(() => this.updateDocumentTitle());
   }
 
+  private menuSync: ReturnType<typeof setInterval> | null = null;
   ngOnInit(): void {
+    this.menuSync = setInterval(() => { if (this.tenantId() && document.visibilityState === "visible") this.reloadMenu(true); }, 60000);
     const langParam = this.route.snapshot.queryParamMap.get('lang');
     if (langParam?.trim()) {
       this.language.setLanguage(langParam.trim());
@@ -189,6 +191,7 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.menuSync) clearInterval(this.menuSync);
     // Title reset handled by next navigation.
   }
 
@@ -210,10 +213,10 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
     });
   }
 
-  private reloadMenu(): void {
+  private reloadMenu(background = false): void {
     const tid = this.tenantId();
     if (!tid) return;
-    this.menuLoading.set(true);
+    if (!background) this.menuLoading.set(true);
     this.api.getPublicTenantMenu(tid).subscribe({
       next: (data) => {
         this.menu.set(data);

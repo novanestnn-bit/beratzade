@@ -1,3 +1,4 @@
+import { ServiceRequestsComponent } from '../shared/service-requests.component';
 import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -51,9 +52,10 @@ ModuleRegistry.registerModules([
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [AgGridAngular, SidebarComponent, StaffPosToolbarComponent, FormsModule, FocusFirstInputDirective, TranslateModule, OfflineCashSaleComponent],
+  imports: [ServiceRequestsComponent, AgGridAngular, SidebarComponent, StaffPosToolbarComponent, FormsModule, FocusFirstInputDirective, TranslateModule, OfflineCashSaleComponent],
   template: `
     <app-sidebar>
+      <app-service-requests />
         <div class="page-header page-header--staff-flow">
           <app-staff-pos-toolbar />
           <div class="page-header-row">
@@ -2928,7 +2930,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
     resizable: true,
   };
 
+  private httpSyncTimer: ReturnType<typeof setInterval> | null = null;
+
   ngOnInit() {
+    this.httpSyncTimer = setInterval(() => { if (document.visibilityState === "visible") this.loadOrders(true); }, 10000);
     this.tableScopeQuerySub = this.route.queryParamMap.subscribe(q => {
       const t = q.get('table');
       const id = t != null && t !== '' ? Number(t) : NaN;
@@ -2992,6 +2997,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    if (this.httpSyncTimer) clearInterval(this.httpSyncTimer);
     this.wsSub?.unsubscribe();
     this.tableScopeQuerySub?.unsubscribe();
   }
@@ -3007,15 +3013,19 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
 
-  loadOrders() {
-    this.loading.set(true);
+  private ordersRefreshing = false;
+  loadOrders(background = false) {
+    if (this.ordersRefreshing) return;
+    this.ordersRefreshing = true;
+    if (!background) this.loading.set(true);
     this.api.getOrders(this.showRemovedItems).subscribe({
       next: orders => {
         this.orders.set(orders);
         this.loading.set(false);
-        this.applyStaffOrdersFocusFromQuery();
+        this.ordersRefreshing = false;
+        if (!background) this.applyStaffOrdersFocusFromQuery();
       },
-      error: () => this.loading.set(false)
+      error: () => { this.loading.set(false); this.ordersRefreshing = false; }
     });
   }
 

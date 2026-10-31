@@ -1,3 +1,4 @@
+import { ServiceRequestsComponent } from '../shared/service-requests.component';
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -94,7 +95,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [
+  imports: [ServiceRequestsComponent,
     CommonModule,
     FormsModule,
     SidebarComponent,
@@ -113,6 +114,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
   ],
   template: `
     <app-sidebar>
+      <app-service-requests />
       <div class="page-header">
         <h1>{{ 'SETTINGS.TITLE' | translate }}</h1>
       </div>

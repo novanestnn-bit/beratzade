@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, effect, inject, signal, computed, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl, SafeStyle } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { CommonModule, SlicePipe } from '@angular/common';
@@ -199,6 +199,42 @@ export class MenuComponent implements OnInit, OnDestroy {
     this.isScrolled.set(window.scrollY > 200);
   }
 
+  readonly serviceStatuses = signal<Array<{id: number; kind: string; status: string}>>([]);
+  readonly httpOffline = signal(false);
+  private httpTimer: ReturnType<typeof setInterval> | null = null;
+  private httpBusy = false;
+  constructor() {
+    effect(() => {
+      const cart = this.cart();
+      if (this.tableToken && this.sessionId && !this.sharedCartEnabled()) {
+        try { localStorage.setItem(`qr-draft:${this.tableToken}:${this.sessionId}`, JSON.stringify({ at: Date.now(), cart })); } catch { }
+      }
+    });
+  }
+  private syncHttp() {
+    if (this.httpBusy || this.submitting() || document.visibilityState !== 'visible') return;
+    this.httpBusy = true;
+    this.api.getMenu(this.tableToken, this.staffAccess ?? undefined).subscribe({
+      next: data => {
+        this.httpBusy = false;
+        this.httpOffline.set(false);
+        this.tableIsActive.set(data.table_is_active !== false);
+        this.products.set(data.products);
+        this.applyFilter(this.selectedCategory(), this.selectedSubcategory());
+        this.loadStoredOrders();
+        this.api.getPublicServiceRequests(this.tableToken).subscribe({ next: rows => this.serviceStatuses.set(rows), error: () => this.httpOffline.set(true) });
+      },
+      error: error => {
+        this.httpBusy = false;
+        if (error.status === 403 && error.error?.detail?.code === 'TABLE_CLOSED') {
+          this.tableClosed.set(true);
+          this.tableIsActive.set(false);
+          this.closedTenantName.set(error.error.detail.tenant_name || '');
+          this.closedTableName.set(error.error.detail.table_name || '');
+        } else this.httpOffline.set(true);
+      },
+    });
+  }
   ngOnInit() {
     this.tableToken = this.route.snapshot.params['token'];
     this.staffAccess =
@@ -208,12 +244,19 @@ export class MenuComponent implements OnInit, OnDestroy {
         : null) ??
       null;
     this.initializeSession();
+    try {
+      const draft = JSON.parse(localStorage.getItem(`qr-draft:${this.tableToken}:${this.sessionId}`) || 'null');
+      if (draft && Date.now() - draft.at < 8 * 3600000 && Array.isArray(draft.cart)) this.cart.set(draft.cart);
+    } catch { }
+    this.httpTimer = setInterval(() => this.syncHttp(), 10000);
     this.loadMenu();
     this.loadStoredOrders();
     this.loadOrderHistory();
+    this.api.getPublicServiceRequests(this.tableToken).subscribe({ next: rows => this.serviceStatuses.set(rows), error: () => {} });
   }
 
   ngOnDestroy() {
+    if (this.httpTimer) clearInterval(this.httpTimer);
     this.ws?.close();
     for (const t of this.notesSyncTimers.values()) {
       clearTimeout(t);
@@ -328,7 +371,7 @@ export class MenuComponent implements OnInit, OnDestroy {
         const storedOrderId = localStorage.getItem(`active_order_${this.tableToken}`);
         const currentOrderId = data.active_order_id ? String(data.active_order_id) : null;
 
-        if (currentOrderId && storedOrderId !== currentOrderId) {
+        if (currentOrderId && storedOrderId && storedOrderId !== currentOrderId && this.cart().length === 0) {
           // Table session changed -- clear all stale data
           sessionStorage.removeItem(`pin_${this.tableToken}`);
           localStorage.removeItem(`session_${this.tableToken}`);

@@ -3457,5 +3457,18 @@
     "EMAIL_ERROR": "Introduzca un email válido.",
     "INVOICE_SAVED": "Email de factura",
     "THANK_YOU": "¡Gracias!"
+  },
+  "SERVICE_REQUESTS": {
+    "TITLE": "Solicitudes de clientes",
+    "WAITER": "Llamar al camarero",
+    "PAYMENT": "Solicitud de pago",
+    "PENDING": "Pendiente",
+    "ACKNOWLEDGED": "En atención",
+    "RESOLVED": "Completada",
+    "ACK": "Atender",
+    "RESOLVE": "Completar",
+    "OFFLINE": "Sin conexión. Se conservan los últimos datos y borradores.",
+    "PAYMENT_UNCERTAIN": "Resultado del pago incierto. Verifique la misma operación antes de cambiar el importe o método.",
+    "CLOSED_DRAFT": "Borrador guardado. La mesa guardada está cerrada; revísela antes de abrirla."
   }
 }

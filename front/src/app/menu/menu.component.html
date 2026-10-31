@@ -1,3 +1,11 @@
+@if (serviceStatuses().length) {
+  <section data-testid="customer-service-requests" aria-live="polite">
+    @for (request of serviceStatuses(); track request.id) {
+      <p>{{ ('SERVICE_REQUESTS.' + (request.kind === 'call_waiter' ? 'WAITER' : 'PAYMENT')) | translate }}: {{ ('SERVICE_REQUESTS.' + request.status.toUpperCase()) | translate }}</p>
+    }
+  </section>
+}
+@if (httpOffline()) { <p role="status" data-testid="qr-offline">{{ 'SERVICE_REQUESTS.OFFLINE' | translate }}</p> }
 <div class="menu-page" [style.--hero-header-bg]="tenantPublicBackgroundColor() ?? null" [style.--color-bg]="tenantPublicBackgroundColor() ?? null" [style.--color-primary]="resolvePublicPrimaryColor(tenantPublicPrimaryColor())">
   @if (loading()) {
   <div class="loading-screen">

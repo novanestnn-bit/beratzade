@@ -1734,6 +1734,7 @@ class OrderItemCreate(SQLModel):
 
 
 class OrderCreate(SQLModel):
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=128)
     items: list[OrderItemCreate]
     notes: str | None = None
     session_id: str | None = None  # Session identifier for order isolation
@@ -1742,6 +1743,36 @@ class OrderCreate(SQLModel):
     staff_access: str | None = None  # Staff link token: when valid, PIN is not required
     latitude: float | None = None  # Optional GPS latitude for location verification
     longitude: float | None = None  # Optional GPS longitude for location verification
+
+
+class OrderSubmission(TenantMixin, table=True):
+    __tablename__ = "order_submission"
+    __table_args__ = (UniqueConstraint("table_id", "idempotency_key", name="uq_order_submission_key"),)
+    id: int | None = Field(default=None, primary_key=True)
+    table_id: int = Field(foreign_key="table.id")
+    idempotency_key: str = Field(max_length=128)
+    request_hash: str = Field(max_length=64)
+    order_id: int = Field(foreign_key="order.id")
+    response: dict = Field(sa_column=Column(PgJSON, nullable=False))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ServiceRequest(TenantMixin, table=True):
+    __tablename__ = "service_request"
+    __table_args__ = (UniqueConstraint("table_id", "idempotency_key", name="uq_service_request_key"),)
+    id: int | None = Field(default=None, primary_key=True)
+    table_id: int = Field(foreign_key="table.id", index=True)
+    order_id: int | None = Field(default=None, foreign_key="order.id")
+    kind: str = Field(max_length=24)
+    status: str = Field(default="pending", max_length=24)
+    message: str | None = Field(default=None, max_length=500)
+    payment_method: str | None = Field(default=None, max_length=24)
+    idempotency_key: str | None = Field(default=None, max_length=128)
+    request_hash: str = Field(max_length=64)
+    assigned_waiter_id: int | None = Field(default=None, foreign_key="user.id")
+    handled_by_user_id: int | None = Field(default=None, foreign_key="user.id")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class StaffSaleType(str, Enum):

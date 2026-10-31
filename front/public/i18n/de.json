@@ -3457,5 +3457,18 @@
     "EMAIL_ERROR": "Bitte gültige E-Mail eingeben.",
     "INVOICE_SAVED": "Rechnungs-E-Mail",
     "THANK_YOU": "Vielen Dank!"
+  },
+  "SERVICE_REQUESTS": {
+    "TITLE": "Kundenanfragen",
+    "WAITER": "Kellnerruf",
+    "PAYMENT": "Zahlungsanfrage",
+    "PENDING": "Ausstehend",
+    "ACKNOWLEDGED": "In Bearbeitung",
+    "RESOLVED": "Erledigt",
+    "ACK": "Übernehmen",
+    "RESOLVE": "Abschließen",
+    "OFFLINE": "Keine Verbindung. Letzte Informationen und Entwürfe bleiben erhalten.",
+    "PAYMENT_UNCERTAIN": "Zahlungsergebnis unklar. Prüfen Sie dieselbe Transaktion, bevor Sie Betrag oder Zahlungsart ändern.",
+    "CLOSED_DRAFT": "Entwurf gespeichert. Der gespeicherte Tisch ist geschlossen; vor dem Öffnen prüfen."
   }
 }

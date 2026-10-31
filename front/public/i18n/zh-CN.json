@@ -3457,5 +3457,18 @@
     "EMAIL_ERROR": "请输入有效邮箱。",
     "INVOICE_SAVED": "发票邮箱",
     "THANK_YOU": "谢谢！"
+  },
+  "SERVICE_REQUESTS": {
+    "TITLE": "顾客请求",
+    "WAITER": "呼叫服务员",
+    "PAYMENT": "付款请求",
+    "PENDING": "待处理",
+    "ACKNOWLEDGED": "处理中",
+    "RESOLVED": "已完成",
+    "ACK": "接单",
+    "RESOLVE": "完成",
+    "OFFLINE": "连接不可用，已保留最近的信息和草稿。",
+    "PAYMENT_UNCERTAIN": "支付结果尚未确认。更改金额或支付方式前，请核实同一笔交易。",
+    "CLOSED_DRAFT": "草稿已保留。保存的餐桌已关闭，请在开启前检查。"
   }
 }

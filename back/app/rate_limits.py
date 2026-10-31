@@ -126,6 +126,14 @@ def public_menu_ip_limit():
     )
 
 
+def public_table_read_limit():
+    """Polling budget per table and IP, so a restaurant Wi-Fi is not one table."""
+    return limiter.limit(
+        f"{getattr(settings, 'rate_limit_public_menu_per_minute', 30)}/minute",
+        key_func=lambda request: f"{rate_limit_key(request)}:{request.path_params.get('table_token', '')}",
+    )
+
+
 # Backwards-compatible names for main.py decorators (same functions as historic module-level defs)
 _rate_limit_key = rate_limit_key
 _rate_limit_key_user = rate_limit_key_user

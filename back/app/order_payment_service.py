@@ -218,6 +218,8 @@ def close_paid_table_session(session: Session, order: models.Order) -> bool:
     table.active_order_id = None
     table.order_pin = None
     session.add(table)
+    from .durable_service import resolve_requests
+    resolve_requests(session, table.id, order.paid_by_user_id)
     reservations = session.exec(
         select(models.Reservation).where(
             models.Reservation.tenant_id == order.tenant_id,

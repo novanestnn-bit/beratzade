@@ -149,6 +149,7 @@ from .rate_limits import (
     _rate_limit_key_user,
     limiter,
     public_menu_ip_limit,
+    public_table_read_limit,
     rate_limit_redis_url,
     register_rate_limit_exception_handler,
 )
@@ -621,6 +622,11 @@ def deny_public_staff_contract_uploads(tenant_id: int, filename: str):
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 # Register Inventory API router
+from .safe_logging import configure_access_redaction
+configure_access_redaction()
+from .durable_service import router as service_requests_router
+app.include_router(service_requests_router, tags=["Service requests"])
+
 app.include_router(inventory_router, prefix="/inventory", tags=["Inventory"])
 app.include_router(pricing_router, prefix="/pricing", tags=["Pricing"])
 app.include_router(
@@ -12284,6 +12290,8 @@ def close_table(
         if res.id is not None:
             finished_reservation_ids.append(res.id)
 
+    from .durable_service import resolve_requests
+    resolve_requests(session, table.id, current_user.id)
     session.commit()
     session.refresh(table)
 
@@ -12462,9 +12470,8 @@ def validate_table_token(
 
 
 @app.get("/menu/{table_token}")
-@limiter.limit(
-    f"{getattr(settings, 'rate_limit_public_menu_per_minute', 30)}/minute"
-)
+@public_table_read_limit()
+
 def get_menu(
     request: Request,
     table_token: str,
@@ -13375,9 +13382,8 @@ def _public_order_summary_dict(
 
 
 @app.get("/menu/{table_token}/order")
-@limiter.limit(
-    f"{getattr(settings, 'rate_limit_public_menu_per_minute', 30)}/minute"
-)
+@public_table_read_limit()
+
 def get_current_order(
     request: Request,
     table_token: str,
@@ -13805,6 +13811,21 @@ def create_order(
             redis_conn.delete(attempts_key)
             redis_conn.delete(lock_key)
 
+    # Serialize submissions for this table and persist replay receipts atomically.
+    from sqlalchemy import text
+    from .durable_service import fingerprint
+    session.execute(text("SELECT pg_advisory_xact_lock(85431, :table_id)"), {"table_id": table.id})
+    session.refresh(table)
+    if not table.is_active:
+        raise HTTPException(403, "Table is not active")
+    submission_hash = fingerprint(order_data.model_dump(mode="json", exclude={"idempotency_key", "pin", "staff_access", "latitude", "longitude"}))
+    if order_data.idempotency_key:
+        receipt = session.exec(select(models.OrderSubmission).where(models.OrderSubmission.table_id == table.id, models.OrderSubmission.idempotency_key == order_data.idempotency_key)).first()
+        if receipt:
+            if receipt.request_hash != submission_hash:
+                raise HTTPException(409, "Order key already used with different content")
+            return JSONResponse(content={**receipt.response, "duplicate": True})
+
     # ============ GET OR CREATE SHARED ORDER ============
     # Order is created when table is activated only as a slot; we create it on first item add.
     # If no active order yet, we will create one below (requires at least one item).
@@ -14125,6 +14146,14 @@ def create_order(
     recompute_order_status_preserving_payment(order, list(all_items))
     logger.debug("Recomputed order status from items: %s", order.status.value)
     
+    response_body = {
+        "status": "created" if is_new_order else "updated",
+        "order_id": order.id,
+        "session_id": order.session_id,
+        "customer_name": order.customer_name,
+    }
+    if order_data.idempotency_key:
+        session.add(models.OrderSubmission(tenant_id=table.tenant_id, table_id=table.id, idempotency_key=order_data.idempotency_key, request_hash=submission_hash, order_id=order.id, response=response_body))
     session.commit()
     session.refresh(order)
 
@@ -14166,7 +14195,8 @@ def create_order(
 
 class PaymentRequest(_BaseModel):
     payment_method: str  # 'cash', 'card_terminal'
-    message: str | None = None  # Optional message/observation from customer
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=128)
+    message: str | None = Field(default=None, max_length=500)  # Optional message/observation from customer
 
 
 @app.post("/menu/{table_token}/order/{order_id}/request-payment")
@@ -14185,7 +14215,7 @@ def request_payment(
     Notifies staff via WebSocket so they can come to the table.
     """
     table = session.exec(
-        select(models.Table).where(models.Table.token == table_token)
+        select(models.Table).where(models.Table.token == table_token).with_for_update()
     ).first()
 
     if not table:
@@ -14198,8 +14228,13 @@ def request_payment(
     if not order or order.table_id != table.id:
         raise HTTPException(status_code=404, detail="Order not found for this table.")
 
-    if order.status == models.OrderStatus.paid:
+    if order.paid_at or order.status in (models.OrderStatus.paid, models.OrderStatus.completed, models.OrderStatus.cancelled):
         raise HTTPException(status_code=400, detail="Order is already paid.")
+
+    from .durable_service import enqueue
+    durable, created = enqueue(session, table, kind="payment_requested", message=payment_request.message, payment_method=payment_request.payment_method, order_id=order.id, idempotency_key=payment_request.idempotency_key)
+    if not created:
+        return JSONResponse(content={"status": "payment_requested", "order_id": order.id, "payment_method": durable.payment_method, "request_id": durable.id})
 
     if order.bill_requested_at is None:
         order.bill_requested_at = datetime.now(timezone.utc)
@@ -14227,26 +14262,32 @@ def request_payment(
             effective_waiter_name = waiter.full_name or waiter.email
 
     # Notify staff via WebSocket
-    publish_order_update(table.tenant_id, {
-        "type": "payment_requested",
-        "order_id": order.id,
-        "table_name": table.name,
-        "table_id": table.id,
-        "payment_method": payment_request.payment_method,
-        "message": payment_request.message,
-        "assigned_waiter_id": effective_waiter_id,
-        "assigned_waiter_name": effective_waiter_name,
-    }, table_id=table.id)
+    try:
+        publish_order_update(table.tenant_id, {
+            "type": "payment_requested",
+            "order_id": order.id,
+            "table_name": table.name,
+            "table_id": table.id,
+            "payment_method": payment_request.payment_method,
+            "message": payment_request.message,
+            "assigned_waiter_id": effective_waiter_id,
+            "assigned_waiter_name": effective_waiter_name,
+        }, table_id=table.id)
+    except Exception:
+        logger.warning("Optional realtime delivery unavailable; durable request retained")
+
 
     return JSONResponse(content={
         "status": "payment_requested",
+        "request_id": durable.id,
         "order_id": order.id,
         "payment_method": payment_request.payment_method,
     })
 
 
 class CallWaiterRequest(_BaseModel):
-    message: str | None = None  # Optional message/reason
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=128)
+    message: str | None = Field(default=None, max_length=500)  # Optional message/reason
 
 
 @app.post("/menu/{table_token}/call-waiter")
@@ -14264,7 +14305,7 @@ def call_waiter(
     Sends a real-time notification to staff via WebSocket.
     """
     table = session.exec(
-        select(models.Table).where(models.Table.token == table_token)
+        select(models.Table).where(models.Table.token == table_token).with_for_update()
     ).first()
 
     if not table:
@@ -14272,6 +14313,13 @@ def call_waiter(
 
     if not table.is_active:
         raise HTTPException(status_code=403, detail="Table is not active.")
+
+    from .durable_service import enqueue
+    durable, created = enqueue(session, table, kind="call_waiter", message=waiter_request.message, idempotency_key=waiter_request.idempotency_key)
+    if not created:
+        return JSONResponse(content={"status": "waiter_called", "table_name": table.name, "request_id": durable.id})
+    session.commit()
+    session.refresh(durable)
 
     # Resolve assigned waiter (table-level, then floor-level fallback)
     effective_waiter_id = table.assigned_waiter_id
@@ -14286,16 +14334,21 @@ def call_waiter(
             effective_waiter_name = waiter.full_name or waiter.email
 
     # Notify staff via WebSocket
-    publish_order_update(table.tenant_id, {
-        "type": "call_waiter",
-        "table_name": table.name,
-        "table_id": table.id,
-        "message": waiter_request.message,
-        "assigned_waiter_id": effective_waiter_id,
-        "assigned_waiter_name": effective_waiter_name,
-    }, table_id=table.id)
+    try:
+        publish_order_update(table.tenant_id, {
+            "type": "call_waiter",
+            "table_name": table.name,
+            "table_id": table.id,
+            "message": waiter_request.message,
+            "assigned_waiter_id": effective_waiter_id,
+            "assigned_waiter_name": effective_waiter_name,
+        }, table_id=table.id)
+    except Exception:
+        logger.warning("Optional realtime delivery unavailable; durable request retained")
+
 
     return JSONResponse(content={
+        "request_id": durable.id,
         "status": "waiter_called",
         "table_name": table.name,
     })
