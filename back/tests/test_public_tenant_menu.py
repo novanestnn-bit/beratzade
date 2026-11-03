@@ -40,6 +40,53 @@ class TestPublicTenantMenu(PgClientTestCase):
         self.assertEqual(data["lang"], "en")
         self.assertEqual(data["categories"], [])
 
+    def test_public_source_disambiguates_same_numeric_id_without_private_fields(self):
+        # Separate product tables have independent sequences. This collision must
+        # retain both dishes and their own price/category in both public projections.
+        collision_id = 1_000_000_000 + self.tenant.id
+        catalog = models.ProductCatalog(name="Isolated catalog dish", category="Desserts")
+        self.session.add(catalog)
+        self.session.flush()
+        self.session.add(models.Product(
+            id=collision_id, tenant_id=self.tenant.id, name="Isolated main dish",
+            price_cents=14000, cost_cents=1234, category="Main Course",
+        ))
+        self.session.add(models.TenantProduct(
+            id=collision_id, tenant_id=self.tenant.id, catalog_id=catalog.id,
+            name="Isolated dessert", price_cents=6000, cost_cents=987,
+        ))
+        self.session.commit()
+
+        response = self.client.get(f"/public/tenants/{self.tenant.id}/menu")
+        self.assertEqual(response.status_code, 200, response.text)
+        menu = response.json()
+        expected = {
+            ("product", collision_id): ("Isolated main dish", 14000),
+            ("tenant_product", collision_id): ("Isolated dessert", 6000),
+        }
+        for projection in ("categories", "category_tree"):
+            rows = [product for category in menu[projection] for product in category["products"]]
+            self.assertEqual(
+                {(row["source"], row["id"]): (row["name"], row["price_cents"]) for row in rows},
+                expected,
+            )
+            self.assertEqual(len(rows), 2)
+            for row in rows:
+                assert_no_sensitive_product_fields(row)
+                self.assertNotIn("questions", row)
+
+    def test_public_legacy_product_has_source_qualified_identity(self):
+        product = models.Product(tenant_id=self.tenant.id, name="Isolated soup", price_cents=5000)
+        self.session.add(product)
+        self.session.commit()
+        self.session.refresh(product)
+        response = self.client.get(f"/public/tenants/{self.tenant.id}/menu")
+        self.assertEqual(response.status_code, 200, response.text)
+        row = response.json()["categories"][0]["products"][0]
+        self.assertEqual(row["id"], product.id)
+        self.assertEqual(row["source"], "product")
+        assert_no_sensitive_product_fields(row)
+
     def test_table_menu_excludes_inactive_legacy_products(self):
         table = models.Table(tenant_id=self.tenant.id, name="Visibility check", is_active=True)
         self.session.add(table)

@@ -38,6 +38,7 @@ from sqlmodel import Session, select
 from . import models, security
 from . import otp_recovery
 from .db import check_db_connection, get_session, engine
+from .media_storage import persist_upload, remove_upload, restore_uploads
 from .provider_images import (
     provider_product_image_url,
     provider_product_stored_image_path,
@@ -317,6 +318,8 @@ async def _app_lifespan(app: FastAPI):
         runner = MigrationRunner(migrations_dir)
         db_version = runner.run_migrations()
         logger.info(f"Database schema version: {db_version}")
+        restored = restore_uploads(engine, UPLOADS_DIR)
+        logger.info("Durable public image cache ready; restored=%s", restored)
     except Exception as exc:
         original = getattr(exc, "orig", exc)
         logger.error(
@@ -5799,7 +5802,7 @@ def _resolve_raster_image_content_type(file: UploadFile, contents: bytes) -> str
         return None
 
 
-def _delete_product_image_on_disk(image_filename: str | None, tenant_id: int) -> None:
+def _delete_product_image_on_disk(image_filename: str | None, tenant_id: int, session: Session | None = None) -> None:
     """Remove prior image file; handles tenant-owned files and catalog paths under providers/ (GitHub #40)."""
     if not image_filename:
         return
@@ -5807,12 +5810,16 @@ def _delete_product_image_on_disk(image_filename: str | None, tenant_id: int) ->
     uploads_root = UPLOADS_DIR.resolve()
     try:
         if fn.startswith("providers/"):
-            path = (UPLOADS_DIR / fn).resolve()
+            return  # Shared provider assets are not owned by this tenant.
+
         else:
             safe_name = Path(fn).name
             path = (UPLOADS_DIR / str(tenant_id) / "products" / safe_name).resolve()
-        if path.is_relative_to(uploads_root) and path.is_file():
-            path.unlink()
+        if path.is_relative_to(uploads_root):
+            if session is not None:
+                remove_upload(session, UPLOADS_DIR, path)
+            if path.is_file():
+                path.unlink()
     except (OSError, ValueError):
         pass
 
@@ -5872,6 +5879,7 @@ async def upload_tenant_logo(
     # Delete old logo if exists
     if tenant.logo_filename:
         old_path = tenant_dir / tenant.logo_filename
+        remove_upload(session, UPLOADS_DIR, old_path)
         if old_path.exists():
             old_path.unlink()
 
@@ -5887,6 +5895,7 @@ async def upload_tenant_logo(
     # Save file
     file_path = tenant_dir / new_filename
     file_path.write_bytes(contents)
+    persist_upload(session, UPLOADS_DIR, file_path, contents)
 
     # Update tenant
     tenant.logo_filename = new_filename
@@ -5941,6 +5950,7 @@ def delete_tenant_logo(
     if tenant.logo_filename:
         tenant_dir = UPLOADS_DIR / str(current_user.tenant_id) / "logo"
         path = tenant_dir / tenant.logo_filename
+        remove_upload(session, UPLOADS_DIR, path)
         if path.exists():
             path.unlink()
         tenant.logo_filename = None
@@ -6008,6 +6018,7 @@ async def upload_tenant_header_background(
 
     if tenant.header_background_filename:
         old_path = tenant_dir / tenant.header_background_filename
+        remove_upload(session, UPLOADS_DIR, old_path)
         if old_path.exists():
             old_path.unlink()
 
@@ -6018,6 +6029,7 @@ async def upload_tenant_header_background(
 
     file_path = tenant_dir / new_filename
     file_path.write_bytes(contents)
+    persist_upload(session, UPLOADS_DIR, file_path, contents)
 
     tenant.header_background_filename = new_filename
     session.add(tenant)
@@ -6062,6 +6074,7 @@ def delete_tenant_header_background(
     if tenant.header_background_filename:
         tenant_dir = UPLOADS_DIR / str(current_user.tenant_id) / "header"
         path = tenant_dir / tenant.header_background_filename
+        remove_upload(session, UPLOADS_DIR, path)
         if path.exists():
             path.unlink()
         tenant.header_background_filename = None
@@ -6439,7 +6452,7 @@ async def upload_product_image(
     tenant_dir.mkdir(parents=True, exist_ok=True)
 
     # Delete old image if exists (tenant path or catalog providers/... path)
-    _delete_product_image_on_disk(product.image_filename, current_user.tenant_id)
+    _delete_product_image_on_disk(product.image_filename, current_user.tenant_id, session)
 
     # Generate unique filename
     ext = Path(file.filename or "image.jpg").suffix.lower()
@@ -6450,6 +6463,7 @@ async def upload_product_image(
     # Save file
     file_path = tenant_dir / new_filename
     file_path.write_bytes(contents)
+    persist_upload(session, UPLOADS_DIR, file_path, contents)
 
     # Update product
     product.image_filename = new_filename
@@ -7997,6 +8011,7 @@ async def provider_upload_product_image(
     provider_dir.mkdir(parents=True, exist_ok=True)
     if pp.image_filename:
         old_path = provider_dir / pp.image_filename
+        remove_upload(session, UPLOADS_DIR, old_path)
         if old_path.exists():
             old_path.unlink()
     ext = Path(file.filename or "image.jpg").suffix.lower()
@@ -8004,6 +8019,7 @@ async def provider_upload_product_image(
         ext = ".jpg"
     new_filename = f"{uuid4()}{ext}"
     (provider_dir / new_filename).write_bytes(contents)
+    persist_upload(session, UPLOADS_DIR, provider_dir / new_filename, contents)
     pp.image_filename = new_filename
     session.add(pp)
     session.commit()
@@ -12549,12 +12565,12 @@ def get_menu(
         )
 
     # Get products from TenantProduct (new catalog system) and Product (legacy)
-    tenant_products = session.exec(
+    all_tenant_products = session.exec(
         select(models.TenantProduct).where(
             models.TenantProduct.tenant_id == table.tenant_id,
-            models.TenantProduct.is_active == True,
         )
     ).all()
+    tenant_products = [product for product in all_tenant_products if product.is_active]
 
     legacy_products = session.exec(
         select(models.Product).where(
@@ -12580,10 +12596,19 @@ def get_menu(
             return False
         return True
     tenant_products = [tp for tp in tenant_products if _is_available(tp.available_from, tp.available_until)]
+    tenant_products = [
+        tp for tp in tenant_products
+        if not tp.product_id or (
+            (linked := session.get(models.Product, tp.product_id)) is not None
+            and linked.tenant_id == table.tenant_id
+            and linked.is_active
+            and _is_available(linked.available_from, linked.available_until)
+        )
+    ]
     legacy_products = [p for p in legacy_products if _is_available(p.available_from, p.available_until)]
 
     linked_legacy_product_ids = {
-        tp.product_id for tp in tenant_products if tp.product_id is not None
+        tp.product_id for tp in all_tenant_products if tp.product_id is not None
     }
 
     # Load product questions for all effective product IDs (for customization e.g. doneness, spice level)
@@ -12620,6 +12645,7 @@ def get_menu(
     for tp in tenant_products:
         # Get image from provider product if available, otherwise use tenant product image
         image_filename = tp.image_filename
+        custom_product = session.get(models.Product, tp.product_id) if tp.product_id else None
         provider_product = None
         catalog_item = None
 
@@ -12637,7 +12663,7 @@ def get_menu(
                     models.ProviderProduct.id == tp.provider_product_id
                 )
             ).first()
-            if provider_product and provider_product.image_filename:
+            if not image_filename and provider_product and provider_product.image_filename:
                 provider = session.exec(
                     select(models.Provider).where(
                         models.Provider.id == provider_product.provider_id
@@ -12650,52 +12676,53 @@ def get_menu(
                     if stored:
                         image_filename = stored
 
-        # Build product data with detailed wine information
+        if custom_product and custom_product.image_filename:
+            image_filename = custom_product.image_filename
+
+        # Restaurant-managed fields are authoritative for every menu surface.
         product_data = {
             "id": tp.id,
-            "name": tp.name or "",
-            "price_cents": tp.price_cents,
+            "name": (custom_product.name if custom_product else tp.name) or "",
+            "price_cents": custom_product.price_cents if custom_product else tp.price_cents,
             "image_filename": image_filename,
             "tenant_id": tp.tenant_id,
-            "ingredients": tp.ingredients,
+            "ingredients": custom_product.ingredients if custom_product else tp.ingredients,
             "_source": "tenant_product",  # Indicate this is from TenantProduct table
         }
 
         # Get the actual product record to check for customized description / stock alert
-        if tp.product_id:
-            custom_product = session.get(models.Product, tp.product_id)
-            if custom_product:
-                if custom_product.description:
-                    product_data["description"] = custom_product.description
-                from .product_stock import product_stock_alert_payload
+        if custom_product:
+            if custom_product.description:
+                product_data["description"] = custom_product.description
+            from .product_stock import product_stock_alert_payload
 
-                product_data.update(product_stock_alert_payload(custom_product))
+            product_data.update(product_stock_alert_payload(custom_product))
 
         # Add translations for tenant product
         if lang != "en":  # Only add if different from default
             display_name = TranslationService.get_translated_field(
                 session,
                 table.tenant_id,
-                "tenant_product",
-                tp.id,
+                "product" if custom_product else "tenant_product",
+                custom_product.id if custom_product else tp.id,
                 "name",
                 lang,
-                tp.name or "",
+                product_data["name"],
             )
-            if display_name != (tp.name or ""):
+            if display_name != product_data["name"]:
                 product_data["display_name"] = display_name
 
-            if tp.ingredients:
+            if product_data["ingredients"]:
                 display_ingredients = TranslationService.get_translated_field(
                     session,
                     table.tenant_id,
-                    "tenant_product",
-                    tp.id,
+                    "product" if custom_product else "tenant_product",
+                    custom_product.id if custom_product else tp.id,
                     "ingredients",
                     lang,
-                    tp.ingredients,
+                    product_data["ingredients"],
                 )
-                if display_ingredients != tp.ingredients:
+                if display_ingredients != product_data["ingredients"]:
                     product_data["display_ingredients"] = display_ingredients
 
         # Add catalog category, subcategory and description
@@ -12724,6 +12751,13 @@ def get_menu(
                     )
                     if display_description != catalog_item.description:
                         product_data["display_description"] = display_description
+
+        if custom_product:
+            from .category_codes import get_category_code
+            product_data["category"] = custom_product.category or product_data.get("category")
+            product_data["subcategory"] = custom_product.subcategory or product_data.get("subcategory")
+            if product_data["category"]:
+                product_data["category_code"] = get_category_code(product_data["category"])
 
         # Extract wine type - use API category ID first, but check description for conflicts
         wine_type = None
@@ -13700,6 +13734,20 @@ def _finalize_menu_order_line_price_cents(
     )
 
 
+def _available_menu_order_product(session, tenant_id, product, today):
+    """Apply the same publication window as the public/POS/QR menu before a write."""
+    from .public_tenant_menu import _is_available_today
+
+    if product.tenant_id != tenant_id or not product.is_active or not _is_available_today(product.available_from, product.available_until, today):
+        raise HTTPException(status_code=400, detail="Product is not currently available")
+    if isinstance(product, models.TenantProduct) and product.product_id:
+        linked = session.get(models.Product, product.product_id)
+        if linked is None:
+            raise HTTPException(status_code=400, detail="Product is not currently available")
+        return _available_menu_order_product(session, tenant_id, linked, today)
+    return product
+
+
 @event.listens_for(Session, "before_flush")
 def _tenantproduct_price_cents_guard(
     session: Session, flush_context: object, instances: object | None
@@ -13750,6 +13798,10 @@ def create_order(
 
     if not order_data.items:
         raise HTTPException(status_code=400, detail="Order must have at least one item")
+    if any(item.quantity < 1 or item.quantity > 99 for item in order_data.items):
+        raise HTTPException(status_code=400, detail="Item quantity must be between 1 and 99")
+    if any(item.source not in (None, "product", "tenant_product") for item in order_data.items):
+        raise HTTPException(status_code=400, detail="Unsupported product source")
 
     # Get tenant for location verification
     tenant = session.get(models.Tenant, table.tenant_id)
@@ -13825,6 +13877,25 @@ def create_order(
             if receipt.request_hash != submission_hash:
                 raise HTTPException(409, "Order key already used with different content")
             return JSONResponse(content={**receipt.response, "duplicate": True})
+
+    # Validate the complete batch before creating or mutating an order. In
+    # particular, a hidden catalog selection must not be ordered through its
+    # legacy Product mirror, and ambiguous numeric IDs must not choose a dish.
+    from .public_tenant_menu import build_public_tenant_menu
+    current_menu = build_public_tenant_menu(session, table.tenant_id, "en")
+    visible = {
+        (product["source"], product["id"])
+        for category in current_menu["categories"]
+        for product in category["products"]
+    }
+    for item in order_data.items:
+        if item.source is None:
+            candidates = [source for source, product_id in visible if product_id == item.product_id]
+            if len(candidates) > 1:
+                raise HTTPException(status_code=400, detail="Product source is required for this menu item")
+            item.source = candidates[0] if candidates else None
+        if (item.source, item.product_id) not in visible:
+            raise HTTPException(status_code=400, detail="Product is not currently available")
 
     # ============ GET OR CREATE SHARED ORDER ============
     # Order is created when table is activated only as a slot; we create it on first item add.
@@ -13913,6 +13984,8 @@ def create_order(
 
     # Add order items
     order_date = order.created_at.date() if order.created_at else date.today()
+    from .public_tenant_menu import _tenant_today
+    menu_today = _tenant_today(tenant)
     for item in order_data.items:
         # Use source indicator if provided, otherwise try TenantProduct first, then legacy Product
         product_name = None
@@ -13933,10 +14006,11 @@ def create_order(
             if not tenant_product:
                 raise HTTPException(status_code=400, detail=f"TenantProduct {item.product_id} not found")
             line_tenant_product = tenant_product
-            product_name = tenant_product.name
-            price_cents = tenant_product.price_cents
-            cost_cents = getattr(tenant_product, "cost_cents", None)
-            product_tax_id = getattr(tenant_product, "tax_id", None)
+            canonical = _available_menu_order_product(session, table.tenant_id, tenant_product, menu_today)
+            product_name = canonical.name
+            price_cents = canonical.price_cents
+            cost_cents = getattr(canonical, "cost_cents", None)
+            product_tax_id = getattr(canonical, "tax_id", None)
             if tenant_product.product_id is not None:
                 effective_product_id = tenant_product.product_id
             else:
@@ -13974,6 +14048,7 @@ def create_order(
             ).first()
             if not product:
                 raise HTTPException(status_code=400, detail=f"Product {item.product_id} not found")
+            _available_menu_order_product(session, table.tenant_id, product, menu_today)
             product_name = product.name
             price_cents = product.price_cents
             cost_cents = getattr(product, "cost_cents", None)
@@ -13990,10 +14065,14 @@ def create_order(
 
             if tenant_product:
                 line_tenant_product = tenant_product
-                product_name = tenant_product.name
-                price_cents = tenant_product.price_cents
-                cost_cents = getattr(tenant_product, "cost_cents", None)
-                product_tax_id = getattr(tenant_product, "tax_id", None)
+                legacy_collision = session.exec(select(models.Product).where(models.Product.id == item.product_id, models.Product.tenant_id == table.tenant_id)).first()
+                if legacy_collision and tenant_product.product_id != legacy_collision.id:
+                    raise HTTPException(status_code=400, detail="Product source is required for this menu item")
+                canonical = _available_menu_order_product(session, table.tenant_id, tenant_product, menu_today)
+                product_name = canonical.name
+                price_cents = canonical.price_cents
+                cost_cents = getattr(canonical, "cost_cents", None)
+                product_tax_id = getattr(canonical, "tax_id", None)
                 if tenant_product.product_id is not None:
                     effective_product_id = tenant_product.product_id
                 else:
@@ -14030,6 +14109,7 @@ def create_order(
                 ).first()
                 if not product:
                     raise HTTPException(status_code=400, detail=f"Product {item.product_id} not found")
+                _available_menu_order_product(session, table.tenant_id, product, menu_today)
                 product_name = product.name
                 price_cents = product.price_cents
                 cost_cents = getattr(product, "cost_cents", None)

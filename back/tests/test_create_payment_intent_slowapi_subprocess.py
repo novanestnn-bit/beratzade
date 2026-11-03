@@ -35,6 +35,9 @@ from app.main import app
 
 
 def main() -> int:
+    if engine.url.host != 'beratzade-readiness-db' or engine.url.database != 'beratzade_browser_readiness':
+        print("skip: requires disposable browser-test database")
+        return 0
     session = Session(engine)
     tenant = session.get(models.Tenant, 1)
     if not tenant:
@@ -62,6 +65,11 @@ def main() -> int:
         print("skip: no priced product")
         return 0
 
+    prev_pin = table.order_pin
+    if not table.order_pin:
+        table.order_pin = "1234"
+        session.add(table)
+        session.commit()
     prev_key = tenant.stripe_secret_key
     if not prev_key:
         tenant.stripe_secret_key = "sk_test_slowapi_425"
@@ -74,7 +82,8 @@ def main() -> int:
         r_order = client.post(
             f"/menu/{table.token}/order",
             json={
-                "items": [{"product_id": product.id, "quantity": 1}],
+                "pin": table.order_pin,
+                "items": [{"product_id": product.id, "quantity": 1, "source": "product"}],
                 "notes": "slowapi-425-create",
             },
         )
@@ -133,6 +142,9 @@ def main() -> int:
         print("ok")
         return 0
     finally:
+        table.order_pin = prev_pin
+        session.add(table)
+        session.commit()
         if not prev_key:
             session.expire_all()
             t = session.get(models.Tenant, 1)

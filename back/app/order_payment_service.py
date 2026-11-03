@@ -258,6 +258,16 @@ def record_payment(
     Pass ``order_item_ids`` for split-by-line (amount derived from lines). Otherwise
     ``amount_cents`` is required (split by amount).
     """
+    # Two cashiers can submit different logical payments simultaneously. Serialize
+    # the reconciliation, including idempotency lookup, against the same order.
+    order = session.exec(
+        select(models.Order).where(
+            models.Order.id == order.id,
+            models.Order.tenant_id == order.tenant_id,
+        ).with_for_update().execution_options(populate_existing=True)
+    ).first()
+    if order is None:
+        raise HTTPException(status_code=404, detail="Order not found")
     key = (idempotency_key or "").strip() or None
     method = (payment_method or "cash").strip().lower()[:32] or "cash"
     if key:

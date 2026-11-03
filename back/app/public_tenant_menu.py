@@ -209,8 +209,8 @@ def _load_flat_products(
         if _is_available_today(p.available_from, p.available_until, today)
     ]
 
-    # POS-only customization data. Public menu responses continue to omit these
-    # fields; the public serializer already treats questions as sensitive.
+    # Source-qualified identity is public so independent Product/TenantProduct IDs
+    # cannot select the wrong dish. Customization questions remain POS-only.
     effective_product_ids = [
         tp.product_id for tp in tenant_products if tp.product_id is not None
     ]
@@ -260,7 +260,7 @@ def _load_flat_products(
             if custom_product:
                 # /products is the restaurant's management surface. For linked
                 # catalog items, its edits must be the values guests see too.
-                if not custom_product.is_active:
+                if custom_product.tenant_id != tenant_id or not custom_product.is_active or not _is_available_today(custom_product.available_from, custom_product.available_until, today):
                     continue
                 category = custom_product.category or category
                 subcategory = custom_product.subcategory or subcategory
@@ -299,6 +299,7 @@ def _load_flat_products(
 
         row = {
                 "id": tp.id,
+                "source": "tenant_product",
                 "name": name,
                 "price_cents": custom_product.price_cents if custom_product else tp.price_cents,
                 "price_formatted": format_public_price(
@@ -313,7 +314,6 @@ def _load_flat_products(
                 **stock_fields,
             }
         if include_source:
-            row["source"] = "tenant_product"
             row["questions"] = questions_by_product.get(custom_product.id, []) if custom_product else []
         products.append(row)
 
@@ -330,6 +330,7 @@ def _load_flat_products(
 
         row = {
                 "id": lp.id,
+                "source": "product",
                 "name": name,
                 "price_cents": lp.price_cents,
                 "price_formatted": format_public_price(lp.price_cents, lang),
@@ -341,7 +342,6 @@ def _load_flat_products(
                 **product_stock_alert_payload(lp),
             }
         if include_source:
-            row["source"] = "product"
             row["questions"] = questions_by_product.get(lp.id, [])
         products.append(row)
 
