@@ -23,6 +23,8 @@ export const routes: Routes = [
     loadComponent: () => import('./user-manual/user-manual-page.component').then((m) => m.UserManualPageComponent),
   },
   { path: 'login', loadComponent: () => import('./auth/login.component').then(m => m.LoginComponent) },
+  { path: 'staff/login', data: { loginPortal: 'staff' }, loadComponent: () => import('./auth/login.component').then(m => m.LoginComponent) },
+  { path: 'admin/login', data: { loginPortal: 'admin' }, loadComponent: () => import('./auth/login.component').then(m => m.LoginComponent) },
   { path: 'register', loadComponent: () => import('./auth/register.component').then(m => m.RegisterComponent) },
   { path: 'signup', loadComponent: () => import('./auth/register.component').then(m => m.RegisterComponent) },
   {
@@ -117,8 +119,8 @@ export const routes: Routes = [
   // Talk to POS (#344): staff voice/text navigation shortcuts (no mutations)
   { path: 'talk', canActivate: [authGuard], loadComponent: () => import('./talk/talk.component').then(m => m.TalkComponent) },
 
-  // Products - all roles can view, but editing is handled in component
-  { path: 'products', canActivate: [authGuard], loadComponent: () => import('./products/products.component').then(m => m.ProductsComponent) },
+  // Product management is restricted to restaurant owners and administrators.
+  { path: 'products', canActivate: [authGuard, adminGuard], loadComponent: () => import('./products/products.component').then(m => m.ProductsComponent) },
   { path: 'catalog', canActivate: [authGuard, uiModuleGuard('providers')], loadComponent: () => import('./catalog/catalog.component').then(m => m.CatalogComponent) },
 
   // Register `tables/canvas` before `tables` (prefix matching would otherwise match `/tables/canvas` as `/tables`).

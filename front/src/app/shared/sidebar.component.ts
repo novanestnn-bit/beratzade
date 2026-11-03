@@ -224,6 +224,11 @@ type NavGroupKey = 'operations' | 'planning' | 'catalog' | 'admin';
                       <span>{{ 'NAV.GUEST_FEEDBACK' | translate }}</span>
                     </a>
                   }
+                  @if (canViewPersonalContracts() && moduleEnabled('contracts')) {
+                    <a routerLink="/contracts" routerLinkActive="active" class="nav-sublink" (click)="closeSidebar()">
+                      <span>{{ 'NAV.CONTRACTS' | translate }}</span>
+                    </a>
+                  }
                 </div>
               }
             </div>
@@ -437,6 +442,7 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
   canViewWorkingPlan = computed(() => this.permissions.hasPermission(this.user(), 'schedule:read'));
   canViewUsers = computed(() => this.permissions.isAdmin(this.user()));
   canViewContracts = computed(() => this.permissions.hasPermission(this.user(), 'staff_contract:read'));
+  canViewPersonalContracts = computed(() => !this.permissions.isAdmin(this.user()) && this.canViewContracts());
   canViewMyShift = computed(() => {
     const u = this.user();
     return !!u && u.tenant_id != null && String(u.role).toLowerCase() !== 'provider';
@@ -453,17 +459,11 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
   showPlanningGroup = computed(
     () =>
       (this.canViewWorkingPlan() && this.moduleEnabled('working_plan')) ||
-      (this.canViewReservations() && this.moduleEnabled('reservations'))
+      (this.canViewReservations() && this.moduleEnabled('reservations')) ||
+      (this.canViewPersonalContracts() && this.moduleEnabled('contracts'))
   );
-  /** Products link is always shown; group stays visible for all staff. */
-  showCatalogGroup = computed(() => true);
-  showAdminGroup = computed(
-    () =>
-      this.canViewReports() ||
-      (this.canViewUsers() && this.moduleEnabled('users')) ||
-      (this.canViewContracts() && this.moduleEnabled('contracts')) ||
-      this.canViewSettings()
-  );
+  showCatalogGroup = computed(() => this.permissions.isAdmin(this.user()));
+  showAdminGroup = computed(() => this.permissions.isAdmin(this.user()));
 
   tenantOrgName = computed(() => this.api.tenantDisplayName()?.trim() ?? '');
 
@@ -567,7 +567,8 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
     if (
       path.startsWith('/working-plan') ||
       path.startsWith('/reservations') ||
-      path.startsWith('/guest-feedback')
+      path.startsWith('/guest-feedback') ||
+      (path.startsWith('/contracts') && this.canViewPersonalContracts())
     ) {
       this.planningOpen.set(true);
     }
@@ -585,7 +586,7 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
     if (
       path.startsWith('/reports') ||
       path.startsWith('/users') ||
-      path.startsWith('/contracts') ||
+      (path.startsWith('/contracts') && this.permissions.isAdmin(this.user())) ||
       path.startsWith('/settings')
     ) {
       this.adminOpen.set(true);

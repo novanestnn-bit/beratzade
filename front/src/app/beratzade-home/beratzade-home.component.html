@@ -116,6 +116,10 @@
   <footer class="site-footer"><a class="brand footer-brand" href="#home"><span class="brand-mark">B</span><span>Beratzade <small>Kebap & Kahvaltı Salonu</small></span></a>
     <nav aria-label="Alt gezinme"><a href="#menu-kategorileri">Menü</a><a href="#hakkimizda">Hakkımızda</a><a href="#iletisim">İletişim</a>@if (tenant()?.terms_of_service_url) { <a [href]="tenant()?.terms_of_service_url">Kullanım koşulları</a> }@if (tenant()?.privacy_policy_url) { <a [href]="tenant()?.privacy_policy_url">Gizlilik</a> }</nav>
     <app-legal-links [termsUrl]="tenant()?.terms_of_service_url" [privacyUrl]="tenant()?.privacy_policy_url" />
+    <nav [attr.aria-label]="'LOGIN_PORTAL.CHOOSE' | translate">
+      <a routerLink="/staff/login" [queryParams]="tenant() ? {tenant: tenant()?.id} : {}">{{ 'LOGIN_PORTAL.STAFF' | translate }}</a>
+      <a routerLink="/admin/login" [queryParams]="tenant() ? {tenant: tenant()?.id} : {}">{{ 'LOGIN_PORTAL.ADMIN' | translate }}</a>
+    </nav>
     <span class="copyright">© Beratzade Kebap & Kahvaltı Salonu</span>
   </footer>
 </div>

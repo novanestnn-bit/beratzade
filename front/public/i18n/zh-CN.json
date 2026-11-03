@@ -3470,5 +3470,14 @@
     "OFFLINE": "连接不可用，已保留最近的信息和草稿。",
     "PAYMENT_UNCERTAIN": "支付结果尚未确认。更改金额或支付方式前，请核实同一笔交易。",
     "CLOSED_DRAFT": "草稿已保留。保存的餐桌已关闭，请在开启前检查。"
+  },
+  "LOGIN_PORTAL": {
+    "CHOOSE": "选择登录类型",
+    "STAFF": "员工登录",
+    "ADMIN": "管理员登录",
+    "STAFF_DESCRIPTION": "收银、餐桌和日常服务操作",
+    "ADMIN_DESCRIPTION": "餐厅设置和经营管理",
+    "ADMIN_ONLY": "此页面仅供管理员账户使用。请使用员工登录。",
+    "SWITCH": "切换登录类型"
   }
 }

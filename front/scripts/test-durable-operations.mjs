@@ -18,10 +18,10 @@ async function createPage() {
 }
 async function visit(page, path) { await page.goto(base + path, { waitUntil: 'networkidle2', timeout: 60000 }); }
 async function login(page, role) {
-  await visit(page, '/login?tenant='+fixture.tenant_id);
+  await visit(page, '/' + (['owner','admin'].includes(role) ? 'admin' : 'staff') + '/login?tenant='+fixture.tenant_id);
   await page.type('#email',fixture[role].email);await page.type('#password',fixture[role].password);
   await page.click('form button[type=submit]');
-  await page.waitForFunction(()=>!location.pathname.startsWith('/login'));
+  await page.waitForFunction(()=>!['/login','/staff/login','/admin/login'].includes(location.pathname));
 }
 async function api(page,path,method='GET',body,status=200) {
   const response=await page.evaluate(async({path,method,body})=>{const r=await fetch('/api'+path,{method,headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});return {status:r.status,data:await r.json()};},{path,method,body});

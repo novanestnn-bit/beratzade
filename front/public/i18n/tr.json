@@ -3490,5 +3490,14 @@
     "OFFLINE": "Bağlantı kurulamadı. Son bilgiler ve taslaklar korunuyor.",
     "PAYMENT_UNCERTAIN": "Tahsilat sonucu belirsiz. Aynı işlemi tekrar doğrulamadan tutarı veya ödeme yöntemini değiştirmeyin.",
     "CLOSED_DRAFT": "Taslak korundu. Kayıtlı masa kapalı; masayı açmadan önce kontrol edin."
+  },
+  "LOGIN_PORTAL": {
+    "CHOOSE": "Giriş türünü seçin",
+    "STAFF": "Personel girişi",
+    "ADMIN": "Yönetici girişi",
+    "STAFF_DESCRIPTION": "POS, masalar ve günlük servis işlemleri",
+    "ADMIN_DESCRIPTION": "Restoran ayarları ve işletme yönetimi",
+    "ADMIN_ONLY": "Bu ekran yalnızca yönetici hesapları içindir. Personel girişini kullanın.",
+    "SWITCH": "Giriş türünü değiştirin"
   }
 }

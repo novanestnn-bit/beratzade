@@ -3470,5 +3470,14 @@
     "OFFLINE": "Sense connexió. Es conserven les darreres dades i els esborranys.",
     "PAYMENT_UNCERTAIN": "Resultat del pagament incert. Verifiqueu la mateixa operació abans de canviar l’import o el mètode.",
     "CLOSED_DRAFT": "Esborrany conservat. La taula desada està tancada; reviseu-la abans d’obrir-la."
+  },
+  "LOGIN_PORTAL": {
+    "CHOOSE": "Trieu com voleu iniciar la sessió",
+    "STAFF": "Accés del personal",
+    "ADMIN": "Accés d’administració",
+    "STAFF_DESCRIPTION": "TPV, taules i operacions diàries del servei",
+    "ADMIN_DESCRIPTION": "Configuració del restaurant i gestió del negoci",
+    "ADMIN_ONLY": "Aquesta pantalla és només per a comptes d’administració. Feu servir l’accés del personal.",
+    "SWITCH": "Canvia el tipus d’accés"
   }
 }

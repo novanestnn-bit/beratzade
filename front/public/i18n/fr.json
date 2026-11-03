@@ -3470,5 +3470,14 @@
     "OFFLINE": "Connexion indisponible. Les dernières informations et les brouillons sont conservés.",
     "PAYMENT_UNCERTAIN": "Résultat du paiement incertain. Vérifiez la même opération avant de modifier le montant ou le moyen.",
     "CLOSED_DRAFT": "Brouillon conservé. La table enregistrée est fermée ; vérifiez avant de l’ouvrir."
+  },
+  "LOGIN_PORTAL": {
+    "CHOOSE": "Choisissez votre espace de connexion",
+    "STAFF": "Connexion du personnel",
+    "ADMIN": "Connexion administrateur",
+    "STAFF_DESCRIPTION": "Caisse, tables et opérations quotidiennes du service",
+    "ADMIN_DESCRIPTION": "Paramètres du restaurant et gestion de l’établissement",
+    "ADMIN_ONLY": "Cet espace est réservé aux comptes administrateurs. Utilisez la connexion du personnel.",
+    "SWITCH": "Changer d’espace de connexion"
   }
 }

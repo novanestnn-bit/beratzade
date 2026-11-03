@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { catchError, map, of, switchMap } from 'rxjs';
 import { ApiService, type SaasSubscription } from '../services/api.service';
+import { loginPathFor } from './login-destination';
 
 export const authGuard: CanActivateFn = (route, state) => {
   const apiService = inject(ApiService);
@@ -19,7 +20,7 @@ export const authGuard: CanActivateFn = (route, state) => {
 
   const afterAuth = (user: { role?: string; provider_id?: number | null; tenant_id?: number | null } | null) => {
     if (!user) {
-      return of(router.createUrlTree(['/login']));
+      return of(router.createUrlTree([loginPathFor(state.url)]));
     }
     const roleRedirect = redirectForRole(user);
     if (roleRedirect) {
@@ -51,6 +52,6 @@ export const authGuard: CanActivateFn = (route, state) => {
 
   return apiService.checkAuth().pipe(
     switchMap((user) => afterAuth(user)),
-    catchError(() => of(router.createUrlTree(['/login']))),
+    catchError(() => of(router.createUrlTree([loginPathFor(state.url)]))),
   );
 };

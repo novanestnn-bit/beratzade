@@ -3470,5 +3470,14 @@
     "OFFLINE": "Connection unavailable. Last information and drafts are preserved.",
     "PAYMENT_UNCERTAIN": "Payment result is uncertain. Verify the same transaction before changing its amount or method.",
     "CLOSED_DRAFT": "Draft preserved. The saved table is closed; check before opening it."
+  },
+  "LOGIN_PORTAL": {
+    "CHOOSE": "Choose how to sign in",
+    "STAFF": "Staff sign-in",
+    "ADMIN": "Administrator sign-in",
+    "STAFF_DESCRIPTION": "POS, tables and daily service operations",
+    "ADMIN_DESCRIPTION": "Restaurant settings and business management",
+    "ADMIN_ONLY": "This screen is for administrator accounts only. Use the staff sign-in.",
+    "SWITCH": "Change sign-in type"
   }
 }

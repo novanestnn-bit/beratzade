@@ -7,6 +7,7 @@ import { ApiService, type TenantSummary } from '../services/api.service';
 import { ApiErrorMessageService } from '../services/api-error-message.service';
 import { LanguagePickerComponent } from '../shared/language-picker.component';
 import { LegalLinksComponent } from '../shared/legal-links.component';
+import { isRestaurantAdmin, LoginPortal, restaurantHome } from './login-destination';
 
 @Component({
   selector: 'app-login',
@@ -18,8 +19,8 @@ import { LegalLinksComponent } from '../shared/legal-links.component';
         <div class="auth-header">
           <div class="auth-header-row">
             <div>
-              <h1>{{ 'AUTH.WELCOME_BACK' | translate }}</h1>
-              <p>{{ 'AUTH.SIGN_IN_ACCOUNT' | translate }}</p>
+              <h1>{{ (portal === 'staff' ? 'LOGIN_PORTAL.STAFF' : portal === 'admin' ? 'LOGIN_PORTAL.ADMIN' : 'LOGIN_PORTAL.CHOOSE') | translate }}</h1>
+              <p>{{ (portal === 'staff' ? 'LOGIN_PORTAL.STAFF_DESCRIPTION' : portal === 'admin' ? 'LOGIN_PORTAL.ADMIN_DESCRIPTION' : 'AUTH.SIGN_IN_ACCOUNT') | translate }}</p>
             </div>
             <app-language-picker></app-language-picker>
           </div>
@@ -38,6 +39,19 @@ import { LegalLinksComponent } from '../shared/legal-links.component';
           </div>
         }
 
+        @if (!portal) {
+          <nav class="portal-options" [attr.aria-label]="'LOGIN_PORTAL.CHOOSE' | translate">
+            <a routerLink="/staff/login" [queryParams]="forgotPasswordQueryParams" data-testid="login-portal-staff">
+              <strong>{{ 'LOGIN_PORTAL.STAFF' | translate }}</strong>
+              <span>{{ 'LOGIN_PORTAL.STAFF_DESCRIPTION' | translate }}</span>
+            </a>
+            <a routerLink="/admin/login" [queryParams]="forgotPasswordQueryParams" data-testid="login-portal-admin">
+              <strong>{{ 'LOGIN_PORTAL.ADMIN' | translate }}</strong>
+              <span>{{ 'LOGIN_PORTAL.ADMIN_DESCRIPTION' | translate }}</span>
+            </a>
+          </nav>
+        } @else {
+        <a class="portal-switch" routerLink="/login" [queryParams]="forgotPasswordQueryParams">{{ 'LOGIN_PORTAL.SWITCH' | translate }}</a>
         @if (showOtpStep()) {
           <p class="otp-prompt">{{ 'AUTH.OTP_ENTER_CODE' | translate }}</p>
           <p class="otp-recovery-hint">{{ 'AUTH.OTP_RECOVERY_HINT' | translate }}</p>
@@ -114,6 +128,7 @@ import { LegalLinksComponent } from '../shared/legal-links.component';
           </button>
         </form>
         }
+        }
 
         <div class="auth-actions-foot">
           <span>{{ 'AUTH.DONT_HAVE_ACCOUNT' | translate }}</span>
@@ -137,6 +152,11 @@ import { LegalLinksComponent } from '../shared/legal-links.component';
     </div>
   `,
   styles: [`
+    .portal-options { display: grid; gap: 1rem; margin-block: 1rem; }
+    .portal-options a { display: grid; gap: .5rem; padding: 1.25rem; border: 2px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text); background: var(--color-surface); text-decoration: none; }
+    .portal-options a:hover, .portal-options a:focus-visible { border-color: var(--color-primary); outline: 2px solid var(--color-primary); outline-offset: 2px; }
+    .portal-options span { line-height: 1.5; font-size: .875rem; }
+    .portal-switch { display: inline-block; margin-bottom: 1rem; color: var(--color-primary); }
     .auth-page {
       min-height: 100vh;
       display: flex;
@@ -368,6 +388,7 @@ export class LoginComponent implements OnInit {
   private route = inject(ActivatedRoute);
   translate = inject(TranslateService);
   private apiErr = inject(ApiErrorMessageService);
+  readonly portal: LoginPortal | null = this.route.snapshot.data['loginPortal'] === 'staff' ? 'staff' : this.route.snapshot.data['loginPortal'] === 'admin' ? 'admin' : null;
 
   legalTermsUrl = signal<string | null>(null);
   legalPrivacyUrl = signal<string | null>(null);
@@ -449,33 +470,7 @@ export class LoginComponent implements OnInit {
     const tenantId = this.route.snapshot.queryParams['tenant'];
     const id = tenantId != null ? parseInt(tenantId, 10) : undefined;
     this.api.login(username, password, isNaN(id as number) ? undefined : id).subscribe({
-      next: () => {
-        this.api.checkAuth().subscribe(user => {
-          if (user?.role === 'courier') {
-            void this.router.navigate(['/courier']);
-          } else if (user?.provider_id != null) {
-            void this.router.navigate(['/provider']);
-          } else if (user?.tenant_id != null) {
-            this.api.getSaasSubscription().subscribe({
-              next: (sub) => {
-                this.loading.set(false);
-                if (sub.enabled && !sub.has_access) {
-                  void this.router.navigate(['/paywall']);
-                } else {
-                  void this.router.navigate(['/dashboard']);
-                }
-              },
-              error: () => {
-                this.loading.set(false);
-                void this.router.navigate(['/dashboard']);
-              },
-            });
-          } else {
-            this.loading.set(false);
-            void this.router.navigate(['/dashboard']);
-          }
-        });
-      },
+      next: () => this.finishSignIn(),
       error: (err) => {
         this.loading.set(false);
         if (err.status === 403 && err.error?.require_otp && err.error?.temp_token) {
@@ -498,37 +493,43 @@ export class LoginComponent implements OnInit {
     this.error.set('');
     this.loading.set(true);
     this.api.loginWithOtp(token, code).subscribe({
-      next: () => {
-        this.api.checkAuth().subscribe(user => {
-          if (user?.role === 'courier') {
-            void this.router.navigate(['/courier']);
-          } else if (user?.provider_id != null) {
-            void this.router.navigate(['/provider']);
-          } else if (user?.tenant_id != null) {
-            this.api.getSaasSubscription().subscribe({
-              next: (sub) => {
-                this.loading.set(false);
-                if (sub.enabled && !sub.has_access) {
-                  void this.router.navigate(['/paywall']);
-                } else {
-                  void this.router.navigate(['/dashboard']);
-                }
-              },
-              error: () => {
-                this.loading.set(false);
-                void this.router.navigate(['/dashboard']);
-              },
-            });
-          } else {
-            this.loading.set(false);
-            void this.router.navigate(['/dashboard']);
-          }
-        });
-      },
+      next: () => this.finishSignIn(),
       error: (err) => {
         this.loading.set(false);
         this.error.set(this.apiErr.fromHttpError(err, 'API_ERRORS.INVALID_OTP_CODE'));
       }
+    });
+  }
+
+  private finishSignIn(): void {
+    this.api.checkAuth().subscribe({
+      next: user => {
+        if (!user) { this.loading.set(false); this.error.set(this.translate.instant('AUTH.LOGIN_FAILED')); return; }
+        if (this.portal === 'admin' && (!isRestaurantAdmin(user.role) || user.provider_id != null)) {
+          this.api.logout().subscribe(() => {
+            this.loading.set(false);
+            this.form.controls.password.reset('');
+            this.backToPassword();
+            this.error.set(this.translate.instant('LOGIN_PORTAL.ADMIN_ONLY'));
+          });
+          return;
+        }
+        const destination = user.role === 'courier' ? '/courier'
+          : user.provider_id != null ? '/provider'
+          : user.role === 'platform_operator' ? '/platform'
+          : restaurantHome(user.role, this.portal);
+        const navigate = () => { this.loading.set(false); void this.router.navigate([destination]); };
+        if (user.tenant_id != null) {
+          this.api.getSaasSubscription().subscribe({
+            next: sub => {
+              if (sub.enabled && !sub.has_access) { this.loading.set(false); void this.router.navigate(['/paywall']); }
+              else navigate();
+            },
+            error: navigate,
+          });
+        } else navigate();
+      },
+      error: () => { this.loading.set(false); this.error.set(this.translate.instant('AUTH.LOGIN_FAILED')); },
     });
   }
 

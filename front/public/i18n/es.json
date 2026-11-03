@@ -3470,5 +3470,14 @@
     "OFFLINE": "Sin conexión. Se conservan los últimos datos y borradores.",
     "PAYMENT_UNCERTAIN": "Resultado del pago incierto. Verifique la misma operación antes de cambiar el importe o método.",
     "CLOSED_DRAFT": "Borrador guardado. La mesa guardada está cerrada; revísela antes de abrirla."
+  },
+  "LOGIN_PORTAL": {
+    "CHOOSE": "Elige cómo iniciar sesión",
+    "STAFF": "Acceso del personal",
+    "ADMIN": "Acceso de administración",
+    "STAFF_DESCRIPTION": "TPV, mesas y operaciones diarias del servicio",
+    "ADMIN_DESCRIPTION": "Configuración del restaurante y gestión del negocio",
+    "ADMIN_ONLY": "Esta pantalla es solo para cuentas de administración. Utiliza el acceso del personal.",
+    "SWITCH": "Cambiar el tipo de acceso"
   }
 }

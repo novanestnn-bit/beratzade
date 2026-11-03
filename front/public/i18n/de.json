@@ -3470,5 +3470,14 @@
     "OFFLINE": "Keine Verbindung. Letzte Informationen und Entwürfe bleiben erhalten.",
     "PAYMENT_UNCERTAIN": "Zahlungsergebnis unklar. Prüfen Sie dieselbe Transaktion, bevor Sie Betrag oder Zahlungsart ändern.",
     "CLOSED_DRAFT": "Entwurf gespeichert. Der gespeicherte Tisch ist geschlossen; vor dem Öffnen prüfen."
+  },
+  "LOGIN_PORTAL": {
+    "CHOOSE": "Anmeldebereich wählen",
+    "STAFF": "Mitarbeiteranmeldung",
+    "ADMIN": "Administratoranmeldung",
+    "STAFF_DESCRIPTION": "Kasse, Tische und täglicher Servicebetrieb",
+    "ADMIN_DESCRIPTION": "Restauranteinstellungen und Betriebsverwaltung",
+    "ADMIN_ONLY": "Dieser Bereich ist nur für Administratorkonten. Nutzen Sie die Mitarbeiteranmeldung.",
+    "SWITCH": "Anmeldebereich wechseln"
   }
 }

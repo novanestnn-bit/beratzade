@@ -3,10 +3,11 @@ import { CanActivateFn, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../services/api.service';
 import { PermissionService, Permission } from '../services/permission.service';
+import { loginPathFor, restaurantHome } from './login-destination';
 
 /** Require at least one of the given permissions (mirrors backend RBAC). */
 export function permissionGuard(...permissions: Permission[]): CanActivateFn {
-  return async () => {
+  return async (_route, state) => {
     const api = inject(ApiService);
     const router = inject(Router);
     const ps = inject(PermissionService);
@@ -15,16 +16,16 @@ export function permissionGuard(...permissions: Permission[]): CanActivateFn {
       try {
         user = await firstValueFrom(api.checkAuth());
       } catch {
-        router.navigate(['/login']);
+        router.navigate([loginPathFor(state.url)]);
         return false;
       }
     }
     if (!user) {
-      router.navigate(['/login']);
+      router.navigate([loginPathFor(state.url)]);
       return false;
     }
     if (!ps.hasAnyPermission(user, ...permissions)) {
-      router.navigate(['/dashboard']);
+      router.navigate([restaurantHome(user.role)]);
       return false;
     }
     return true;

@@ -1,9 +1,11 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeStyle, Title } from '@angular/platform-browser';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService, PublicTenantMenuCategory, PublicTenantMenuProduct, PublicTenantMenuResponse, TenantSummary } from '../services/api.service';
 import { environment } from '../../environments/environment';
 import { LegalLinksComponent } from '../shared/legal-links.component';
+import { restaurantHome } from '../auth/login-destination';
 import {
   beratzadeMenuCategoryLabel,
   beratzadeMenuCategorySlug,
@@ -13,7 +15,7 @@ import {
 @Component({
   selector: 'app-beratzade-home',
   standalone: true,
-  imports: [LegalLinksComponent],
+  imports: [LegalLinksComponent, RouterLink, TranslateModule],
   templateUrl: './beratzade-home.component.html',
   styleUrl: './beratzade-home.component.scss',
 })
@@ -51,7 +53,7 @@ export class BeratzadeHomeComponent implements OnInit {
       if (user) {
 if (user.role === 'courier') void this.router.navigate(['/courier']);
         else if (user.provider_id != null) void this.router.navigate(['/provider']);
-        else void this.router.navigate(['/dashboard']);
+        else void this.router.navigate([restaurantHome(user.role)]);
         return;
       }
       this.loadRestaurant();

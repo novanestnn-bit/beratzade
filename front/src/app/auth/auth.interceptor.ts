@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, throwError, switchMap, ReplaySubject, take } from 'rxjs';
 import { ApiService } from '../services/api.service';
 import { isPublicBookPath } from '../shared/public-book-path';
+import { loginPathFor } from './login-destination';
 
 // Flag to prevent multiple simultaneous refresh attempts
 let isRefreshing = false;
@@ -15,6 +16,8 @@ function isPublicRoute(url: string): boolean {
   const path = (url || '').split('?')[0].replace(/\/$/, '') || '/';
   return (
     path === '/login' ||
+    path === '/staff/login' ||
+    path === '/admin/login' ||
     path === '/register' ||
     path === '/signup' ||
     path === '/courier/login' ||
@@ -41,7 +44,7 @@ function loginPathForCurrentRoute(routerUrl: string): string {
   if (path.startsWith('/customer')) return '/customer/login';
   if (path.startsWith('/provider')) return '/provider/login';
   if (path.startsWith('/platform')) return '/platform/login';
-  return '/login';
+  return loginPathFor(path);
 }
 
 /** Current browser path (used when router.url not yet updated, e.g. on initial load). */

@@ -3,6 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { ApiService, UserRole } from '../services/api.service';
 import { PermissionService } from '../services/permission.service';
 import { firstValueFrom } from 'rxjs';
+import { loginPathFor, restaurantHome } from './login-destination';
 
 /**
  * Route guard factory that checks if the user has one of the allowed roles.
@@ -31,14 +32,14 @@ export function roleGuard(allowedRoles: UserRole[]): CanActivateFn {
         user = await firstValueFrom(api.checkAuth());
       } catch {
         // Not authenticated - redirect to login
-        router.navigate(['/login']);
+        router.navigate([loginPathFor(state.url)]);
         return false;
       }
     }
 
     // Check if user is authenticated
     if (!user) {
-      router.navigate(['/login']);
+      router.navigate([loginPathFor(state.url)]);
       return false;
     }
 
@@ -50,7 +51,7 @@ export function roleGuard(allowedRoles: UserRole[]): CanActivateFn {
       } else if (user.provider_id != null) {
         router.navigate(['/provider']);
       } else {
-        router.navigate(['/dashboard']);
+        router.navigate([restaurantHome(user.role)]);
       }
       return false;
     }

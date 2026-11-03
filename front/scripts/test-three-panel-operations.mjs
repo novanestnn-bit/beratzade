@@ -34,13 +34,13 @@ async function visit(page, path) {
 }
 async function login(page, role) {
   phase = 'login:' + role;
-  await visit(page, '/login?tenant=' + fixture.tenant_id);
+  await visit(page, '/' + (['owner', 'admin'].includes(role) ? 'admin' : 'staff') + '/login?tenant=' + fixture.tenant_id);
   await page.type('#email', fixture[role].email);
   await page.type('#password', fixture[role].password);
   const request = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/token');
   await page.click('form button[type=submit]');
   assert.equal((await request).status(), 200, 'Password login: ' + role);
-  await page.waitForFunction(() => !location.pathname.startsWith('/login'));
+  await page.waitForFunction(() => !['/login', '/staff/login', '/admin/login'].includes(location.pathname));
   const cookie = (await page.cookies()).find(cookie => cookie.name === 'access_token');
   assert.ok(cookie?.secure && cookie.httpOnly && cookie.sameSite === 'Lax');
 }
