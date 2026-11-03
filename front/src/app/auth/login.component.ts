@@ -130,24 +130,9 @@ import { isRestaurantAdmin, LoginPortal, restaurantHome } from './login-destinat
         }
         }
 
-        <div class="auth-actions-foot">
-          <span>{{ 'AUTH.DONT_HAVE_ACCOUNT' | translate }}</span>
-          <a routerLink="/register">{{ 'AUTH.CREATE_ACCOUNT' | translate }}</a>
-          <span class="auth-foot-sep" aria-hidden="true">·</span>
-          <a routerLink="/provider/login" data-testid="login-provider-login">{{ 'LANDING.PROVIDER_LOGIN' | translate }}</a>
-          <span class="auth-foot-sep" aria-hidden="true">·</span>
-          <a routerLink="/courier/login" data-testid="login-courier-login">{{ 'LANDING.COURIER_LOGIN' | translate }}</a>
-          <span class="auth-foot-sep" aria-hidden="true">·</span>
-          <a routerLink="/customer/login" data-testid="login-customer-login">{{ 'CUSTOMER_AUTH.TITLE' | translate }}</a>
-          <span class="auth-foot-sep" aria-hidden="true">·</span>
-          <a routerLink="/provider/register" data-testid="login-provider-register">{{ 'LANDING.REGISTER_AS_PROVIDER' | translate }}</a>
-          <span class="auth-foot-sep" aria-hidden="true">·</span>
-          <a href="mailto:support@satisfecho.de" data-testid="login-contact-us">{{ 'LANDING.CONTACT_US' | translate }}</a>
-          @if (legalTermsUrl() || legalPrivacyUrl()) {
-            <span class="auth-foot-sep" aria-hidden="true">·</span>
-            <app-legal-links [inline]="true" [termsUrl]="legalTermsUrl()" [privacyUrl]="legalPrivacyUrl()" />
-          }
-        </div>
+        @if (legalTermsUrl() || legalPrivacyUrl()) {
+          <app-legal-links [termsUrl]="legalTermsUrl()" [privacyUrl]="legalPrivacyUrl()" />
+        }
       </div>
     </div>
   `,
@@ -308,33 +293,6 @@ import { isRestaurantAdmin, LoginPortal, restaurantHome } from './login-destinat
         opacity: 0.6;
         cursor: not-allowed;
       }
-    }
-
-    .auth-actions-foot {
-      margin-top: var(--space-5);
-      text-align: center;
-      font-size: 0.9375rem;
-      color: var(--color-text-muted);
-      line-height: 1.6;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: baseline;
-      column-gap: 0;
-      row-gap: var(--space-2);
-    }
-    .auth-actions-foot > a {
-      color: var(--color-primary);
-      font-weight: 500;
-      margin-left: var(--space-2);
-      text-decoration: none;
-    }
-    .auth-actions-foot > a:hover {
-      text-decoration: underline;
-    }
-    .auth-foot-sep {
-      margin: 0 var(--space-2);
-      user-select: none;
     }
 
     .otp-prompt {
