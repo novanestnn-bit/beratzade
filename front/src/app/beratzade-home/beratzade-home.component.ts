@@ -1,11 +1,11 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeStyle, Title } from '@angular/platform-browser';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { ApiService, PublicTenantMenuCategory, PublicTenantMenuProduct, PublicTenantMenuResponse, TenantSummary } from '../services/api.service';
 import { environment } from '../../environments/environment';
 import { LegalLinksComponent } from '../shared/legal-links.component';
-import { restaurantHome } from '../auth/login-destination';
+import { categoryForProduct, categoryProducts, publicImageUrl, publicProductKey } from '../public-menu/public-menu-presentation';
 import {
   beratzadeMenuCategoryLabel,
   beratzadeMenuCategorySlug,
@@ -21,43 +21,29 @@ import {
 })
 export class BeratzadeHomeComponent implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly router = inject(Router);
   private readonly title = inject(Title);
   private readonly sanitizer = inject(DomSanitizer);
   tenant = signal<TenantSummary | null>(null);
   menu = signal<PublicTenantMenuResponse | null>(null);
   loading = signal(true);
   failed = signal(false);
+  failedImages = signal(new Set<string>());
   categories = computed(() => this.menu()?.categories ?? []);
   menuCategories = computed(() =>
-    orderBeratzadeMenuCategories(this.menu()?.category_tree ?? this.categories()),
+    orderBeratzadeMenuCategories(this.menu()?.category_tree ?? this.categories())
+      .filter(category => categoryProducts(category).length > 0),
   );
-  dailyMenuSections = computed(() =>
-    [
-      { sourceName: 'Günün Çorbaları', title: 'Günün Çorbaları' },
-      { sourceName: 'Günün Yemekleri', title: 'Ev Yemekleri' },
-    ].flatMap(({ sourceName, title }) => {
-      const category = this.categories().find((item) => item.name === sourceName);
-      return category
-        ? [{ category, title, products: category.products.filter((product) => product.available) }]
-        : [];
-    }),
-  );
+  menuSections = computed(() => this.menuCategories().map(category => ({
+    category,
+    title: this.categoryLabel(category),
+    products: categoryProducts(category).filter(product => product.available).slice(0, 4),
+  })).filter(section => section.products.length > 0));
   menuPath = computed(() => this.tenant() ? `/public-menu/${this.tenant()?.public_slug || this.tenant()?.id}?lang=tr` : '#menu-kategorileri');
   logoUrl = computed(() => this.api.getTenantLogoUrl(this.tenant()?.logo_filename, this.tenant()?.id));
 
   ngOnInit(): void {
     this.title.setTitle('Beratzade Kebap & Kahvaltı Salonu');
-    this.api.waitForInitialAuthCheck().subscribe(() => {
-      const user = this.api.getCurrentUser();
-      if (user) {
-if (user.role === 'courier') void this.router.navigate(['/courier']);
-        else if (user.provider_id != null) void this.router.navigate(['/provider']);
-        else void this.router.navigate([restaurantHome(user.role)]);
-        return;
-      }
-      this.loadRestaurant();
-    });
+    this.loadRestaurant();
   }
 
   private loadRestaurant(): void {
@@ -93,10 +79,21 @@ if (user.role === 'courier') void this.router.navigate(['/courier']);
   }
 
   imageUrl(url: string | null): string {
-    if (!url) return '';
-    if (/^https?:\/\//i.test(url)) return url;
-    const base = environment.apiUrl.replace(/\/$/, '');
-    return url.startsWith('/') ? base + url : `${base}/${url}`;
+    return publicImageUrl(url, environment.apiUrl);
+  }
+
+  readonly productKey = publicProductKey;
+
+  productImage(product: PublicTenantMenuProduct): string {
+    return this.failedImages().has(publicProductKey(product)) ? '' : this.imageUrl(product.image_url);
+  }
+
+  imageFailed(product: PublicTenantMenuProduct): void {
+    this.failedImages.update(images => new Set(images).add(publicProductKey(product)));
+  }
+
+  productCount(category: PublicTenantMenuCategory): number {
+    return categoryProducts(category).length;
   }
 
   heroStyle(): SafeStyle | null {
@@ -133,8 +130,9 @@ if (user.role === 'courier') void this.router.navigate(['/courier']);
   }
 
   productPath(product: PublicTenantMenuProduct): string {
-    const category = this.categories().find((item) => item.products.some((candidate) => candidate.id === product.id));
-    return category ? this.categoryMenuPath(category) : this.menuPath();
+    const category = categoryForProduct(this.menuCategories(), product);
+    const path = category ? this.categoryMenuPath(category) : this.menuPath();
+    return `${path}&product=${encodeURIComponent(publicProductKey(product))}`;
   }
 
   openingHours(): string {

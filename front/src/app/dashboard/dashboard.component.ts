@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit, computed, signal, viewChild } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SidebarComponent } from '../shared/sidebar.component';
@@ -27,17 +27,18 @@ import {
         </div>
 
         <div class="quick-actions">
-          <button type="button" class="action-card action-card-whats-new" (click)="openChangelog()" data-testid="dashboard-whats-new">
-            <div class="action-icon action-icon-whats-new">
+          @if (canUseStaffPos()) {
+          <a routerLink="/staff/pos" class="action-card" data-testid="dashboard-main-sales">
+            <div class="action-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                 <polyline points="14,2 14,8 20,8"/>
                 <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/>
               </svg>
             </div>
-            <span class="action-label">{{ 'DASHBOARD.WHATS_NEW_TITLE' | translate }}</span>
-            <span class="action-desc">{{ 'DASHBOARD.WHATS_NEW_DESC' | translate }}</span>
-          </button>
+            <span class="action-label">{{ 'STAFF_POS.NAV_LABEL' | translate }}</span>
+          </a>
+          }
           @if (canViewMyShift()) {
             <a routerLink="/my-shift" class="action-card" data-testid="dashboard-my-shift">
               <div class="action-icon">
@@ -61,6 +62,7 @@ import {
               }
             </a>
           }
+          @if (canViewOrders()) {
           <a routerLink="/staff/orders" class="action-card">
             <div class="action-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -71,6 +73,7 @@ import {
             <span class="action-label">{{ 'DASHBOARD.ORDERS_TITLE' | translate }}</span>
             <span class="action-desc">{{ 'DASHBOARD.ORDERS_DESC' | translate }}</span>
           </a>
+          }
           @if (canViewReservations() && moduleEnabled('reservations')) {
           <a routerLink="/reservations" class="action-card">
             <div class="action-icon">
@@ -97,7 +100,7 @@ import {
             <span class="action-desc">{{ 'DASHBOARD.TABLES_DESC' | translate }}</span>
           </a>
           }
-          @if (moduleEnabled('kitchen_bar')) {
+          @if (canViewOrders() && moduleEnabled('kitchen_bar')) {
           <a routerLink="/kitchen" class="action-card">
             <div class="action-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -119,6 +122,7 @@ import {
             <span class="action-desc">{{ 'DASHBOARD.BEVERAGES_DESC' | translate }}</span>
           </a>
           }
+          @if (canShowAdminSections()) {
           <a routerLink="/products" class="action-card">
             <div class="action-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -127,17 +131,6 @@ import {
             </div>
             <span class="action-label">{{ 'DASHBOARD.PRODUCTS_TITLE' | translate }}</span>
             <span class="action-desc">{{ 'DASHBOARD.PRODUCTS_DESC' | translate }}</span>
-          </a>
-          @if (moduleEnabled('providers')) {
-          <a routerLink="/catalog" class="action-card">
-            <div class="action-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-              </svg>
-            </div>
-            <span class="action-label">{{ 'DASHBOARD.CATALOG_TITLE' | translate }}</span>
-            <span class="action-desc">{{ 'DASHBOARD.CATALOG_DESC' | translate }}</span>
           </a>
           }
           @if (canViewCustomers()) {
@@ -213,19 +206,6 @@ import {
           }
         </div>
 
-        <div class="help-section">
-          <h2 class="help-title">{{ 'DASHBOARD.HELP_TITLE' | translate }}</h2>
-          <p class="help-desc">{{ 'DASHBOARD.HELP_DESC' | translate }}</p>
-          <p class="help-invite">{{ 'DASHBOARD.HELP_INVITE' | translate }}</p>
-          <div class="help-links">
-            <a href="https://github.com/satisfecho/pos/issues" target="_blank" rel="noopener noreferrer" class="help-link">
-              {{ 'DASHBOARD.HELP_ISSUES' | translate }}
-            </a>
-            <a href="https://github.com/satisfecho/pos/discussions" target="_blank" rel="noopener noreferrer" class="help-link">
-              {{ 'DASHBOARD.HELP_DISCUSSIONS' | translate }}
-            </a>
-          </div>
-        </div>
     </app-sidebar>
   `,
   styles: [`
@@ -327,79 +307,17 @@ import {
         grid-template-columns: 1fr;
       }
     }
-    .help-section {
-      margin-top: var(--space-8);
-      padding: var(--space-6);
-      border-radius: var(--radius-lg);
-      background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-surface) 100%);
-      border: 1px solid var(--color-border);
-    }
-
-    .help-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--color-text);
-      margin: 0 0 var(--space-2);
-    }
-
-    .help-desc {
-      font-size: 0.9375rem;
-      color: var(--color-text-muted);
-      margin: 0 0 var(--space-2);
-    }
-
-    .help-invite {
-      font-size: 0.9375rem;
-      color: var(--color-text);
-      margin: 0 0 var(--space-4);
-      font-weight: 500;
-    }
-
-    .help-links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3);
-    }
-
-    .help-link {
-      display: inline-flex;
-      align-items: center;
-      padding: var(--space-2) var(--space-4);
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      color: var(--color-primary);
-      text-decoration: none;
-      font-size: 0.9375rem;
-      font-weight: 500;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .help-link:hover {
-      border-color: var(--color-primary);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .action-card-whats-new {
-      cursor: pointer;
-      border: 1px dashed var(--color-primary);
-      background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-primary-light) 100%);
-    }
-
-    .action-icon-whats-new {
-      background: var(--color-primary);
-      color: var(--color-surface);
-    }
   `]
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private permissions = inject(PermissionService);
   private api = inject(ApiService);
-  private sidebar = viewChild.required(SidebarComponent);
 
   user = signal(this.api.getCurrentUser());
   canShowAdminSections = computed(() => this.permissions.isAdmin(this.user()));
-  canViewCustomers = computed(() => this.permissions.canAccessRoute(this.user(), '/customers'));
+  canUseStaffPos = computed(() => this.permissions.hasAllPermissions(this.user(), 'product:read', 'order:update_status'));
+  canViewOrders = computed(() => this.permissions.hasPermission(this.user(), 'order:read'));
+  canViewCustomers = computed(() => this.permissions.isAdmin(this.user()) && this.permissions.canAccessRoute(this.user(), '/customers'));
   canViewMyShift = computed(() => this.permissions.canAccessRoute(this.user(), '/my-shift'));
   canViewReservations = computed(() => this.permissions.hasPermission(this.user(), 'reservation:read'));
   canViewTables = computed(() => this.permissions.canAccessRoute(this.user(), '/tables'));
@@ -456,7 +374,4 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.api.isUiModuleEnabled(key);
   }
 
-  openChangelog() {
-    this.sidebar().openChangelog();
-  }
 }

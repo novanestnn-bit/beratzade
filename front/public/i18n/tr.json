@@ -365,6 +365,12 @@
     "LOAD_ERROR": "Could not load pricing. Please try again later."
   },
   "PUBLIC_MENU": {
+    "CATEGORIES": "Kategoriler",
+    "CATEGORY_NOT_FOUND": "Bu kategori bulunamadı.",
+    "PRODUCT_NOT_AVAILABLE": "Bu ürün güncel menüde bulunmuyor.",
+    "UNAVAILABLE": "Şu anda mevcut değil",
+    "CATEGORY_NAV": "Menü kategorileri",
+
     "PAGE_TITLE": "Menü",
     "LOADING": "Menü yükleniyor…",
     "READ_ONLY_HINT": "Menümüzü inceleyin. Sipariş için restoranla iletişime geçebilirsiniz.",
@@ -3476,6 +3482,8 @@
     "NO_SENT_ORDER": "Bu masaya henüz sipariş gönderilmedi."
   },
   "STAFF_POS": {
+    "SETTLE_CURRENT_SALE": "Yeni satışa başlamadan önce mevcut satışın tahsilatını tamamlayın. Sipariş takibinden mevcut hesabı inceleyebilirsiniz.",
+
     "NAV_LABEL": "Satış ekranı"
   },
   "SERVICE_REQUESTS": {
@@ -3499,5 +3507,13 @@
     "ADMIN_DESCRIPTION": "Restoran ayarları ve işletme yönetimi",
     "ADMIN_ONLY": "Bu ekran yalnızca yönetici hesapları içindir. Personel girişini kullanın.",
     "SWITCH": "Giriş türünü değiştirin"
+  },
+  "RESTAURANT_UI": {
+    "PUBLISH_PRODUCT": "Müşteri menüsünde yayınla",
+    "PUBLISH_HINT": "Yalnızca doğrulanmış ürün ve fiyatları yayınlayın. Yeni ürünler taslak olarak başlar.",
+    "DRAFT": "Taslak",
+    "PUBLISHED": "Yayında",
+    "SHOW_ADVANCED": "Gelişmiş ayarları göster",
+    "HIDE_ADVANCED": "Gelişmiş ayarları gizle"
   }
 }

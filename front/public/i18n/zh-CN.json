@@ -366,6 +366,12 @@
     "LOAD_ERROR": "无法加载定价。请稍后重试。"
   },
   "PUBLIC_MENU": {
+    "CATEGORIES": "分类",
+    "CATEGORY_NOT_FOUND": "找不到此分类。",
+    "PRODUCT_NOT_AVAILABLE": "此商品已不在当前菜单中。",
+    "UNAVAILABLE": "暂时不可用",
+    "CATEGORY_NAV": "菜单分类",
+
     "PAGE_TITLE": "菜单",
     "LOADING": "正在加载菜单…",
     "READ_ONLY_HINT": "浏览菜单 — 可在餐桌或预订时点餐。",
@@ -3479,5 +3485,16 @@
     "ADMIN_DESCRIPTION": "餐厅设置和经营管理",
     "ADMIN_ONLY": "此页面仅供管理员账户使用。请使用员工登录。",
     "SWITCH": "切换登录类型"
+  },
+  "RESTAURANT_UI": {
+    "PUBLISH_PRODUCT": "发布到顾客菜单",
+    "PUBLISH_HINT": "只发布已确认的商品和价格。新商品默认为草稿。",
+    "DRAFT": "草稿",
+    "PUBLISHED": "已发布",
+    "SHOW_ADVANCED": "显示高级设置",
+    "HIDE_ADVANCED": "隐藏高级设置"
+  },
+  "STAFF_POS": {
+    "SETTLE_CURRENT_SALE": "开始新销售前，请先完成当前销售的付款。可在订单跟踪中查看账单。"
   }
 }

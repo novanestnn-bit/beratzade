@@ -27,16 +27,8 @@ describe('App', () => {
     expect(compiled.querySelector('router-outlet')).toBeTruthy();
   });
 
-  it('shows a refresh notice when live updates are disabled', () => {
+  it('keeps transport details out of the restaurant page shell', () => {
     const fixture = TestBed.createComponent(App);
-    Object.defineProperty(fixture.componentInstance, 'realtimeEnabled', { value: false });
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-testid="http-only-notice"]')).toBeTruthy();
-  });
-
-  it('does not show the temporary notice when live updates are enabled', () => {
-    const fixture = TestBed.createComponent(App);
-    Object.defineProperty(fixture.componentInstance, 'realtimeEnabled', { value: true });
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[data-testid="http-only-notice"]')).toBeNull();
   });

@@ -9,8 +9,8 @@
       <span>Beratzade <small>Kebap & Kahvaltı Salonu</small></span>
     </a>
     <nav class="desktop-nav" aria-label="Ana gezinme">
-      <a href="#home">Ana Sayfa</a><a [href]="menuPath()">Menü</a><a href="#kahvalti">Kahvaltı</a>
-      <a href="#kebaplar">Kebaplar</a><a href="#hakkimizda">Hakkımızda</a><a href="#iletisim">İletişim</a>
+      <a href="#home">Ana Sayfa</a><a [href]="menuPath()">Menü</a>
+      <a href="#hakkimizda">Hakkımızda</a><a href="#iletisim">İletişim</a>
     </nav>
     <a class="nav-cta" [href]="menuPath()" [class.disabled]="!tenant()">Menüyü İncele <span aria-hidden="true">↗</span></a>
   </header>
@@ -34,23 +34,7 @@
         }
       </div>
       <div class="hero-stamp" aria-hidden="true"><span>SOFRANIZA</span><strong>Hoş<br />geldiniz</strong></div>
-      <a href="#kesfet" class="scroll-cue">AŞAĞI KEŞFEDİN <span>↓</span></a>
-    </section>
-
-    <section class="intro section-wrap" id="kesfet">
-      <div><p class="eyebrow eyebrow-dark">SOFRANIN GÜZEL HALİ</p><h2>Her öğünde<br /><em>bir araya gelin.</em></h2></div>
-      <p class="intro-text">Beratzade’de kahvaltıdan akşam yemeğine, sofranın etrafında paylaşılan güzel anlara yer var. Menümüzdeki ürünleri keşfedin.</p>
-    </section>
-
-    <section class="collection-grid section-wrap" aria-label="Menü koleksiyonları">
-      <a class="collection-card collection-breakfast" id="kahvalti" [href]="categoryPath(['kahvaltı', 'kahvalti'])">
-        <span class="collection-index">01 / GÜNE BAŞLARKEN</span><span class="collection-icon" aria-hidden="true">☀</span>
-        <h2>Kahvaltı</h2><p>Sabah sofrasının sevilenleri.</p><span class="collection-link">Kahvaltı menüsünü gör <b>↗</b></span>
-      </a>
-      <a class="collection-card collection-grill" id="kebaplar" [href]="categoryPath(['kebap', 'ızgara', 'izgara'])">
-        <span class="collection-index">02 / ATEŞİN BAŞINDA</span><span class="collection-icon" aria-hidden="true">✳</span>
-        <h2>Kebap & Izgara</h2><p>Ustalıkla hazırlanan sofralar.</p><span class="collection-link">Kebap menüsünü gör <b>↗</b></span>
-      </a>
+      <a href="#menu-kategorileri" class="scroll-cue">{{ 'MENU.BACK_TO_MENU' | translate }} <span>↓</span></a>
     </section>
 
     <section class="menu-section" id="menu-kategorileri">
@@ -63,23 +47,27 @@
             @for (category of menuCategories(); track category.id) {
               <a [href]="categoryMenuPath(category)">
                 {{ categoryLabel(category) }}
-                <span>{{ category.subcategories?.length || category.products.length }}</span>
+                <span>{{ productCount(category) }}</span>
               </a>
             }
           </nav>
           <div class="daily-specials-grid">
-            @for (section of dailyMenuSections(); track section.category.id) {
+            @for (section of menuSections(); track section.category.id) {
               <section class="daily-special-section" [attr.aria-labelledby]="'daily-menu-' + section.category.id">
                 <div class="daily-special-heading">
                   <h3 [id]="'daily-menu-' + section.category.id">{{ section.title }}</h3>
                   <a [href]="categoryMenuPath(section.category)">Tümünü gör <span aria-hidden="true">↗</span></a>
                 </div>
                 <div class="featured-grid">
-                  @for (product of section.products; track product.id) {
-                    <a class="featured-card" [href]="productPath(product)">
+                  @for (product of section.products; track productKey(product)) {
+                    <a class="featured-card" [href]="productPath(product)" [attr.data-product-key]="productKey(product)">
                       <div class="product-photo">
-                        @if (product.image_url) { <img [src]="imageUrl(product.image_url)" [alt]="product.name" loading="lazy" /> }
-                        @else { <span class="photo-placeholder" aria-hidden="true">B</span> }
+                        @if (productImage(product); as image) { <img [src]="image" [alt]="product.name" loading="lazy" (error)="imageFailed(product)" /> }
+                        @else {
+                          <span class="photo-placeholder" aria-hidden="true">
+                            <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="16"/><circle cx="32" cy="32" r="11"/><path d="M7 14v13m6-13v13m-6-7h6m-3 7v23m44-36v36m0-36c-7 4-9 13 0 15"/></svg>
+                          </span>
+                        }
                       </div>
                       <div class="featured-info"><div><h4>{{ product.name }}</h4>@if (product.description) { <p>{{ product.description }}</p> }</div><strong>{{ price(product) }}</strong></div>
                     </a>

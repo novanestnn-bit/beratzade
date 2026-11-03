@@ -17,13 +17,6 @@ const preferredOrder = [
   'tatlilar',
 ];
 
-const hiddenCategorySlugs = [
-  'et-yemekleri',
-  'tavuk-yemekleri',
-  'yan-urunler',
-  'mezeler-ve-salatalar',
-];
-
 export function beratzadeMenuCategorySlug(categoryId: string): string {
   const slug = publicMenuCategorySlug(categoryId);
   return slug === 'gunun-yemekleri' ? 'ev-yemekleri' : slug;
@@ -42,7 +35,6 @@ export function orderBeratzadeMenuCategories(
 ): PublicTenantMenuCategory[] {
   const rank = new Map(preferredOrder.map((slug, index) => [slug, index]));
   return categories
-    .filter((category) => !hiddenCategorySlugs.includes(beratzadeMenuCategorySlug(category.id)))
     .map((category, index) => ({ category, index }))
     .sort((left, right) => {
       const leftRank = rank.get(beratzadeMenuCategorySlug(left.category.id)) ?? preferredOrder.length;

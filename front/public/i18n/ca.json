@@ -366,6 +366,12 @@
     "LOAD_ERROR": "No s'ha pogut carregar la tarifa. Torna-ho a provar més tard."
   },
   "PUBLIC_MENU": {
+    "CATEGORIES": "Categories",
+    "CATEGORY_NOT_FOUND": "No s’ha trobat aquesta categoria.",
+    "PRODUCT_NOT_AVAILABLE": "Aquest article ja no és al menú actual.",
+    "UNAVAILABLE": "No disponible actualment",
+    "CATEGORY_NAV": "Categories del menú",
+
     "PAGE_TITLE": "Carta",
     "LOADING": "S'està carregant la carta…",
     "READ_ONLY_HINT": "Consulteu la carta — la comanda es fa a taula o en reservar.",
@@ -3479,5 +3485,16 @@
     "ADMIN_DESCRIPTION": "Configuració del restaurant i gestió del negoci",
     "ADMIN_ONLY": "Aquesta pantalla és només per a comptes d’administració. Feu servir l’accés del personal.",
     "SWITCH": "Canvia el tipus d’accés"
+  },
+  "RESTAURANT_UI": {
+    "PUBLISH_PRODUCT": "Publica al menú dels clients",
+    "PUBLISH_HINT": "Publiqueu només articles i preus verificats. Els productes nous comencen com a esborranys.",
+    "DRAFT": "Esborrany",
+    "PUBLISHED": "Publicat",
+    "SHOW_ADVANCED": "Mostra els ajustos avançats",
+    "HIDE_ADVANCED": "Amaga els ajustos avançats"
+  },
+  "STAFF_POS": {
+    "SETTLE_CURRENT_SALE": "Completeu el pagament de la venda actual abans de començar-ne una altra. Reviseu el compte al seguiment de comandes."
   }
 }

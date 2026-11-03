@@ -256,6 +256,12 @@
     "USER_MANUAL": "Benutzerhandbuch"
   },
   "PUBLIC_MENU": {
+    "CATEGORIES": "Kategorien",
+    "CATEGORY_NOT_FOUND": "Diese Kategorie wurde nicht gefunden.",
+    "PRODUCT_NOT_AVAILABLE": "Dieser Artikel ist nicht mehr auf der aktuellen Speisekarte.",
+    "UNAVAILABLE": "Derzeit nicht verfügbar",
+    "CATEGORY_NAV": "Menükategorien",
+
     "PAGE_TITLE": "Speisekarte",
     "LOADING": "Speisekarte wird geladen…",
     "READ_ONLY_HINT": "Speisekarte ansehen — Bestellen am Tisch oder bei der Reservierung.",
@@ -3479,5 +3485,16 @@
     "ADMIN_DESCRIPTION": "Restauranteinstellungen und Betriebsverwaltung",
     "ADMIN_ONLY": "Dieser Bereich ist nur für Administratorkonten. Nutzen Sie die Mitarbeiteranmeldung.",
     "SWITCH": "Anmeldebereich wechseln"
+  },
+  "RESTAURANT_UI": {
+    "PUBLISH_PRODUCT": "In der Gästekarte veröffentlichen",
+    "PUBLISH_HINT": "Nur bestätigte Artikel und Preise veröffentlichen. Neue Artikel beginnen als Entwurf.",
+    "DRAFT": "Entwurf",
+    "PUBLISHED": "Veröffentlicht",
+    "SHOW_ADVANCED": "Erweiterte Einstellungen anzeigen",
+    "HIDE_ADVANCED": "Erweiterte Einstellungen ausblenden"
+  },
+  "STAFF_POS": {
+    "SETTLE_CURRENT_SALE": "Schließen Sie die Zahlung des aktuellen Verkaufs ab, bevor Sie einen neuen beginnen. Prüfen Sie das Konto in der Bestellübersicht."
   }
 }

@@ -7,6 +7,7 @@ import {
   OnDestroy,
   DestroyRef,
   afterNextRender,
+  HostListener,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DomSanitizer, Meta, SafeResourceUrl, SafeStyle, Title } from '@angular/platform-browser';
@@ -25,10 +26,6 @@ import { PublicGuestHeaderComponent } from '../shared/public-guest-header.compon
 import { LanguagePickerComponent } from '../shared/language-picker.component';
 import { resolvePublicPrimaryColor } from '../shared/public-brand-colors';
 import {
-  beratzadeCategoryVisual,
-  BeratzadeCategoryVisual,
-} from '../shared/beratzade-category-visuals';
-import {
   beratzadeMenuCategoryLabel,
   beratzadeMenuCategorySlug,
   orderBeratzadeMenuCategories,
@@ -39,6 +36,7 @@ import { publicBookRouterLink } from '../shared/public-book-path';
 import { LanguageService } from '../services/language.service';
 import { LegalLinksComponent } from '../shared/legal-links.component';
 import { formatMoneyCents } from '../shared/currency-symbol';
+import { categoryProducts, menuProducts, publicImageUrl, publicProductKey } from './public-menu-presentation';
 
 @Component({
   selector: 'app-public-menu',
@@ -70,15 +68,19 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
   subcategorySlug = signal('');
   activeCategoryId = signal('');
   selectedProduct = signal<PublicTenantMenuProduct | null>(null);
-  failedImageIds = signal<Set<number>>(new Set());
-  failedCategoryImageIds = signal<Set<string>>(new Set());
+  failedImageIds = signal<Set<string>>(new Set());
+  productUnavailable = signal(false);
+  private productQuery = '';
+  private productTrigger: HTMLElement | null = null;
+  private previousBodyOverflow = '';
+  private focusTimer: ReturnType<typeof setTimeout> | null = null;
   errorKind = signal<'invalid_tenant' | 'tenant_not_found' | 'menu_load_failed' | null>(null);
   /** Category ids collapsed by user toggle (default: all expanded). */
   private collapsedCategoryIds = signal<Set<string>>(new Set());
 
   googleMapsUrl = computed(() => this.tenant()?.public_google_maps_url?.trim() || null);
   openstreetmapUrl = computed(() => this.tenant()?.public_openstreetmap_url?.trim() || null);
-  hasAnyProducts = computed(() => this.categories().some((category) => category.products.length > 0));
+  hasAnyProducts = computed(() => this.menuCategories().some((category) => categoryProducts(category).length > 0));
   hasSearchResults = computed(() => this.visibleCategories().length > 0);
   activeCategory = computed(() => {
     const slug = this.categorySlug();
@@ -133,15 +135,19 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
       if (nextCategorySlug !== this.categorySlug()) {
         this.categorySlug.set(nextCategorySlug);
         this.searchTerm.set('');
-        this.selectedProduct.set(null);
+        this.setSelectedProduct(null);
         if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' });
       }
       if (nextSubcategorySlug !== this.subcategorySlug()) {
         this.subcategorySlug.set(nextSubcategorySlug);
         this.searchTerm.set('');
-        this.selectedProduct.set(null);
+        this.setSelectedProduct(null);
         if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' });
       }
+    });
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
+      this.productQuery = params.get('product') ?? '';
+      this.syncSelectedProduct();
     });
 
     const refParam = (this.route.snapshot.paramMap.get('tenantId') || '').trim();
@@ -192,6 +198,8 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.menuSync) clearInterval(this.menuSync);
+    if (this.focusTimer) clearTimeout(this.focusTimer);
+    this.setSelectedProduct(null);
     // Title reset handled by next navigation.
   }
 
@@ -200,6 +208,7 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
     this.api.getPublicTenantMenu(tenantId).subscribe({
       next: (data) => {
         this.menu.set(data);
+        this.syncSelectedProduct();
         this.menuLoading.set(false);
         this.loading.set(false);
         this.updateDocumentTitle();
@@ -220,6 +229,7 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
     this.api.getPublicTenantMenu(tid).subscribe({
       next: (data) => {
         this.menu.set(data);
+        this.syncSelectedProduct();
         this.menuLoading.set(false);
       },
       error: () => {
@@ -239,37 +249,40 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
   }
 
   orderedCategories(): PublicTenantMenuCategory[] {
-    return orderBeratzadeMenuCategories(this.menuCategories());
+    return orderBeratzadeMenuCategories(this.menuCategories()).filter(category => categoryProducts(category).length > 0);
   }
 
   orderedSubcategories(category: PublicTenantMenuCategory): PublicTenantMenuCategory[] {
     return orderBeratzadeSubcategories(category.name, category.subcategories ?? []);
   }
 
-  categoryVisual(categoryId: string): BeratzadeCategoryVisual | null {
-    return beratzadeCategoryVisual(categoryId);
+  categoryImage(category: PublicTenantMenuCategory): string {
+    const product = categoryProducts(category).find(product => this.hasProductImage(product));
+    return product ? this.productImageUrl(product.image_url) : '';
   }
 
-  categoryImageFailed(categoryId: string): void {
-    this.failedCategoryImageIds.update((ids) => new Set(ids).add(categoryId));
+  categoryImageFailed(category: PublicTenantMenuCategory): void {
+    const product = categoryProducts(category).find(product => this.hasProductImage(product));
+    if (product) this.productImageFailed(product);
   }
 
-  hasCategoryImageFailed(categoryId: string): boolean {
-    return this.failedCategoryImageIds().has(categoryId);
+  categoryProductCount(category: PublicTenantMenuCategory): number {
+    return categoryProducts(category).length;
+  }
+
+  private categorySections(category: PublicTenantMenuCategory): PublicTenantMenuCategory[] {
+    return [category, ...this.orderedSubcategories(category).map(child => ({ ...child, id: `${category.id}--${child.id}` }))];
   }
 
   visibleCategories(): PublicTenantMenuCategory[] {
     const query = this.normalizeSearchText(this.searchTerm());
     const selected = this.activeCategory();
     if (this.isCategoryRoute() && !selected) return [];
+    if (this.isCategoryRoute() && this.subcategorySlug() && !this.activeSubcategory()) return [];
     if (this.isBeratzadeMenuOnly() && selected) {
       const source = this.activeSubcategory()
         ? [this.activeSubcategory()!]
-        : selected.subcategories?.length
-          ? query
-            ? [selected, ...selected.subcategories]
-            : []
-          : [selected];
+        : this.categorySections(selected);
       if (!query) {
         return source.filter((category) => category.products.length > 0);
       }
@@ -283,7 +296,7 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
         .filter((category) => category.products.length > 0);
     }
     const source = this.isBeratzadeMenuOnly()
-      ? this.orderedCategories()
+      ? this.orderedCategories().flatMap(category => query ? this.categorySections(category) : [category])
       : selected
         ? [selected]
         : this.categories();
@@ -352,19 +365,61 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
   }
 
   openProductDetails(product: PublicTenantMenuProduct): void {
-    this.selectedProduct.set(product);
+    this.productTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.setSelectedProduct(product);
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { product: publicProductKey(product) }, queryParamsHandling: 'merge' });
   }
 
   closeProductDetails(): void {
-    this.selectedProduct.set(null);
+    this.setSelectedProduct(null);
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { product: null }, queryParamsHandling: 'merge', replaceUrl: true });
   }
 
-  productImageFailed(productId: number): void {
-    this.failedImageIds.update((ids) => new Set(ids).add(productId));
+  readonly productKey = publicProductKey;
+
+  private syncSelectedProduct(): void {
+    if (!this.menu()) return;
+    const product = menuProducts(this.categories()).find(product => publicProductKey(product) === this.productQuery) ?? null;
+    this.productUnavailable.set(Boolean(this.productQuery) && !product);
+    this.setSelectedProduct(product);
+  }
+
+  private setSelectedProduct(product: PublicTenantMenuProduct | null): void {
+    const wasOpen = Boolean(this.selectedProduct());
+    this.selectedProduct.set(product);
+    if (typeof document === 'undefined') return;
+    if (product && !wasOpen) {
+      this.previousBodyOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      this.focusTimer = setTimeout(() => document.querySelector<HTMLButtonElement>('.public-menu-detail-close')?.focus(), 0);
+    } else if (!product && wasOpen) {
+      document.body.style.overflow = this.previousBodyOverflow;
+      if (this.productTrigger?.isConnected) this.productTrigger.focus({ preventScroll: true });
+    }
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  dialogKeydown(event: KeyboardEvent): void {
+    if (!this.selectedProduct()) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeProductDetails();
+    } else if (event.key === 'Tab') {
+      const controls = Array.from(document.querySelectorAll<HTMLElement>('.public-menu-detail button, .public-menu-detail a[href], .public-menu-detail [tabindex="0"]'));
+      const first = controls[0], last = controls[controls.length - 1];
+      if (first && (!controls.includes(document.activeElement as HTMLElement) || (event.shiftKey ? document.activeElement === first : document.activeElement === last))) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      }
+    }
+  }
+
+  productImageFailed(product: PublicTenantMenuProduct): void {
+    this.failedImageIds.update((ids) => new Set(ids).add(publicProductKey(product)));
   }
 
   hasProductImage(product: PublicTenantMenuProduct): boolean {
-    return Boolean(product.image_url && !this.failedImageIds().has(product.id));
+    return Boolean(this.productImageUrl(product.image_url) && !this.failedImageIds().has(publicProductKey(product)));
   }
 
   isCategoryExpanded(categoryId: string): boolean {
@@ -431,10 +486,7 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
   }
 
   productImageUrl(url: string | null | undefined): string {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    const base = environment.apiUrl.replace(/\/$/, '');
-    return url.startsWith('/') ? base + url : `${base}/${url}`;
+    return publicImageUrl(url, environment.apiUrl);
   }
 
   formatPrice(product: { price_cents: number }): string {

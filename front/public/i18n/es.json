@@ -256,6 +256,12 @@
     "USER_MANUAL": "Manual de usuario"
   },
   "PUBLIC_MENU": {
+    "CATEGORIES": "Categorías",
+    "CATEGORY_NOT_FOUND": "No se encontró esta categoría.",
+    "PRODUCT_NOT_AVAILABLE": "Este artículo ya no está en el menú actual.",
+    "UNAVAILABLE": "No disponible actualmente",
+    "CATEGORY_NAV": "Categorías del menú",
+
     "PAGE_TITLE": "Carta",
     "LOADING": "Cargando la carta…",
     "READ_ONLY_HINT": "Consulte nuestra carta — el pedido está disponible en la mesa o al reservar.",
@@ -3479,5 +3485,16 @@
     "ADMIN_DESCRIPTION": "Configuración del restaurante y gestión del negocio",
     "ADMIN_ONLY": "Esta pantalla es solo para cuentas de administración. Utiliza el acceso del personal.",
     "SWITCH": "Cambiar el tipo de acceso"
+  },
+  "RESTAURANT_UI": {
+    "PUBLISH_PRODUCT": "Publicar en el menú de clientes",
+    "PUBLISH_HINT": "Publique solo artículos y precios verificados. Los nuevos productos empiezan como borradores.",
+    "DRAFT": "Borrador",
+    "PUBLISHED": "Publicado",
+    "SHOW_ADVANCED": "Mostrar ajustes avanzados",
+    "HIDE_ADVANCED": "Ocultar ajustes avanzados"
+  },
+  "STAFF_POS": {
+    "SETTLE_CURRENT_SALE": "Complete el pago de la venta actual antes de iniciar otra. Revise la cuenta en el seguimiento de pedidos."
   }
 }

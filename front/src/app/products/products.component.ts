@@ -107,6 +107,10 @@ import { ProductBulkImportComponent } from './product-bulk-import.component';
                  @if (!canEditProducts()) {
                    <p class="form-readonly-hint">{{ 'PRODUCTS.ONLY_OWNERS_CAN_EDIT' | translate }}</p>
                  }
+                 <label class="menu-publish-option">
+                   <input type="checkbox" [(ngModel)]="formData.is_active" name="is_active" [disabled]="!canEditProducts()" data-testid="product-published" />
+                   <span>{{ 'RESTAURANT_UI.PUBLISH_PRODUCT' | translate }}<small>{{ 'RESTAURANT_UI.PUBLISH_HINT' | translate }}</small></span>
+                 </label>
                 <form (submit)="saveProduct($event)">
                    <div class="form-row">
                      <div class="form-group">
@@ -519,7 +523,8 @@ import { ProductBulkImportComponent } from './product-bulk-import.component';
                           }
                         </td>
                         <td>
-                          <div>{{ product.name }}</div>
+                          <div class="product-name">{{ product.name }}</div>
+                          <span class="publication-badge" [class.is-draft]="product.is_active === false">{{ (product.is_active === false ? 'RESTAURANT_UI.DRAFT' : 'RESTAURANT_UI.PUBLISHED') | translate }}</span>
                           @if (product.ingredients) {
                             <small class="ingredients">{{ product.ingredients }}</small>
                           }
@@ -684,6 +689,7 @@ export class ProductsComponent implements OnInit {
   productFormErrors = signal<{ name?: boolean; price?: boolean } | null>(null);
   formData: {
     name: string;
+    is_active: boolean;
     price: number;
     cost: number | null;
     ingredients: string;
@@ -699,6 +705,7 @@ export class ProductsComponent implements OnInit {
     stock_alert_level: number;
   } = {
     name: '',
+    is_active: false,
     price: 0,
     cost: null,
     ingredients: '',
@@ -1039,6 +1046,7 @@ export class ProductsComponent implements OnInit {
     this.editingProduct.set(product);
     this.formData = {
       name: product.name,
+      is_active: product.is_active !== false,
       price: product.price_cents / 100,
       cost: product.cost_cents != null ? product.cost_cents / 100 : null,
       ingredients: product.ingredients || '',
@@ -1066,6 +1074,7 @@ export class ProductsComponent implements OnInit {
     this.productFormErrors.set(null);
     this.formData = {
       name: '',
+      is_active: false,
       price: 0,
       cost: null,
       ingredients: '',
@@ -1089,6 +1098,7 @@ export class ProductsComponent implements OnInit {
     this.editingProduct.set(null);
     this.formData = {
       name: '',
+      is_active: false,
       price: 0,
       cost: null,
       ingredients: '',
@@ -1381,6 +1391,7 @@ export class ProductsComponent implements OnInit {
     this.saving.set(true);
     const productData: Record<string, unknown> = {
       name: this.formData.name,
+      is_active: this.formData.is_active,
       price_cents: Math.round(this.formData.price * 100),
       cost_cents: this.formData.cost != null && this.formData.cost >= 0 ? Math.round(this.formData.cost * 100) : undefined,
       ingredients: this.formData.ingredients || undefined,

@@ -111,15 +111,17 @@ export class MenuComponent implements OnInit, OnDestroy {
   cartExpanded = signal(false);
   /** Product ids in cart — grid/featured cards get a light “in cart” background. */
   productIdsInCart = computed(() => {
-    const ids = new Set<number>();
+    const ids = new Set<string>();
     for (const line of this.cart()) {
-      const id = line.product.id;
+      const id = this.menuItemIdentity(line.product);
       if (id != null) ids.add(id);
     }
     return ids;
   });
   /** Brief highlight on the menu card after add (same pattern as cart line flash). */
-  justAddedProductIds = signal<Set<number>>(new Set());
+  justAddedProductIds = signal<Set<string>>(new Set());
+  failedProductImages = signal<Set<string>>(new Set());
+  private productTrigger: HTMLElement | null = null;
   /** Brief highlight for a specific cart line (product + customization key). */
   justAddedCartKeys = signal<Set<string>>(new Set());
   selectedProduct = signal<Product | null>(null);
@@ -692,6 +694,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   getProductImageUrl(product: Product): string | null {
+    if (this.failedProductImages().has(this.menuItemIdentity(product) + ':' + product.image_filename)) return null;
     if (!product.image_filename || !product.tenant_id) return null;
     if (product.image_filename.startsWith('providers/')) {
       return `${environment.apiUrl}/uploads/${product.image_filename}`;
@@ -895,13 +898,31 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   openProductDetail(product: Product) {
+    this.productTrigger = document.activeElement as HTMLElement | null;
     this.selectedProduct.set(product);
     document.body.style.overflow = 'hidden';
+    setTimeout(() => document.querySelector<HTMLElement>('.product-detail-sheet .detail-close-btn')?.focus());
   }
 
   closeProductDetail() {
     this.selectedProduct.set(null);
     document.body.style.overflow = '';
+    if (this.productTrigger?.isConnected) this.productTrigger.focus();
+  }
+
+  menuItemIdentity(product: Product): string { return `${product._source || 'product'}:${product.id}`; }
+  productImageFailed(product: Product): void {
+    this.failedProductImages.update(images => new Set(images).add(this.menuItemIdentity(product) + ':' + product.image_filename));
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  keepProductFocus(event: Event): void {
+    if (!(event instanceof KeyboardEvent) || event.key !== 'Tab') return;
+    if (!this.selectedProduct()) return;
+    const elements = Array.from(document.querySelectorAll<HTMLElement>('.product-detail-sheet button:not([disabled]), .product-detail-sheet input:not([disabled]), .product-detail-sheet [tabindex="0"]'));
+    const first = elements[0], last = elements[elements.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
   }
 
   @HostListener('document:keydown.escape')
@@ -1049,7 +1070,7 @@ export class MenuComponent implements OnInit, OnDestroy {
     this.addToCart(product, Object.keys(answers).length ? answers : undefined);
     this.productToAddWithQuestions.set(null);
     this.customizationAnswersForm.set({});
-    if (this.selectedProduct()?.id === product.id) {
+    if (this.selectedProduct() && this.menuItemIdentity(this.selectedProduct()!) === this.menuItemIdentity(product)) {
       this.closeProductDetail();
     }
   }
@@ -1122,13 +1143,13 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   isProductInMenuCart(product: Product): boolean {
-    const id = product.id;
+    const id = this.menuItemIdentity(product);
     if (id == null) return false;
     return this.productIdsInCart().has(id);
   }
 
   isProductJustAdded(product: Product): boolean {
-    const id = product.id;
+    const id = this.menuItemIdentity(product);
     if (id == null) return false;
     return this.justAddedProductIds().has(id);
   }
@@ -1139,7 +1160,7 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   /** Subtle tint while in cart + short pulse when quantity changes from the menu. */
   private flashProductAdded(product: Product, cartLineKey: string): void {
-    const pid = product.id;
+    const pid = this.menuItemIdentity(product);
     if (pid != null) {
       this.justAddedProductIds.update(s => new Set(s).add(pid));
       setTimeout(() => {

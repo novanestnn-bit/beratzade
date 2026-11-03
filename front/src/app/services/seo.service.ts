@@ -12,9 +12,9 @@ export interface SeoPageConfig {
   noindex?: boolean;
 }
 
-const BRAND = 'Satisfecho';
+const BRAND = 'Beratzade';
 const DEFAULT_DESCRIPTION =
-  'Open-source restaurant platform — QR menus, ordering, reservations, payments, kitchen & bar displays, shifts, inventory, and reports.';
+  'Beratzade Kebap ve Kahvaltı Salonu. Restoran menüsü, masa servisi ve işletme yönetimi.';
 const OG_IMAGE_PATH = '/og-image.png';
 
 /** Exact marketing / public shell pages with fixed English meta (crawler-friendly). */
@@ -58,6 +58,7 @@ const MARKETING_PAGES: Record<string, Omit<SeoPageConfig, 'path'>> = {
 /** Path prefixes that should not be indexed (staff / auth shells). */
 const NOINDEX_PREFIXES = [
   '/login',
+  '/admin/login',
   '/forgot-password',
   '/reset-password',
   '/paywall',

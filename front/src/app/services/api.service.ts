@@ -613,6 +613,7 @@ export interface ProviderProduct {
 /** Product row in GET /public/tenants/{id}/menu (marketing / public menu page). */
 export interface PublicTenantMenuProduct {
   id: number;
+  source?: 'product' | 'tenant_product';
   name: string;
   price_cents: number;
   price_formatted: string;
@@ -1038,6 +1039,7 @@ export interface LoyaltyMembership {
 
 export interface Product {
   id?: number;
+  is_active?: boolean;
   name: string;
   price_cents: number;
   cost_cents?: number | null;

@@ -1,11 +1,9 @@
 import { Component, inject, signal, OnInit, computed, AfterViewInit, OnDestroy, ViewChild, ElementRef, DestroyRef, viewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs/operators';
 import { ApiService, TenantUiModuleKey, User } from '../services/api.service';
 import { PermissionService, Permission } from '../services/permission.service';
-import { environment } from '../../environments/environment';
 import { ChangelogModalComponent } from './changelog-modal.component';
 import { LanguagePickerComponent } from './language-picker.component';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -70,19 +68,6 @@ type NavGroupKey = 'operations' | 'planning' | 'catalog' | 'admin';
               >POS</a>
               <app-language-picker appearance="icon" class="sidebar-lang"></app-language-picker>
             </div>
-            <button
-              type="button"
-              class="version version-btn"
-              (click)="openChangelog()"
-              [attr.aria-label]="'DASHBOARD.CHANGELOG_TITLE' | translate"
-              data-testid="sidebar-version-changelog"
-            >
-              {{ version }}
-              <span class="commit-hash">{{ commitHash }}</span>
-              @if (tenantId(); as tid) {
-                <span class="tenant-id" title="Tenant ID">{{ tid }}</span>
-              }
-            </button>
             @if (tenantOrgName()) {
               <span class="sidebar-org-name" [attr.title]="tenantOrgName()!" [attr.aria-label]="tenantOrgName()!">{{
                 tenantOrgName()
@@ -113,15 +98,7 @@ type NavGroupKey = 'operations' | 'planning' | 'catalog' | 'admin';
               <span>{{ 'NAV.MY_SHIFT' | translate }}</span>
             </a>
           }
-          <a routerLink="/talk" routerLinkActive="active" class="nav-link" data-testid="nav-talk" (click)="closeSidebar()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
-              <path d="M19 10v2a7 7 0 01-14 0v-2"/>
-              <line x1="12" y1="19" x2="12" y2="23"/>
-              <line x1="8" y1="23" x2="16" y2="23"/>
-            </svg>
-            <span>{{ 'NAV.TALK' | translate }}</span>
-          </a>
+          @if (canViewOrders()) {
           <a routerLink="/staff/orders" routerLinkActive="active" class="nav-link" (click)="closeSidebar()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -132,6 +109,7 @@ type NavGroupKey = 'operations' | 'planning' | 'catalog' | 'admin';
             </svg>
             <span>{{ 'NAV.ORDERS' | translate }}</span>
           </a>
+          }
           @if (canUseStaffPos()) {
             <a routerLink="/staff/pos" routerLinkActive="active" class="nav-link" data-testid="nav-main-sales" (click)="closeSidebar()">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M7 15h3"/></svg>
@@ -170,7 +148,8 @@ type NavGroupKey = 'operations' | 'planning' | 'catalog' | 'admin';
                     <a routerLink="/staff/order-entry" routerLinkActive="active" class="nav-sublink" data-testid="nav-staff-order-entry" (click)="closeSidebar()">
                       <span>{{ 'STAFF_ORDER_ENTRY.NAV_LABEL' | translate }}</span>
                     </a>
-                  }                  @if (moduleEnabled('kitchen_bar')) {
+                  }
+                  @if (canViewOrders() && moduleEnabled('kitchen_bar')) {
                     <a routerLink="/kitchen" routerLinkActive="active" class="nav-sublink" (click)="closeSidebar()">
                       <span>{{ 'NAV.KITCHEN_DISPLAY' | translate }}</span>
                     </a>
@@ -241,17 +220,17 @@ type NavGroupKey = 'operations' | 'planning' | 'catalog' | 'admin';
                 [class.active]="isCatalogHubNavActive()"
               >
                 <a
-                  routerLink="/catalog-inventory"
+                  routerLink="/products"
                   routerLinkActive="active"
                   [routerLinkActiveOptions]="{ exact: true }"
                   class="nav-section-link"
-                  data-testid="nav-catalog-inventory-hub"
-                  (click)="openCatalogHub()"
+                  data-testid="nav-products-management"
+                  (click)="closeSidebar()"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
                   </svg>
-                  <span>{{ 'NAV.GROUP_CATALOG' | translate }}</span>
+                  <span>{{ 'NAV.PRODUCTS' | translate }}</span>
                 </a>
                 <button
                   type="button"
@@ -271,11 +250,6 @@ type NavGroupKey = 'operations' | 'planning' | 'catalog' | 'admin';
                   <a routerLink="/products" routerLinkActive="active" class="nav-sublink" (click)="closeSidebar()">
                     <span>{{ 'NAV.PRODUCTS' | translate }}</span>
                   </a>
-                  @if (moduleEnabled('providers')) {
-                    <a routerLink="/catalog" routerLinkActive="active" class="nav-sublink" (click)="closeSidebar()">
-                      <span>{{ 'NAV.CATALOG' | translate }}</span>
-                    </a>
-                  }
                   @if (canViewInventory() && moduleEnabled('inventory')) {
                     <div class="nav-nested-section">
                       <button
@@ -422,8 +396,6 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
   catalogOpen = signal(false);
   adminOpen = signal(false);
   inventoryOpen = signal(false);
-  version = environment.version;
-  commitHash = environment.commitHash;
 
   showOfflineBanner = computed(
     () =>
@@ -432,10 +404,11 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
   );
 
   canUseStaffPos = computed(() => this.permissions.hasAllPermissions(this.user(), 'product:read', 'order:update_status'));
+  canViewOrders = computed(() => this.permissions.hasPermission(this.user(), 'order:read'));
   canEnterStaffOrder = computed(() => this.permissions.hasAllPermissions(this.user(), 'order:update_status', 'table:activate'));
   canViewTables = computed(() => this.permissions.canAccessRoute(this.user(), '/tables'));
   canViewReservations = computed(() => this.permissions.hasPermission(this.user(), 'reservation:read'));
-  canViewCustomers = computed(() => this.permissions.canAccessRoute(this.user(), '/customers'));
+  canViewCustomers = computed(() => this.permissions.isAdmin(this.user()) && this.permissions.canAccessRoute(this.user(), '/customers'));
   canViewSettings = computed(() => this.permissions.isAdmin(this.user()));
   canViewInventory = computed(() => this.permissions.isAdmin(this.user()));
   canViewReports = computed(() => this.permissions.isAdmin(this.user()));
@@ -452,8 +425,7 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
     () =>
       (this.canViewTables() && this.moduleEnabled('tables')) ||
       (this.canEnterStaffOrder() && this.moduleEnabled('tables')) ||
-      this.canUseStaffPos() ||
-      this.moduleEnabled('kitchen_bar') ||
+      (this.canViewOrders() && this.moduleEnabled('kitchen_bar')) ||
       this.canViewCustomers()
   );
   showPlanningGroup = computed(
@@ -467,11 +439,6 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   tenantOrgName = computed(() => this.api.tenantDisplayName()?.trim() ?? '');
 
-  tenantId = computed(() => {
-    const id = this.user()?.tenant_id;
-    return id != null ? id : null;
-  });
-
   brandTitle = computed(() => {
     const org = this.tenantOrgName();
     return org ? `POS (${org})` : 'POS';
@@ -483,7 +450,7 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.api.ensureTenantUiModulesLoaded().subscribe();
-    this.api.user$.subscribe(user => {
+    this.api.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(user => {
       this.user.set(user);
       if (user && String(user.role).toLowerCase() === 'owner') {
         this.api.getScheduleNotification().subscribe({
@@ -642,13 +609,7 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   isCatalogHubNavActive(): boolean {
     const path = this.router.url.split('?')[0];
-    return path === '/catalog-inventory';
-  }
-
-  /** Navigate to hub: expand group and close mobile drawer. */
-  openCatalogHub() {
-    this.catalogOpen.set(true);
-    this.closeSidebar();
+    return path === '/products' || path.startsWith('/inventory');
   }
 
   toggleInventory(event: Event) {

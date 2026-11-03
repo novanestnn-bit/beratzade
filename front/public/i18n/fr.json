@@ -256,6 +256,12 @@
     "USER_MANUAL": "Manuel utilisateur"
   },
   "PUBLIC_MENU": {
+    "CATEGORIES": "Catégories",
+    "CATEGORY_NOT_FOUND": "Cette catégorie est introuvable.",
+    "PRODUCT_NOT_AVAILABLE": "Cet article ne figure plus au menu actuel.",
+    "UNAVAILABLE": "Actuellement indisponible",
+    "CATEGORY_NAV": "Catégories du menu",
+
     "PAGE_TITLE": "Carte",
     "LOADING": "Chargement de la carte…",
     "READ_ONLY_HINT": "Parcourez notre carte — la commande se fait à table ou lors de la réservation.",
@@ -3479,5 +3485,16 @@
     "ADMIN_DESCRIPTION": "Paramètres du restaurant et gestion de l’établissement",
     "ADMIN_ONLY": "Cet espace est réservé aux comptes administrateurs. Utilisez la connexion du personnel.",
     "SWITCH": "Changer d’espace de connexion"
+  },
+  "RESTAURANT_UI": {
+    "PUBLISH_PRODUCT": "Publier dans le menu client",
+    "PUBLISH_HINT": "Publiez uniquement des articles et prix vérifiés. Les nouveaux produits sont des brouillons.",
+    "DRAFT": "Brouillon",
+    "PUBLISHED": "Publié",
+    "SHOW_ADVANCED": "Afficher les réglages avancés",
+    "HIDE_ADVANCED": "Masquer les réglages avancés"
+  },
+  "STAFF_POS": {
+    "SETTLE_CURRENT_SALE": "Terminez le paiement de la vente en cours avant d’en commencer une autre. Consultez la note dans le suivi des commandes."
   }
 }

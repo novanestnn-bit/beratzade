@@ -191,6 +191,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
             type="button" 
             class="settings-nav-item" 
             [class.active]="activeSection() === 'email'"
+            [hidden]="!advancedSettings()"
             (click)="selectSection('email')">
             <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -215,6 +216,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
             class="settings-nav-item"
             data-testid="settings-contract-templates-tab"
             [class.active]="activeSection() === 'contract-templates'"
+            [hidden]="!advancedSettings()"
             (click)="selectSection('contract-templates')">
             <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -253,6 +255,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
             class="settings-nav-item"
             data-testid="settings-loyalty-tab"
             [class.active]="activeSection() === 'loyalty'"
+            [hidden]="!advancedSettings()"
             (click)="selectSection('loyalty')">
             <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/>
@@ -278,6 +281,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
             class="settings-nav-item"
             data-testid="settings-promos-tab"
             [class.active]="activeSection() === 'promos'"
+            [hidden]="!advancedSettings()"
             (click)="selectSection('promos')">
             <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
@@ -290,6 +294,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
             class="settings-nav-item"
             data-testid="settings-delivery-tab"
             [class.active]="activeSection() === 'delivery'"
+            [hidden]="!advancedSettings()"
             (click)="selectSection('delivery')">
             <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
@@ -302,6 +307,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
             class="settings-nav-item"
             data-testid="settings-social-posts-tab"
             [class.active]="activeSection() === 'social-posts'"
+            [hidden]="!advancedSettings()"
             (click)="selectSection('social-posts')"
           >
             <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -315,6 +321,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
             class="settings-nav-item"
             data-testid="settings-newsletter-tab"
             [class.active]="activeSection() === 'newsletter'"
+            [hidden]="!advancedSettings()"
             (click)="selectSection('newsletter')"
           >
             <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -329,6 +336,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
             class="settings-nav-item" 
             data-testid="settings-providers-tab"
             [class.active]="activeSection() === 'providers'"
+            [hidden]="!advancedSettings()"
             (click)="selectSection('providers')">
             <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
@@ -341,6 +349,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
             type="button" 
             class="settings-nav-item" 
             [class.active]="activeSection() === 'translations'"
+            [hidden]="!advancedSettings()"
             (click)="selectSection('translations')">
             <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
@@ -366,6 +375,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
             class="settings-nav-item"
             data-testid="settings-restaurant-group-tab"
             [class.active]="activeSection() === 'restaurant-group'"
+            [hidden]="!advancedSettings()"
             (click)="selectSection('restaurant-group')">
             <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
@@ -387,6 +397,9 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
             <span>{{ 'SETTINGS.DATA_AND_PRIVACY_TAB' | translate }}</span>
           </button>
           }
+          <button type="button" class="settings-nav-item" (click)="advancedSettings.set(!advancedSettings())" [attr.aria-expanded]="advancedSettings()" data-testid="settings-advanced-toggle">
+            {{ (advancedSettings() ? 'RESTAURANT_UI.HIDE_ADVANCED' : 'RESTAURANT_UI.SHOW_ADVANCED') | translate }}
+          </button>
         </div>
       </nav>
 
@@ -2153,6 +2166,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
     </app-sidebar>
   `,
   styles: [`
+    .settings-nav-item[hidden] { display:none !important; }
     /* ==========================================
        MOBILE-FIRST RESPONSIVE SETTINGS STYLES
        ========================================== */
@@ -3480,6 +3494,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
   newTaxRate = 10;
   newTaxValidFrom = new Date().toISOString().slice(0, 10);
   newTaxValidTo = '';
+  advancedSettings = signal(false);
+  private readonly advancedSections: SettingsSectionId[] = ['email', 'contract-templates', 'loyalty', 'promos', 'delivery', 'social-posts', 'newsletter', 'providers', 'translations', 'restaurant-group'];
   activeSection = signal<SettingsSectionId>('general');
 
   private static readonly SETTINGS_SECTION_IDS: readonly SettingsSectionId[] = [
@@ -3791,6 +3807,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   /** Open a settings section; sync `?section=` and `#hash` for deep links / refresh. */
   selectSection(section: SettingsSectionId, updateUrl = true): void {
+    if (this.advancedSections.includes(section)) this.advancedSettings.set(true);
     this.activeSection.set(section);
     if (section === 'taxes') {
       this.loadTaxesAll();

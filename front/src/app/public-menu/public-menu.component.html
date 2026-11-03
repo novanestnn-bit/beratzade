@@ -68,7 +68,7 @@
     @if (isBeratzadeMenuOnly()) {
       @if (!isCategoryRoute()) {
         <section class="beratzade-menu-intro" aria-labelledby="beratzade-menu-title">
-          <h1 id="beratzade-menu-title">Menümüz</h1>
+          <h1 id="beratzade-menu-title">{{ 'PUBLIC_MENU.PAGE_TITLE' | translate }}</h1>
         </section>
       }
     } @else {
@@ -138,8 +138,8 @@
             }
           </nav>
         } @else if (isCategoryRoute()) {
-          <nav class="beratzade-menu-breadcrumb" aria-label="Sayfa konumu">
-            <a [routerLink]="menuRouterLink()" [queryParams]="languageQueryParams()">← Menüye dön</a>
+          <nav class="beratzade-menu-breadcrumb" [attr.aria-label]="'PUBLIC_MENU.CATEGORY_NAV' | translate">
+            <a [routerLink]="menuRouterLink()" [queryParams]="languageQueryParams()">← {{ 'MENU.BACK_TO_MENU' | translate }}</a>
             @if (activeCategory(); as selected) {
               @if (activeSubcategory(); as selectedSubcategory) {
                 <a [routerLink]="categoryRouterLink(selected)" [queryParams]="languageQueryParams()">
@@ -152,7 +152,7 @@
               }
             }
           </nav>
-          <nav class="beratzade-category-switcher" aria-label="Diğer menü kategorileri">
+          <nav class="beratzade-category-switcher" [attr.aria-label]="'PUBLIC_MENU.CATEGORY_NAV' | translate">
             @for (category of orderedCategories(); track category.id) {
               <a
                 [routerLink]="categoryRouterLink(category)"
@@ -166,7 +166,7 @@
             @if (selectedCategory.subcategories?.length) {
               <nav
                 class="beratzade-category-switcher beratzade-subcategory-switcher"
-                [attr.aria-label]="getCategoryLabel(selectedCategory.name) + ' alt kategorileri'"
+                [attr.aria-label]="getCategoryLabel(selectedCategory.name)"
               >
                 @for (subcategory of orderedSubcategories(selectedCategory); track subcategory.id) {
                   <a
@@ -196,7 +196,7 @@
       } @else {
         @if (isBeratzadeMenuOnly() && !isCategoryRoute() && !searchTerm()) {
           <section class="beratzade-category-index" aria-labelledby="beratzade-category-index-title">
-            <h2 id="beratzade-category-index-title">Kategoriler</h2>
+            <h2 id="beratzade-category-index-title">{{ 'PUBLIC_MENU.CATEGORIES' | translate }}</h2>
             <div class="beratzade-category-grid">
               @for (cat of visibleCategories(); track cat.id) {
                 <a
@@ -206,28 +206,16 @@
                 >
                   <span class="beratzade-category-copy">
                     <span class="beratzade-category-title">{{ getCategoryLabel(cat.name) }}</span>
+                    <small>{{ categoryProductCount(cat) }}</small>
                     <span class="beratzade-category-arrow" aria-hidden="true">→</span>
                   </span>
-                  <span
-                    class="beratzade-category-photo"
-                    [class.is-fallback]="hasCategoryImageFailed(cat.id)"
-                  >
-                    @if (categoryVisual(cat.id); as visual) {
-                      @if (!hasCategoryImageFailed(cat.id)) {
-                        <img
-                          [src]="visual.src"
-                          [alt]="visual.alt"
-                          [style.object-position]="visual.objectPosition"
-                          [attr.loading]="$first ? 'eager' : 'lazy'"
-                          decoding="async"
-                          (error)="categoryImageFailed(cat.id)"
-                        />
-                      }
+                  <span class="beratzade-category-photo">
+                    @if (categoryImage(cat); as image) {
+                      <img [src]="image" alt="" [attr.loading]="$first ? 'eager' : 'lazy'" decoding="async" (error)="categoryImageFailed(cat)" />
                     } @else {
-                      <span class="beratzade-category-photo-fallback"></span>
-                    }
-                    @if (hasCategoryImageFailed(cat.id)) {
-                      <span class="beratzade-category-photo-fallback"></span>
+                      <span class="beratzade-category-photo-fallback" aria-hidden="true">
+                        <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="16"/><circle cx="32" cy="32" r="11"/><path d="M7 14v13m6-13v13m-6-7h6m-3 7v23m44-36v36m0-36c-7 4-9 13 0 15"/></svg>
+                      </span>
                     }
                   </span>
                 </a>
@@ -239,12 +227,12 @@
           <p class="public-menu-status public-menu-empty">{{ 'PUBLIC_MENU.EMPTY_MENU' | translate }}</p>
         } @else if (isCategoryRoute() && !activeCategory()) {
           <p class="public-menu-status public-menu-empty public-menu-no-results" role="status">
-            Bu kategori bulunamadı. <a [routerLink]="menuRouterLink()" [queryParams]="languageQueryParams()">Genel menüye dön</a>
+            {{ 'PUBLIC_MENU.CATEGORY_NOT_FOUND' | translate }} <a [routerLink]="menuRouterLink()" [queryParams]="languageQueryParams()">{{ 'MENU.BACK_TO_MENU' | translate }}</a>
           </p>
         } @else if (isCategoryRoute() && activeCategory() && subcategorySlug() && !activeSubcategory()) {
           <p class="public-menu-status public-menu-empty public-menu-no-results" role="status">
-            Bu alt kategori bulunamadı.
-            <a [routerLink]="categoryRouterLink(activeCategory()!)" [queryParams]="languageQueryParams()">Ana kategoriye dön</a>
+            {{ 'PUBLIC_MENU.CATEGORY_NOT_FOUND' | translate }}
+            <a [routerLink]="categoryRouterLink(activeCategory()!)" [queryParams]="languageQueryParams()">{{ 'MENU.BACK_TO_MENU' | translate }}</a>
           </p>
         } @else if (
           isCategoryRoute() &&
@@ -253,15 +241,11 @@
             (activeSubcategory() && !activeSubcategory()!.products.length))
         ) {
           <p class="public-menu-status public-menu-empty public-menu-no-results" role="status">
-            Bu kategoride henüz ürün bulunmuyor.
+            {{ 'PUBLIC_MENU.EMPTY_MENU' | translate }}
           </p>
         } @else if (searchTerm() && !hasSearchResults()) {
           <p class="public-menu-status public-menu-empty public-menu-no-results" role="status">
-            @if (isBeratzadeMenuOnly()) {
-              Aramanızla eşleşen ürün bulunamadı.
-            } @else {
-              {{ 'PUBLIC_MENU.EMPTY_MENU' | translate }}
-            }
+            {{ 'MENU.NO_PRODUCTS' | translate }}
           </p>
         }
         @if (!isBeratzadeMenuOnly() || isCategoryRoute() || searchTerm()) {
@@ -290,8 +274,8 @@
                 role="region"
                 [attr.aria-labelledby]="'cat-' + cat.id"
               >
-                @for (product of cat.products; track product.id) {
-                  <li class="public-menu-product">
+                @for (product of cat.products; track productKey(product)) {
+                  <li class="public-menu-product" [attr.data-product-key]="productKey(product)">
                     <button
                       class="public-menu-product-card"
                       [class.is-unavailable]="!product.available"
@@ -307,7 +291,7 @@
                             [alt]="product.name"
                             loading="lazy"
                             decoding="async"
-                            (error)="productImageFailed(product.id)"
+                            (error)="productImageFailed(product)"
                           />
                         } @else {
                           <span class="public-menu-product-placeholder" aria-hidden="true">
@@ -337,7 +321,7 @@
                           <span class="public-menu-product-desc">{{ product.description }}</span>
                         }
                         @if (!product.available) {
-                          <span class="public-menu-product-unavailable">Şu anda mevcut değil</span>
+                          <span class="public-menu-product-unavailable">{{ 'PUBLIC_MENU.UNAVAILABLE' | translate }}</span>
                         }
                       </span>
                     </button>
@@ -350,27 +334,29 @@
         }
       }
 
+      @if (productUnavailable()) {
+        <p class="public-menu-status" role="status" data-testid="public-menu-product-unavailable">{{ 'PUBLIC_MENU.PRODUCT_NOT_AVAILABLE' | translate }}</p>
+      }
       @if (selectedProduct(); as product) {
         <div
           class="public-menu-detail-backdrop"
           role="presentation"
           (click)="closeProductDetails()"
-          (keydown.escape)="closeProductDetails()"
           tabindex="-1"
         >
           <section
             class="public-menu-detail"
             role="dialog"
             aria-modal="true"
-            [attr.aria-labelledby]="'product-detail-title-' + product.id"
+            [attr.aria-labelledby]="'product-detail-title-' + productKey(product)"
+            [attr.data-product-key]="productKey(product)"
             (click)="$event.stopPropagation()"
-            (keydown.escape)="closeProductDetails()"
             tabindex="-1"
           >
             <button class="public-menu-detail-close" type="button" (click)="closeProductDetails()" [attr.aria-label]="'COMMON.CLOSE' | translate">×</button>
-            <div class="public-menu-detail-image">
+            <div class="public-menu-detail-image" [class.no-photo]="!hasProductImage(product)">
               @if (hasProductImage(product)) {
-                <img [src]="productImageUrl(product.image_url)" [alt]="product.name" decoding="async" />
+                <img [src]="productImageUrl(product.image_url)" [alt]="product.name" decoding="async" (error)="productImageFailed(product)" />
               } @else {
                 <span class="public-menu-product-placeholder" aria-hidden="true">
                   <svg viewBox="0 0 96 96" fill="none">
@@ -382,7 +368,7 @@
               }
             </div>
             <div class="public-menu-detail-copy">
-              <h2 [id]="'product-detail-title-' + product.id">{{ product.name }}</h2>
+              <h2 [id]="'product-detail-title-' + productKey(product)">{{ product.name }}</h2>
               @if (product.description?.trim()) {
                 <p>{{ product.description }}</p>
               }
@@ -393,7 +379,7 @@
                 <strong>{{ formatPrice(product) }}</strong>
               </div>
               @if (!product.available) {
-                <p class="public-menu-product-unavailable">Şu anda mevcut değil</p>
+                <p class="public-menu-product-unavailable">{{ 'PUBLIC_MENU.UNAVAILABLE' | translate }}</p>
               }
             </div>
           </section>

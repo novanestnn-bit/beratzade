@@ -6,7 +6,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RouterLink } from '@angular/router';
 import { ApiService, CurrentTableOrder, Order, OrderPaymentLeg, ProductQuestion, StaffPosMenuProduct, Table } from '../services/api.service';
 import { SidebarComponent } from '../shared/sidebar.component';
-import { beratzadeMenuCategoryLabel, beratzadeMenuCategorySlug } from '../shared/public-menu-categories';
+import { environment } from '../../environments/environment';
 
 type SaleMode = 'table' | 'quick_sale' | 'takeaway';
 type PaymentMethod = 'cash' | 'terminal' | 'meal_card';
@@ -71,6 +71,7 @@ interface CompletedPaymentEntry {
 
         @if (syncOffline()) { <p role="status" data-testid="pos-offline">{{ 'SERVICE_REQUESTS.OFFLINE' | translate }}</p> }
         @if (paymentUncertain()) { <p role="status">{{ 'SERVICE_REQUESTS.PAYMENT_UNCERTAIN' | translate }}</p> }
+        @if (counterSaleAwaitingPayment()) { <p class="pos-alert" role="status" data-testid="pos-unpaid-counter-sale">{{ 'STAFF_POS.SETTLE_CURRENT_SALE' | translate }}</p> }
         @if (error()) { <div class="pos-alert error" role="alert">{{ error() }}</div> }
         @if (success()) { <div class="pos-alert success" role="status">{{ success() }}</div> }
 
@@ -183,7 +184,7 @@ interface CompletedPaymentEntry {
                     }
                   </div>
                 }
-                <label class="order-note">Sipariş notu<textarea [ngModel]="orderNotesValue" (ngModelChange)="orderNotesValue = $event" rows="2" maxlength="2000" placeholder="Personel veya mutfak notu"></textarea></label>
+                <label class="order-note">Sipariş notu<textarea [ngModel]="orderNotesValue" (ngModelChange)="orderNotesValue = $event; persistDraft()" rows="2" maxlength="2000" placeholder="Personel veya mutfak notu"></textarea></label>
                 <div class="draft-total"><span>Ara toplam</span><strong>{{ price(draftTotal()) }}</strong></div>
                 @if (mode() === 'quick_sale') {
                   @if (!paymentOptionsOpen()) {
@@ -261,7 +262,7 @@ interface CompletedPaymentEntry {
                 } @else {
                   @for (payment of completedPayments(); track payment.id) {
                     <div class="completed-payment-row">
-                      <span><strong>#{{ payment.orderId }}</strong> · {{ payment.tableName }}<small>{{ paymentMethodLabel(payment.paymentMethod) }} ? {{ payment.paidAt ? (payment.paidAt | date:'dd.MM HH:mm') : 'Saat bilgisi yok' }}</small></span>
+                      <span><strong>#{{ payment.orderId }}</strong> · {{ payment.tableName }}<small>{{ paymentMethodLabel(payment.paymentMethod) }} · {{ payment.paidAt ? (payment.paidAt | date:'dd.MM HH:mm') : 'Saat bilgisi yok' }}</small></span>
                       <b>{{ price(payment.amountCents) }}</b>
                     </div>
                   }
@@ -293,8 +294,10 @@ interface CompletedPaymentEntry {
               } @else {
                 <div class="product-grid">
                   @for (product of visibleProducts(); track trackProduct(product)) {
-                    <button type="button" class="product-card" [disabled]="!product.available || payableOrder()?.amountRemaining === 0" (click)="addProduct(product)" [attr.data-testid]="'pos-product-' + product.source + '-' + product.id">
-                      @if (product.image_url) { <img [src]="product.image_url" [alt]="''" loading="lazy" /> } @else { <span class="product-placeholder" aria-hidden="true">✦</span> }
+                    <button type="button" class="product-card" [disabled]="!product.available || payableOrder()?.amountRemaining === 0 || submitting() || processingPayment() || counterSaleAwaitingPayment()" (click)="addProduct(product)" [attr.data-testid]="'pos-product-' + product.source + '-' + product.id">
+                      <span class="product-media">
+                        @if (product.image_url && !failedImages().has(product.image_url)) { <img [src]="productImageUrl(product)" [alt]="''" loading="lazy" (error)="hideProductImage(product.image_url)" /> } @else { <span class="product-placeholder" aria-hidden="true">✦</span> }
+                      </span>
                       <span class="product-copy"><strong>{{ product.name }}</strong>@if (product.description) { <small>{{ product.description }}</small> }</span>
                       <span class="product-card-price">{{ price(product.price_cents) }}</span>
                     </button>
@@ -414,16 +417,17 @@ interface CompletedPaymentEntry {
     .product-toolbar p { margin:.2rem 0 0; color:#897b70; font-size:.72rem; }
     .product-search { display:grid; gap:.25rem; width:min(280px,45%); color:#74675d; font-size:.65rem; font-weight:700; }
     .product-search input { width:100%; min-height:40px; box-sizing:border-box; padding:.5rem .65rem; border:1px solid #e2d6cc; border-radius:.55rem; background:#fffdfa; font:inherit; font-size:.78rem; }
-    .product-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:.65rem; }
-    .product-card { display:grid; grid-template-rows:92px 1fr auto; min-width:0; min-height:190px; padding:0; overflow:hidden; border:1px solid #e8ded3; border-radius:.75rem; background:#fffdfa; color:#342b25; text-align:left; box-shadow:0 3px 12px #301d0e0a; cursor:pointer; transition:transform .12s ease,border-color .12s ease; }
+    .product-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(180px,100%),1fr)); align-items:stretch; gap:.8rem; }
+    .product-card { display:grid; grid-template-rows:auto 1fr auto; min-width:0; min-height:220px; padding:0; overflow:hidden; border:1px solid #e8ded3; border-radius:.85rem; background:#fffdfa; color:#342b25; text-align:left; box-shadow:0 3px 12px #301d0e0a; cursor:pointer; transition:transform .12s ease,border-color .12s ease; }
     .product-card:hover { transform:translateY(-2px); border-color:#c69a78; }
     .product-card:disabled { opacity:.5; cursor:not-allowed; }
-    .product-card img,.product-placeholder { display:grid; width:100%; height:92px; object-fit:cover; background:#f0e8dd; }
+    .product-media { display:block; width:100%; aspect-ratio:4/3; overflow:hidden; background:#f0e8dd; }
+    .product-card img,.product-placeholder { display:grid; width:100%; height:100%; object-fit:cover; background:#f0e8dd; }
     .product-placeholder { place-items:center; color:#9a7257; font-size:1.6rem; }
-    .product-copy { display:grid; align-content:start; gap:.25rem; padding:.55rem .6rem .25rem; }
-    .product-copy strong { overflow-wrap:anywhere; font-size:.77rem; line-height:1.25; }
-    .product-copy small { display:-webkit-box; overflow:hidden; color:#81746a; font-size:.65rem; line-height:1.35; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
-    .product-card-price { padding:.25rem .6rem .55rem; color:#6a302e; font-size:.78rem; font-weight:850; }
+    .product-copy { display:grid; min-width:0; align-content:start; gap:.3rem; padding:.75rem .8rem .4rem; }
+    .product-copy strong { overflow-wrap:anywhere; font-size:.88rem; line-height:1.4; }
+    .product-copy small { display:-webkit-box; overflow:hidden; overflow-wrap:anywhere; color:#81746a; font-size:.72rem; line-height:1.4; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+    .product-card-price { padding:.4rem .8rem .8rem; color:#6a302e; font-size:.95rem; font-weight:850; font-variant-numeric:tabular-nums; }
     .loading-products,.empty-products { padding:1.5rem; color:#81746a; text-align:center; font-size:.82rem; }
     .table-picker { padding:1rem; border:1px solid #e8ded3; border-radius:.85rem; background:#fffdfa; }
     .section-heading h2 { margin:0; color:#552622; font-size:1rem; }
@@ -440,6 +444,7 @@ interface CompletedPaymentEntry {
     @media (max-width:900px) { .pos-workspace--quick-sale.pos-workspace--left-collapsed { grid-template-areas:'products' 'receipt'; grid-template-columns:minmax(0,1fr); } .pos-workspace:not(.pos-workspace--quick-sale).pos-workspace--left-collapsed { grid-template-areas:'products' 'receipt'; grid-template-columns:minmax(0,1fr); } .pos-workspace--left-collapsed .category-panel { display:none; } .pos-workspace { grid-template-areas:'receipt receipt' 'categories products'; grid-template-columns:minmax(0,1fr) minmax(145px,30%); } .pos-workspace--quick-sale { grid-template-areas:'categories products' 'receipt receipt'; grid-template-columns:minmax(130px,25%) minmax(0,1fr); } .receipt-panel { position:static; max-height:none; } .cart-lines { max-height:34vh; } .category-panel { position:static; max-height:420px; display:flex; flex-direction:column; flex-wrap:nowrap; } .category-list { display:flex; flex-wrap:wrap; gap:.2rem; } }
     @media (max-width:620px) { .pos-page { padding:.7rem; } .pos-header h1 { font-size:1.2rem; } .pos-kicker { font-size:.55rem; } .pos-link { padding:.55rem; font-size:.7rem; } .sale-modes button { flex:1; min-width:0; padding:.45rem .25rem; font-size:.7rem; } .pos-workspace,.pos-workspace--quick-sale { grid-template-areas:'categories' 'products' 'receipt'; grid-template-columns:1fr; } .receipt-panel,.category-panel,.product-panel { grid-column:1; grid-row:auto; } .receipt-panel { padding:.8rem; } .category-panel { max-height:300px; display:flex; flex-direction:column; flex-wrap:nowrap; align-content:stretch; gap:.2rem; } .category-list { display:flex; flex-wrap:wrap; gap:.2rem; } .left-panel-heading { flex:0 0 auto; } .category-button { width:auto; max-width:100%; padding:.5rem; border:1px solid #eee2d7; font-size:.68rem; } .product-toolbar { align-items:stretch; flex-direction:column; } .product-search { width:100%; } .product-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem; } .product-card { grid-template-rows:82px 1fr auto; min-height:174px; } .product-card img,.product-placeholder { height:82px; } .customer-fields { grid-template-columns:1fr; } .method-pills button { font-size:.62rem; } }
     @media (max-width:360px) { .product-grid { grid-template-columns:1fr; } .pos-header { align-items:flex-start; } }
+    @media (max-width:620px) { .product-card { grid-template-rows:auto 1fr auto; min-height:0; } .product-card img,.product-placeholder { height:100%; } .product-copy { padding:.65rem .65rem .3rem; } .product-copy strong { font-size:.82rem; } .product-card-price { padding:.35rem .65rem .65rem; font-size:.88rem; } }
     @media print { :host { color:#000; } .pos-header,.sale-modes,.category-panel,.product-panel,.pos-header-actions,.collect-payment,.primary-button,.secondary-button,.text-button { display:none !important; } .pos-page { max-width:none; padding:0; } .pos-workspace { display:block; } .receipt-panel { position:static; max-height:none; overflow:visible; border:0; box-shadow:none; } .paid-summary { border:0; background:#fff; color:#000; } }
   `],
 })
@@ -458,25 +463,8 @@ export class StaffPosComponent implements OnDestroy {
   readonly payableOrder = signal<PayableOrder | null>(null);
   readonly menuLoading = signal(false);
   readonly categories = signal<PosCategory[]>([]);
-  readonly visibleCategories = computed(() => {
-    const categories = this.categories();
-    if (this.mode() !== 'quick_sale') return categories;
-
-    const order = ['kahvalti', 'kebaplar-ve-izgaralar', 'gunun-corbalari', 'ev-yemekleri', 'icecekler', 'tatlilar'];
-    const hidden = new Set(['et-yemekleri', 'tavuk-yemekleri', 'yan-urunler']);
-    return categories
-      .filter((category) => !hidden.has(beratzadeMenuCategorySlug(category.id)))
-      .map((category, index) => ({ category, index, slug: beratzadeMenuCategorySlug(category.id) }))
-      .sort((left, right) => {
-        const leftRank = order.indexOf(left.slug);
-        const rightRank = order.indexOf(right.slug);
-        return (leftRank < 0 ? order.length : leftRank) - (rightRank < 0 ? order.length : rightRank) || left.index - right.index;
-      })
-      .map(({ category, slug }) => ({
-        ...category,
-        name: slug === 'kebaplar-ve-izgaralar' ? 'Kebap & Izgara' : beratzadeMenuCategoryLabel(category.name),
-      }));
-  });
+  readonly visibleCategories = computed(() => this.categories());
+  readonly failedImages = signal(new Set<string>());
   readonly selectedCategory = signal('all');
   readonly selectedSubcategory = signal('all');
   readonly selectedCategoryObject = computed(() => this.visibleCategories().find((category) => category.id === this.selectedCategory()) ?? null);
@@ -500,12 +488,14 @@ export class StaffPosComponent implements OnDestroy {
   private paymentKeyFingerprint = '';
   private paymentKey = '';
   private collectAfterOrderLoad = false;
+  private menuRequest = 0;
+  readonly counterSaleAwaitingPayment = computed(() => this.mode() !== 'table' && (this.payableOrder()?.amountRemaining ?? 0) > 0);
 
   readonly cartCount = computed(() => this.cart().reduce((sum, line) => sum + line.quantity, 0));
   readonly draftTotal = computed(() => this.cart().reduce((sum, line) => sum + line.product.price_cents * line.quantity, 0));
   readonly allProductCount = computed(() => this.categories().reduce((sum, category) => sum + this.categoryProductCount(category), 0));
   categoryProductCount(category: PosCategory): number {
-    return category.products.length + category.subcategories.reduce((count, subcategory) => count + subcategory.products.length, 0);
+    return new Set([...category.products, ...category.subcategories.flatMap(subcategory => subcategory.products)].map(product => this.lineKey(product))).size;
   }
   readonly visibleProducts = computed(() => {
     const selected = this.selectedCategory();
@@ -517,7 +507,8 @@ export class StaffPosComponent implements OnDestroy {
         ? activeCategory.subcategories.find((subcategory) => subcategory.id === subcategoryId)?.products ?? []
         : [...(activeCategory?.products ?? []), ...(activeCategory?.subcategories.flatMap((subcategory) => subcategory.products) ?? [])];
     const query = this.normalize(this.searchText());
-    return products.filter((product) =>
+    const unique = [...new Map(products.map(product => [this.lineKey(product), product])).values()];
+    return unique.filter((product) =>
       product.available &&
       (!query || this.normalize(`${product.name} ${product.description ?? ''} ${product.subcategory ?? ''}`).includes(query)),
     );
@@ -545,7 +536,7 @@ export class StaffPosComponent implements OnDestroy {
   }
   persistDraft(): void {
     try {
-      localStorage.setItem(this.draftKey(), JSON.stringify({ at: Date.now(), mode: this.mode(), tableId: this.selectedTable()?.id ?? this.restoredTableId, cart: this.cart(), notes: this.orderNotesValue, customerName: this.customerName, customerPhone: this.customerPhone, paymentOrderId: this.paymentKey ? (this.payableOrder()?.id ?? this.restoredPaymentOrderId) : null, paymentKey: this.paymentKey, paymentFingerprint: this.paymentKeyFingerprint, paymentMethod: this.paymentMethod, paymentAmount: this.paymentAmount, cashReceived: this.cashReceived, paymentUncertain: this.paymentUncertain() }));
+      localStorage.setItem(this.draftKey(), JSON.stringify({ at: Date.now(), mode: this.mode(), tableId: this.selectedTable()?.id ?? this.restoredTableId, cart: this.cart(), notes: this.orderNotesValue, customerName: this.customerName, customerPhone: this.customerPhone, paymentOrderId: this.paymentKey || this.mode() !== 'table' ? (this.payableOrder()?.id ?? this.restoredPaymentOrderId) : null, paymentKey: this.paymentKey, paymentFingerprint: this.paymentKeyFingerprint, paymentMethod: this.paymentMethod, paymentAmount: this.paymentAmount, cashReceived: this.cashReceived, paymentUncertain: this.paymentUncertain() }));
     } catch { this.error.set('Taslak bu cihazda saklanamadı. Sayfayı yenilemeden önce siparişi gönderin.'); }
   }
   private restoreDraft(): void {
@@ -591,7 +582,7 @@ export class StaffPosComponent implements OnDestroy {
       error: () => {
         this.tables.set([]);
         this.tablesLoading.set(false);
-        this.syncOffline.set(false);
+        this.syncOffline.set(true);
       },
     });
     this.loadMenu();
@@ -613,7 +604,7 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   setMode(mode: SaleMode): void {
-    if (this.submitting() || this.processingPayment() || this.paymentUncertain()) return;
+    if (this.submitting() || this.processingPayment() || this.paymentUncertain() || this.counterSaleAwaitingPayment()) return;
     if (this.cart().length > 0) {
       this.error.set('Önce taslağı kaydet veya taslaktaki ürünleri kaldır.');
       return;
@@ -633,7 +624,7 @@ export class StaffPosComponent implements OnDestroy {
     this.customerPhone = '';
     this.paymentOptionsOpen.set(false);
     this.collectAfterOrderLoad = false;
-    this.collectAfterOrderLoad = false;
+    this.categories.set([]);
     this.loadMenu();
   }
 
@@ -733,7 +724,7 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   addProduct(product: StaffPosMenuProduct): void {
-    if (!product.available || this.payableOrder()?.amountRemaining === 0) return;
+    if (!product.available || this.payableOrder()?.amountRemaining === 0 || this.submitting() || this.processingPayment() || this.counterSaleAwaitingPayment()) return;
     if (this.mode() === 'table' && !this.selectedTable()) {
       this.error.set('Önce masa seç.');
       return;
@@ -749,16 +740,19 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   changeQuantity(product: StaffPosMenuProduct, delta: number): void {
+    if (this.submitting() || this.processingPayment()) return;
     this.cart.update((lines) => lines
       .map((line) => this.lineKey(line.product) === this.lineKey(product) ? { ...line, quantity: Math.max(0, Math.min(99, line.quantity + delta)) } : line)
       .filter((line) => line.quantity > 0));
   }
 
   removeLine(product: StaffPosMenuProduct): void {
+    if (this.submitting() || this.processingPayment()) return;
     this.cart.update((lines) => lines.filter((line) => this.lineKey(line.product) !== this.lineKey(product)));
   }
 
   setLineNote(product: StaffPosMenuProduct, notes: string): void {
+    if (this.submitting() || this.processingPayment()) return;
     this.cart.update((lines) => lines.map((line) => this.lineKey(line.product) === this.lineKey(product) ? { ...line, notes } : line));
   }
 
@@ -781,6 +775,7 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   setAnswer(product: StaffPosMenuProduct, question: ProductQuestion, value: unknown): void {
+    if (this.submitting() || this.processingPayment()) return;
     this.cart.update((lines) => lines.map((line) => {
       if (this.lineKey(line.product) !== this.lineKey(product)) return line;
       const answers = { ...line.answers };
@@ -791,6 +786,7 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   toggleAnswer(product: StaffPosMenuProduct, question: ProductQuestion, option: string, checked: boolean): void {
+    if (this.submitting() || this.processingPayment()) return;
     this.cart.update((lines) => lines.map((line) => {
       if (this.lineKey(line.product) !== this.lineKey(product)) return line;
       const answers = { ...line.answers };
@@ -811,7 +807,7 @@ export class StaffPosComponent implements OnDestroy {
 
   submitOrder(): void {
     const lines = this.cart();
-    if (!lines.length || this.submitting()) return;
+    if (!lines.length || this.submitting() || this.processingPayment() || this.counterSaleAwaitingPayment()) return;
     const missing = lines.find((line) => (line.product.questions ?? []).some((question) =>
       question.required && !this.hasRequiredAnswer(line.answers[question.id]),
     ));
@@ -946,7 +942,7 @@ export class StaffPosComponent implements OnDestroy {
         } : current);
         this.loadCompletedPayments();
         const saleIsSettled = response.amount_remaining_cents === 0 || response.status === 'paid';
-        if (saleIsSettled && this.mode() === 'quick_sale') {
+        if (saleIsSettled && this.mode() !== 'table') {
           this.success.set(`Satış #${order.id} tamamlandı. Yeni satışa başlayabilirsiniz.`);
           this.paymentAmount = '0.00';
           this.cashReceived = '0.00';
@@ -956,6 +952,10 @@ export class StaffPosComponent implements OnDestroy {
           this.payableOrder.set(null);
           this.currentOrder.set(null);
           this.collectAfterOrderLoad = false;
+          this.restoredPaymentOrderId = null;
+          this.customerName = '';
+          this.customerPhone = '';
+          this.persistDraft();
           return;
         }
         if (saleIsSettled) {
@@ -1000,11 +1000,22 @@ export class StaffPosComponent implements OnDestroy {
     return `${product.source}:${product.id}`;
   }
 
+  hideProductImage(url: string): void {
+    this.failedImages.update(images => new Set([...images, url]));
+  }
+
+  productImageUrl(product: StaffPosMenuProduct): string | null {
+    const url = product.image_url;
+    return url?.startsWith('/uploads/') ? `${environment.apiUrl.replace(/\/$/, '')}${url}` : url;
+  }
+
   private loadMenu(): void {
     const mode = this.mode();
-    this.menuLoading.set(true);
+    const request = ++this.menuRequest;
+    this.menuLoading.set(this.categories().length === 0);
     this.api.getStaffPosMenu(mode).subscribe({
       next: (menu) => {
+        if (request !== this.menuRequest || mode !== this.mode()) return;
         this.currency.set(menu.currency || 'TRY');
         const categories = (menu.category_tree ?? []).map((category) => ({
           id: category.id,
@@ -1014,18 +1025,21 @@ export class StaffPosComponent implements OnDestroy {
             name: subcategory.name,
             products: subcategory.products,
           })),
-          products: [
-            ...category.products,
-            ...(category.subcategories ?? []).flatMap((subcategory) => subcategory.products),
-          ],
+          products: category.products,
         }));
-        this.categories.set(categories.filter((category) => category.products.length > 0));
+        this.categories.set(categories.filter((category) => this.categoryProductCount(category) > 0));
+        const currentProducts = new Map(categories.flatMap(category => [...category.products, ...category.subcategories.flatMap(subcategory => subcategory.products)]).map(product => [this.lineKey(product), product]));
+        this.cart.update(lines => lines.map(line => ({ ...line, product: currentProducts.get(this.lineKey(line.product)) ?? line.product })));
         if (this.selectedCategory() !== 'all' && !this.categories().some((category) => category.id === this.selectedCategory())) {
           this.selectedCategory.set('all');
+          this.selectedSubcategory.set('all');
+        } else if (this.selectedSubcategory() !== 'all' && !this.selectedCategoryObject()?.subcategories.some(subcategory => subcategory.id === this.selectedSubcategory())) {
+          this.selectedSubcategory.set('all');
         }
         this.menuLoading.set(false);
       },
       error: (err) => {
+        if (request !== this.menuRequest || mode !== this.mode()) return;
         this.menuLoading.set(false);
         this.error.set(err.error?.detail || 'Satılabilir ürünler yüklenemedi.');
       },
@@ -1062,6 +1076,7 @@ export class StaffPosComponent implements OnDestroy {
           }
           return;
         }
+        const previous = this.payableOrder();
         this.payableOrder.set({
           id: order.id,
           tableName: order.table_name || this.modeLabel(),
@@ -1076,8 +1091,12 @@ export class StaffPosComponent implements OnDestroy {
           this.paymentUncertain.set(false);
           this.resetPaymentKey();
           this.restoredPaymentOrderId = null;
+          if (this.mode() !== 'table') {
+            this.payableOrder.set(null);
+            this.paymentOptionsOpen.set(false);
+          }
         }
-        if (!this.paymentKey) {
+        if (!this.paymentKey && (previous?.id !== order.id || previous.amountRemaining !== remaining)) {
           this.paymentAmount = (remaining / 100).toFixed(2);
           if (this.paymentMethod === 'cash') this.cashReceived = this.paymentAmount;
         }

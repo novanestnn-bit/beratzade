@@ -366,6 +366,12 @@
     "LOAD_ERROR": "Could not load pricing. Please try again later."
   },
   "PUBLIC_MENU": {
+    "CATEGORIES": "Categories",
+    "CATEGORY_NOT_FOUND": "This category could not be found.",
+    "PRODUCT_NOT_AVAILABLE": "This item is no longer on the current menu.",
+    "UNAVAILABLE": "Currently unavailable",
+    "CATEGORY_NAV": "Menu categories",
+
     "PAGE_TITLE": "Menu",
     "LOADING": "Loading menu…",
     "READ_ONLY_HINT": "Browse our menu — ordering is available at your table or when booking.",
@@ -3479,5 +3485,16 @@
     "ADMIN_DESCRIPTION": "Restaurant settings and business management",
     "ADMIN_ONLY": "This screen is for administrator accounts only. Use the staff sign-in.",
     "SWITCH": "Change sign-in type"
+  },
+  "RESTAURANT_UI": {
+    "PUBLISH_PRODUCT": "Publish in the customer menu",
+    "PUBLISH_HINT": "Only publish verified items and prices. New products start as drafts.",
+    "DRAFT": "Draft",
+    "PUBLISHED": "Published",
+    "SHOW_ADVANCED": "Show advanced settings",
+    "HIDE_ADVANCED": "Hide advanced settings"
+  },
+  "STAFF_POS": {
+    "SETTLE_CURRENT_SALE": "Complete payment for the current sale before starting a new sale. Review the current account in order tracking."
   }
 }

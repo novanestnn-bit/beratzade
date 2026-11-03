@@ -150,7 +150,7 @@
 
   <main class="menu-content">
     <!-- Current order & status (always show this section so client sees ordered/processed state) -->
-    <section class="customer-orders-section" aria-label="Your orders">
+    <section class="customer-orders-section" [class.is-empty]="placedOrders().length === 0" aria-label="Your orders">
       <h2 class="customer-orders-heading">{{ 'MENU.CURRENT_ORDER' | translate }}</h2>
 
       @if (placedOrders().length === 0) {
@@ -299,61 +299,6 @@
     </section>
   </section>
 
-    <!-- Featured Items Section -->
-    @if (featuredProducts().length > 0 && selectedCategory() === null) {
-    <section class="featured-section">
-      <div class="section-header-row">
-        <h2 class="section-title">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-          </svg>
-          {{ 'MENU.FEATURED' | translate }}
-        </h2>
-      </div>
-      <div class="featured-scroll">
-        @for (product of featuredProducts(); track getProductKey(product)) {
-        <div class="featured-card" (click)="openProductDetail(product)"
-          [class.in-cart]="isProductInMenuCart(product)" [class.just-added]="isProductJustAdded(product)">
-          <div class="featured-image-container">
-            @if (product.image_filename) {
-            <img [src]="getProductImageUrl(product)" class="featured-image" alt="{{ product.name }}">
-            } @else {
-            <div class="featured-image-placeholder">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <path d="M21 15l-5-5L5 21" />
-              </svg>
-            </div>
-            }
-            <div class="featured-overlay">
-              <span class="featured-badge">⭐ {{ 'MENU.POPULAR' | translate }}</span>
-            </div>
-          </div>
-          <div class="featured-info">
-            <h3 class="featured-name">{{ product.name }}</h3>
-            @if (stockLeft(product); as left) {
-            <span class="stock-left-badge">{{ 'MENU.STOCK_ONLY_LEFT' | translate:{ count: left } }}</span>
-            }
-            <span class="featured-price">
-              @if (product.list_price_cents != null && product.list_price_cents > product.price_cents) {
-                <span class="list-price">{{ formatPrice(product.list_price_cents) }}</span>
-              }
-              {{ formatPrice(product.price_cents) }}
-            </span>
-          </div>
-          <button class="quick-add-btn" (click)="addToCartWithQuestions(product); $event.stopPropagation()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-        </div>
-        }
-      </div>
-    </section>
-    }
-
     <!-- Products Grid -->
     <section class="products-section">
       <div class="products-header">
@@ -363,12 +308,12 @@
 
       <div class="products-grid">
         @for (product of filteredProducts(); track getProductKey(product)) {
-        <article class="product-card" (click)="openProductDetail(product)"
+        <article class="product-card" role="button" tabindex="0" (keydown.enter)="openProductDetail(product)" (keydown.space)="$event.preventDefault(); openProductDetail(product)" (click)="openProductDetail(product)"
           [class.in-cart]="isProductInMenuCart(product)" [class.just-added]="isProductJustAdded(product)">
           <!-- Product Image -->
           <div class="product-image-container">
-            @if (product.image_filename) {
-            <img [src]="getProductImageUrl(product)" class="product-image" alt="{{ product.name }}" loading="lazy">
+            @if (getProductImageUrl(product)) {
+            <img [src]="getProductImageUrl(product)" class="product-image" alt="{{ product.name }}" loading="lazy" (error)="productImageFailed(product)">
             } @else {
             <div class="product-image-placeholder">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
@@ -631,12 +576,12 @@
   <!-- Product Detail Modal -->
   @if (selectedProduct()) {
   <div class="product-detail-overlay" (click)="closeProductDetail()">
-    <div class="product-detail-sheet" (click)="$event.stopPropagation()">
+    <div class="product-detail-sheet" role="dialog" aria-modal="true" [attr.aria-label]="selectedProduct()!.name" (click)="$event.stopPropagation()">
       <div class="detail-handle">
         <span class="handle-bar"></span>
       </div>
 
-      <button class="detail-close-btn" (click)="closeProductDetail()">
+      <button class="detail-close-btn" [attr.aria-label]="'COMMON.CLOSE' | translate" (click)="closeProductDetail()">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>
@@ -645,8 +590,8 @@
       <div class="detail-content">
         <!-- Hero Image -->
         <div class="detail-image-container">
-          @if (selectedProduct()!.image_filename) {
-          <img [src]="getProductImageUrl(selectedProduct()!)" class="detail-image" alt="{{ selectedProduct()!.name }}">
+          @if (getProductImageUrl(selectedProduct()!)) {
+          <img [src]="getProductImageUrl(selectedProduct()!)" class="detail-image" alt="{{ selectedProduct()!.name }}" (error)="productImageFailed(selectedProduct()!)">
           } @else {
           <div class="detail-image-placeholder">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
