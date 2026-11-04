@@ -3496,5 +3496,33 @@
   },
   "STAFF_POS": {
     "SETTLE_CURRENT_SALE": "Schließen Sie die Zahlung des aktuellen Verkaufs ab, bevor Sie einen neuen beginnen. Prüfen Sie das Konto in der Bestellübersicht."
+  },
+  "RESTAURANT_SITE": {
+    "NAV_HOME": "Startseite",
+    "NAV_MENU": "Speisekarte",
+    "NAV_ABOUT": "Über uns",
+    "NAV_CONTACT": "Kontakt",
+    "OPEN_NAV": "Navigation öffnen",
+    "CLOSE_NAV": "Navigation schließen",
+    "HERO_LINE_ONE": "Vom Feuer auf den Tisch,",
+    "HERO_LINE_TWO": "Beratzade.",
+    "HERO_DESCRIPTION": "Kebap, Gegrilltes und Frühstück. Entdecken Sie unsere Speisekarte und besuchen Sie uns bei Beratzade.",
+    "VIEW_MENU": "Speisekarte entdecken",
+    "CALL": "Rufen Sie uns an",
+    "OUR_MENU": "Unsere Speisekarte",
+    "MENU_TITLE": "Worauf haben Sie Appetit?",
+    "MENU_DESCRIPTION": "Entdecken Sie unsere Kategorien, Gerichte und aktuellen Preise.",
+    "FULL_MENU": "Ganze Speisekarte ansehen",
+    "ABOUT_LABEL": "AM TISCH BEI BERATZADE",
+    "ABOUT_TITLE": "Eine schöne Pause am Tisch.",
+    "ABOUT_DESCRIPTION": "Vom Frühstück bis zum Abendessen: Genießen Sie gemeinsame Zeit mit Ihren Liebsten.",
+    "CONTACT_TITLE": "Nehmen Sie an unserem Tisch Platz.",
+    "ADDRESS": "Adresse",
+    "PHONE": "Telefon",
+    "HOURS": "Öffnungszeiten",
+    "DIRECTIONS": "Route planen",
+    "EMPTY_MENU": "Unsere Speisekarte ist bald hier.",
+    "LOADING": "Speisekarte wird geladen",
+    "ALL_CATEGORIES": "Alle Kategorien"
   }
 }

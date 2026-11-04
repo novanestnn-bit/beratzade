@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DomSanitizer, SafeStyle, Title } from '@angular/platform-browser';
+import { Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService, PublicTenantMenuCategory, PublicTenantMenuProduct, PublicTenantMenuResponse, TenantSummary } from '../services/api.service';
 import { environment } from '../../environments/environment';
 import { LegalLinksComponent } from '../shared/legal-links.component';
@@ -22,7 +22,11 @@ import {
 export class BeratzadeHomeComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly title = inject(Title);
-  private readonly sanitizer = inject(DomSanitizer);
+  readonly translate = inject(TranslateService);
+  readonly navigationOpen = signal(false);
+  readonly logoBroken = signal(false);
+  readonly heroImageBroken = signal(false);
+  readonly year = new Date().getFullYear();
   tenant = signal<TenantSummary | null>(null);
   menu = signal<PublicTenantMenuResponse | null>(null);
   loading = signal(true);
@@ -56,6 +60,7 @@ export class BeratzadeHomeComponent implements OnInit {
           return name === 'beratzade kebap ve kahvalti salonu' || name === 'beratzade kebap kahvalti salonu' || slug.startsWith('beratzade-');
         });
         if (!target) {
+          this.failed.set(true);
           this.loading.set(false);
           return;
         }
@@ -96,11 +101,16 @@ export class BeratzadeHomeComponent implements OnInit {
     return categoryProducts(category).length;
   }
 
-  heroStyle(): SafeStyle | null {
+  heroImage(): string {
     const tenant = this.tenant();
-    if (!tenant?.header_background_filename) return null;
-    const url = this.api.getTenantHeaderBackgroundUrl(tenant.header_background_filename, tenant.id);
-    return this.sanitizer.bypassSecurityTrustStyle(`url('${url}')`);
+    if (!tenant?.header_background_filename || this.heroImageBroken()) return '/menu-categories/kebaplar-ve-izgaralar.webp';
+    return this.api.getTenantHeaderBackgroundUrl(tenant.header_background_filename, tenant.id) || '/menu-categories/kebaplar-ve-izgaralar.webp';
+  }
+
+  directionsUrl(): string {
+    const tenant = this.tenant();
+    if (tenant?.public_google_maps_url) return tenant.public_google_maps_url;
+    return tenant?.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tenant.name + ' ' + tenant.address)}` : '';
   }
 
   price(product: PublicTenantMenuProduct): string {
@@ -151,7 +161,10 @@ export class BeratzadeHomeComponent implements OnInit {
     }
   }
 
-  scrollTo(id: string): void {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  scrollTo(id: string, event: Event): void {
+    event.preventDefault();
+    this.navigationOpen.set(false);
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+    document.getElementById(id)?.scrollIntoView({ behavior });
   }
 }

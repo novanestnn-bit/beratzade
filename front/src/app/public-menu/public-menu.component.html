@@ -66,11 +66,24 @@
     </div>
   } @else {
     @if (isBeratzadeMenuOnly()) {
-      @if (!isCategoryRoute()) {
-        <section class="beratzade-menu-intro" aria-labelledby="beratzade-menu-title">
-          <h1 id="beratzade-menu-title">{{ 'PUBLIC_MENU.PAGE_TITLE' | translate }}</h1>
-        </section>
-      }
+      <section class="beratzade-menu-intro" aria-labelledby="beratzade-menu-title">
+        <div class="beratzade-menu-intro-inner">
+          <div class="beratzade-menu-intro-copy">
+            <p class="beratzade-menu-eyebrow">{{ displayName() }}</p>
+            <h1 id="beratzade-menu-title">
+              @if (activeSubcategory(); as subcategory) {
+                {{ getCategoryLabel(subcategory.name) }}
+              } @else if (activeCategory(); as category) {
+                {{ getCategoryLabel(category.name) }}
+              } @else {
+                {{ 'PUBLIC_MENU.PAGE_TITLE' | translate }}
+              }
+            </h1>
+            <a routerLink="/beratzade" class="beratzade-menu-home-link">{{ 'PUBLIC_MENU.BACK_HOME' | translate }} <span aria-hidden="true">↗</span></a>
+          </div>
+          <span class="beratzade-menu-seal" aria-hidden="true"><span>B</span></span>
+        </div>
+      </section>
     } @else {
       <header
         class="hero-header"
@@ -209,7 +222,7 @@
                     <small>{{ categoryProductCount(cat) }}</small>
                     <span class="beratzade-category-arrow" aria-hidden="true">→</span>
                   </span>
-                  <span class="beratzade-category-photo">
+                  <span class="beratzade-category-photo" [attr.data-category]="categoryRouteSlug(cat.id)">
                     @if (categoryImage(cat); as image) {
                       <img [src]="image" alt="" [attr.loading]="$first ? 'eager' : 'lazy'" decoding="async" (error)="categoryImageFailed(cat)" />
                     } @else {

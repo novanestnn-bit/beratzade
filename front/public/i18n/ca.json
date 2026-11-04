@@ -3496,5 +3496,33 @@
   },
   "STAFF_POS": {
     "SETTLE_CURRENT_SALE": "Completeu el pagament de la venda actual abans de començar-ne una altra. Reviseu el compte al seguiment de comandes."
+  },
+  "RESTAURANT_SITE": {
+    "NAV_HOME": "Inici",
+    "NAV_MENU": "Carta",
+    "NAV_ABOUT": "Sobre nosaltres",
+    "NAV_CONTACT": "Contacte",
+    "OPEN_NAV": "Obre la navegació",
+    "CLOSE_NAV": "Tanca la navegació",
+    "HERO_LINE_ONE": "Del foc a taula,",
+    "HERO_LINE_TWO": "Beratzade.",
+    "HERO_DESCRIPTION": "Kebabs, plats a la brasa i esmorzars. Descobreix la nostra carta; ens veiem a Beratzade.",
+    "VIEW_MENU": "Descobreix la carta",
+    "CALL": "Truca’ns",
+    "OUR_MENU": "La nostra carta",
+    "MENU_TITLE": "Què et ve de gust?",
+    "MENU_DESCRIPTION": "Explora les nostres categories, els plats i els preus actuals.",
+    "FULL_MENU": "Veure tota la carta",
+    "ABOUT_LABEL": "LA TAULA DE BERATZADE",
+    "ABOUT_TITLE": "Una bona pausa a taula.",
+    "ABOUT_DESCRIPTION": "De l’esmorzar al sopar, comparteix taula amb les persones que estimes.",
+    "CONTACT_TITLE": "T’esperem a la nostra taula.",
+    "ADDRESS": "Adreça",
+    "PHONE": "Telèfon",
+    "HOURS": "Horari",
+    "DIRECTIONS": "Com arribar-hi",
+    "EMPTY_MENU": "La nostra carta arribarà aviat.",
+    "LOADING": "Carregant la carta",
+    "ALL_CATEGORIES": "Totes les categories"
   }
 }

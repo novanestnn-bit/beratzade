@@ -3496,5 +3496,33 @@
   },
   "STAFF_POS": {
     "SETTLE_CURRENT_SALE": "开始新销售前，请先完成当前销售的付款。可在订单跟踪中查看账单。"
+  },
+  "RESTAURANT_SITE": {
+    "NAV_HOME": "首页",
+    "NAV_MENU": "菜单",
+    "NAV_ABOUT": "关于我们",
+    "NAV_CONTACT": "联系我们",
+    "OPEN_NAV": "打开导航",
+    "CLOSE_NAV": "关闭导航",
+    "HERO_LINE_ONE": "从炉火到餐桌，",
+    "HERO_LINE_TWO": "Beratzade.",
+    "HERO_DESCRIPTION": "烤肉、烧烤和丰盛早餐。探索我们的菜单，相约 Beratzade。",
+    "VIEW_MENU": "探索菜单",
+    "CALL": "致电我们",
+    "OUR_MENU": "我们的菜单",
+    "MENU_TITLE": "想吃点什么？",
+    "MENU_DESCRIPTION": "浏览菜品分类，查看菜品和最新价格。",
+    "FULL_MENU": "查看完整菜单",
+    "ABOUT_LABEL": "BERATZADE 餐桌",
+    "ABOUT_TITLE": "在餐桌边享受片刻美好。",
+    "ABOUT_DESCRIPTION": "从早餐到晚餐，与亲朋好友欢聚同一张餐桌。",
+    "CONTACT_TITLE": "期待与您同席。",
+    "ADDRESS": "地址",
+    "PHONE": "电话",
+    "HOURS": "营业时间",
+    "DIRECTIONS": "获取路线",
+    "EMPTY_MENU": "菜单即将上线。",
+    "LOADING": "正在加载菜单",
+    "ALL_CATEGORIES": "全部分类"
   }
 }

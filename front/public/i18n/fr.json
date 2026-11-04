@@ -3496,5 +3496,33 @@
   },
   "STAFF_POS": {
     "SETTLE_CURRENT_SALE": "Terminez le paiement de la vente en cours avant d’en commencer une autre. Consultez la note dans le suivi des commandes."
+  },
+  "RESTAURANT_SITE": {
+    "NAV_HOME": "Accueil",
+    "NAV_MENU": "Carte",
+    "NAV_ABOUT": "À propos",
+    "NAV_CONTACT": "Contact",
+    "OPEN_NAV": "Ouvrir la navigation",
+    "CLOSE_NAV": "Fermer la navigation",
+    "HERO_LINE_ONE": "Du feu à votre table,",
+    "HERO_LINE_TWO": "Beratzade.",
+    "HERO_DESCRIPTION": "Kebabs, grillades et petits-déjeuners. Découvrez notre carte et retrouvons-nous chez Beratzade.",
+    "VIEW_MENU": "Découvrir la carte",
+    "CALL": "Appelez-nous",
+    "OUR_MENU": "Notre carte",
+    "MENU_TITLE": "De quoi avez-vous envie ?",
+    "MENU_DESCRIPTION": "Parcourez nos catégories, nos plats et nos prix actuels.",
+    "FULL_MENU": "Voir toute la carte",
+    "ABOUT_LABEL": "À LA TABLE DE BERATZADE",
+    "ABOUT_TITLE": "Une belle pause à table.",
+    "ABOUT_DESCRIPTION": "Du petit-déjeuner au dîner, partagez la table avec ceux que vous aimez.",
+    "CONTACT_TITLE": "Prenez place à notre table.",
+    "ADDRESS": "Adresse",
+    "PHONE": "Téléphone",
+    "HOURS": "Horaires d’ouverture",
+    "DIRECTIONS": "Obtenir un itinéraire",
+    "EMPTY_MENU": "Notre carte arrive bientôt.",
+    "LOADING": "Chargement de la carte",
+    "ALL_CATEGORIES": "Toutes les catégories"
   }
 }

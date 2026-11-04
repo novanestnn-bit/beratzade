@@ -3496,5 +3496,33 @@
   },
   "STAFF_POS": {
     "SETTLE_CURRENT_SALE": "Complete el pago de la venta actual antes de iniciar otra. Revise la cuenta en el seguimiento de pedidos."
+  },
+  "RESTAURANT_SITE": {
+    "NAV_HOME": "Inicio",
+    "NAV_MENU": "Carta",
+    "NAV_ABOUT": "Sobre nosotros",
+    "NAV_CONTACT": "Contacto",
+    "OPEN_NAV": "Abrir navegación",
+    "CLOSE_NAV": "Cerrar navegación",
+    "HERO_LINE_ONE": "Del fuego a la mesa,",
+    "HERO_LINE_TWO": "Beratzade.",
+    "HERO_DESCRIPTION": "Kebabs, platos a la parrilla y desayunos. Descubre nuestra carta; nos vemos en Beratzade.",
+    "VIEW_MENU": "Descubrir la carta",
+    "CALL": "Llámanos",
+    "OUR_MENU": "Nuestra carta",
+    "MENU_TITLE": "¿Qué te apetece?",
+    "MENU_DESCRIPTION": "Explora nuestras categorías, platos y precios actuales.",
+    "FULL_MENU": "Ver toda la carta",
+    "ABOUT_LABEL": "LA MESA DE BERATZADE",
+    "ABOUT_TITLE": "Una pausa agradable en la mesa.",
+    "ABOUT_DESCRIPTION": "Del desayuno a la cena, comparte mesa con tus seres queridos.",
+    "CONTACT_TITLE": "Te esperamos en nuestra mesa.",
+    "ADDRESS": "Dirección",
+    "PHONE": "Teléfono",
+    "HOURS": "Horario",
+    "DIRECTIONS": "Cómo llegar",
+    "EMPTY_MENU": "Nuestra carta estará aquí pronto.",
+    "LOADING": "Cargando la carta",
+    "ALL_CATEGORIES": "Todas las categorías"
   }
 }

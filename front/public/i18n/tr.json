@@ -3515,5 +3515,33 @@
     "PUBLISHED": "Yayında",
     "SHOW_ADVANCED": "Gelişmiş ayarları göster",
     "HIDE_ADVANCED": "Gelişmiş ayarları gizle"
+  },
+  "RESTAURANT_SITE": {
+    "NAV_HOME": "Ana sayfa",
+    "NAV_MENU": "Menü",
+    "NAV_ABOUT": "Hakkımızda",
+    "NAV_CONTACT": "İletişim",
+    "OPEN_NAV": "Gezinmeyi aç",
+    "CLOSE_NAV": "Gezinmeyi kapat",
+    "HERO_LINE_ONE": "Ateşten sofraya,",
+    "HERO_LINE_TWO": "Beratzade.",
+    "HERO_DESCRIPTION": "Kebap, ızgara ve kahvaltı sofraları. Menümüzü keşfedin, Beratzade’de buluşalım.",
+    "VIEW_MENU": "Menüyü keşfet",
+    "CALL": "Bizi arayın",
+    "OUR_MENU": "Menümüz",
+    "MENU_TITLE": "Canınız ne çekiyor?",
+    "MENU_DESCRIPTION": "Kategorilerimize göz atın, ürünleri ve güncel fiyatları inceleyin.",
+    "FULL_MENU": "Tüm menüyü gör",
+    "ABOUT_LABEL": "BERATZADE SOFRASI",
+    "ABOUT_TITLE": "Sofrada güzel bir mola.",
+    "ABOUT_DESCRIPTION": "Kahvaltıdan akşam yemeğine, sevdiklerinizle aynı sofrada buluşun.",
+    "CONTACT_TITLE": "Soframıza bekleriz.",
+    "ADDRESS": "Adres",
+    "PHONE": "Telefon",
+    "HOURS": "Çalışma saatleri",
+    "DIRECTIONS": "Yol tarifi al",
+    "EMPTY_MENU": "Menümüz yakında burada.",
+    "LOADING": "Menü yükleniyor",
+    "ALL_CATEGORIES": "Tüm kategoriler"
   }
 }

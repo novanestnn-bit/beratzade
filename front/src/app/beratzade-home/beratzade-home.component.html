@@ -1,113 +1,69 @@
-<div class="restaurant-site" lang="tr" [class.has-tenant]="tenant()" [style.--restaurant-accent]="tenant()?.public_primary_color || '#8a3028'">
+<div class="restaurant-site" [attr.lang]="translate.currentLang || 'tr'">
   <header class="site-header">
-    <a class="brand" href="#home" aria-label="Beratzade ana sayfa">
-      @if (logoUrl()) {
-        <img [src]="logoUrl()" alt="" />
-      } @else {
-        <span class="brand-mark" aria-hidden="true">B</span>
-      }
-      <span>Beratzade <small>Kebap & Kahvaltı Salonu</small></span>
+    <a class="brand" href="#home" (click)="scrollTo('home', $event)" aria-label="Beratzade">
+      @if (logoUrl() && !logoBroken()) { <img [src]="logoUrl()" alt="" (error)="logoBroken.set(true)" /> }
+      @else { <span class="brand-mark" aria-hidden="true">B</span> }
+      <span class="brand-wordmark">BERATZADE<small>KEBAP & KAHVALTI SALONU</small></span>
     </a>
-    <nav class="desktop-nav" aria-label="Ana gezinme">
-      <a href="#home">Ana Sayfa</a><a [href]="menuPath()">Menü</a>
-      <a href="#hakkimizda">Hakkımızda</a><a href="#iletisim">İletişim</a>
+    <nav class="desktop-nav" [attr.aria-label]="'RESTAURANT_SITE.OPEN_NAV' | translate">
+      <a href="#home" (click)="scrollTo('home', $event)">{{ 'RESTAURANT_SITE.NAV_HOME' | translate }}</a><a href="#menu-kategorileri" (click)="scrollTo('menu-kategorileri', $event)">{{ 'RESTAURANT_SITE.NAV_MENU' | translate }}</a><a href="#hakkimizda" (click)="scrollTo('hakkimizda', $event)">{{ 'RESTAURANT_SITE.NAV_ABOUT' | translate }}</a><a href="#iletisim" (click)="scrollTo('iletisim', $event)">{{ 'RESTAURANT_SITE.NAV_CONTACT' | translate }}</a>
     </nav>
-    <a class="nav-cta" [href]="menuPath()" [class.disabled]="!tenant()">Menüyü İncele <span aria-hidden="true">↗</span></a>
+    <a class="nav-cta" [href]="menuPath()">{{ 'RESTAURANT_SITE.NAV_MENU' | translate }} <span aria-hidden="true">↗</span></a>
+    <button type="button" class="mobile-toggle" (click)="navigationOpen.set(!navigationOpen())" [attr.aria-expanded]="navigationOpen()" aria-controls="restaurant-mobile-nav" [attr.aria-label]="(navigationOpen() ? 'RESTAURANT_SITE.CLOSE_NAV' : 'RESTAURANT_SITE.OPEN_NAV') | translate"><span [class.open]="navigationOpen()"></span><span [class.open]="navigationOpen()"></span></button>
   </header>
-
+  @if (navigationOpen()) {
+    <nav class="mobile-nav" id="restaurant-mobile-nav">
+      <a href="#home" (click)="scrollTo('home', $event)">{{ 'RESTAURANT_SITE.NAV_HOME' | translate }}</a><a href="#menu-kategorileri" (click)="scrollTo('menu-kategorileri', $event)">{{ 'RESTAURANT_SITE.NAV_MENU' | translate }}</a><a href="#hakkimizda" (click)="scrollTo('hakkimizda', $event)">{{ 'RESTAURANT_SITE.NAV_ABOUT' | translate }}</a><a href="#iletisim" (click)="scrollTo('iletisim', $event)">{{ 'RESTAURANT_SITE.NAV_CONTACT' | translate }}</a>
+    </nav>
+  }
   <main>
-    <section class="hero" id="home" [class.has-image]="tenant()?.header_background_filename" [style.background-image]="heroStyle()">
-      <div class="hero-shade"></div>
+    <section class="hero" id="home">
       <div class="hero-copy">
-        <p class="eyebrow"><span></span> BERATZADE KEBAP & KAHVALTI SALONU</p>
-        <h1>Güzel sofralar,<br /><em>iyi hatıralar.</em></h1>
-        <p class="hero-description">Güne keyifli bir kahvaltıyla başlayın, özenle hazırlanan kebaplarla sofranızı tamamlayın.</p>
-        <div class="hero-actions">
-          <a class="button button-light" [href]="menuPath()" [class.disabled]="!tenant()">Menüyü İncele <span>→</span></a>
-          @if (tenant()?.phone) { <a class="button button-outline" [href]="'tel:' + tenant()?.phone">Bizi Arayın</a> }
+        <p class="eyebrow"><span></span> KEBAP & KAHVALTI</p>
+        <h1>{{ 'RESTAURANT_SITE.HERO_LINE_ONE' | translate }}<br /><em>{{ 'RESTAURANT_SITE.HERO_LINE_TWO' | translate }}</em></h1>
+        <p class="hero-description">{{ 'RESTAURANT_SITE.HERO_DESCRIPTION' | translate }}</p>
+        <div class="hero-actions"><a class="button button-primary" [href]="menuPath()">{{ 'RESTAURANT_SITE.VIEW_MENU' | translate }} <span aria-hidden="true">↗</span></a>@if (tenant()?.phone) { <a class="call-link" [href]="'tel:' + tenant()?.phone">{{ 'RESTAURANT_SITE.CALL' | translate }} <span aria-hidden="true">→</span></a> }</div>
+        <div class="hero-signature" aria-hidden="true"><span></span><p>BERATZADE<br /><small>KEBAP · IZGARA · KAHVALTI</small></p></div>
+      </div>
+      <figure class="hero-visual"><img class="editorial-image" [src]="heroImage()" alt="" fetchpriority="high" decoding="async" (error)="heroImageBroken.set(true)" /><figcaption><span>BERATZADE</span><span>KEBAP & IZGARA <b aria-hidden="true">↗</b></span></figcaption></figure>
+    </section>
+    <div class="restaurant-ribbon"><span>KEBAP <i aria-hidden="true">✳</i> IZGARA <i aria-hidden="true">✳</i> KAHVALTI</span>@if (tenant()?.address) { <a href="#iletisim" (click)="scrollTo('iletisim', $event)">{{ tenant()?.address }} <span aria-hidden="true">↗</span></a> }</div>
+    <section class="menu-section section-wrap" id="menu-kategorileri">
+      <div class="section-heading"><div><p class="eyebrow">{{ 'RESTAURANT_SITE.OUR_MENU' | translate }}</p><h2>{{ 'RESTAURANT_SITE.MENU_TITLE' | translate }}</h2></div><div class="section-heading-end"><p>{{ 'RESTAURANT_SITE.MENU_DESCRIPTION' | translate }}</p><a class="text-link" [href]="menuPath()">{{ 'RESTAURANT_SITE.FULL_MENU' | translate }} <span aria-hidden="true">↗</span></a></div></div>
+      @if (loading()) { <p class="menu-state" role="status">{{ 'RESTAURANT_SITE.LOADING' | translate }}</p><div class="menu-skeleton" aria-hidden="true"><span></span><span></span><span></span></div> }
+      @else if (failed()) { <p class="menu-state" role="status">{{ 'PUBLIC_MENU.LOAD_FAILED' | translate }}</p> }
+      @else if (!menuCategories().length) { <p class="menu-state">{{ 'RESTAURANT_SITE.EMPTY_MENU' | translate }}</p> }
+      @else {
+        <nav class="category-links" [attr.aria-label]="'PUBLIC_MENU.CATEGORY_NAV' | translate"><a class="all-categories" [href]="menuPath()">{{ 'RESTAURANT_SITE.ALL_CATEGORIES' | translate }} <span aria-hidden="true">↗</span></a>@for (category of menuCategories(); track category.id) { <a [href]="categoryMenuPath(category)">{{ categoryLabel(category) }} <span>{{ productCount(category) }}</span></a> }</nav>
+        <div class="daily-specials-grid">
+          @for (section of menuSections(); track section.category.id) {
+            <section class="daily-special-section" [attr.aria-labelledby]="'daily-menu-' + section.category.id">
+              <div class="daily-special-heading"><h3 [id]="'daily-menu-' + section.category.id">{{ section.title }}</h3><a [href]="categoryMenuPath(section.category)" [attr.aria-label]="section.title"><span aria-hidden="true">↗</span></a></div>
+              <div class="featured-grid">
+                @for (product of section.products; track productKey(product)) {
+                  <a class="featured-card" [href]="productPath(product)" [attr.data-product-key]="productKey(product)">
+                    <div class="product-photo">@if (productImage(product); as image) { <img [src]="image" [alt]="product.name" loading="lazy" (error)="imageFailed(product)" /> }@else { <span class="photo-placeholder" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="16"/><circle cx="32" cy="32" r="11"/><path d="M7 14v13m6-13v13m-6-7h6m-3 7v23m44-36v36m0-36c-7 4-9 13 0 15"/></svg></span> }</div>
+                    <div class="featured-info"><h4>{{ product.name }}</h4>@if (product.description) { <p>{{ product.description }}</p> }<strong>{{ price(product) }}</strong></div><span class="product-arrow" aria-hidden="true">↗</span>
+                  </a>
+                }
+              </div>
+            </section>
+          }
         </div>
-        @if (!tenant() && !loading()) {
-          <p class="setup-note" role="status">
-            @if (failed()) { Restoran bilgileri şu anda yüklenemiyor. Lütfen daha sonra tekrar deneyin. }
-            @else { Menü ve restoran bilgileri yönetim panelindeki Beratzade işletme kaydı tamamlandığında burada görünür. }
-          </p>
-        }
-      </div>
-      <div class="hero-stamp" aria-hidden="true"><span>SOFRANIZA</span><strong>Hoş<br />geldiniz</strong></div>
-      <a href="#menu-kategorileri" class="scroll-cue">{{ 'MENU.BACK_TO_MENU' | translate }} <span>↓</span></a>
+      }
     </section>
-
-    <section class="menu-section" id="menu-kategorileri">
-      <div class="section-wrap">
-        <div class="section-heading"><div><p class="eyebrow eyebrow-dark">MENÜDEN SEÇTİKLERİMİZ</p><h2>Sofraya buyurun.</h2></div><a class="text-link" [href]="menuPath()" [class.disabled]="!tenant()">Tüm menüyü incele <span>↗</span></a></div>
-        @if (loading()) { <p class="menu-state">Menü yükleniyor…</p> }
-        @else if (!categories().length) { <p class="menu-state">Menü ürünleri işletme panelinden eklendiğinde burada görüntülenecek.</p> }
-        @else {
-          <nav class="category-links" aria-label="Menü kategorileri">
-            @for (category of menuCategories(); track category.id) {
-              <a [href]="categoryMenuPath(category)">
-                {{ categoryLabel(category) }}
-                <span>{{ productCount(category) }}</span>
-              </a>
-            }
-          </nav>
-          <div class="daily-specials-grid">
-            @for (section of menuSections(); track section.category.id) {
-              <section class="daily-special-section" [attr.aria-labelledby]="'daily-menu-' + section.category.id">
-                <div class="daily-special-heading">
-                  <h3 [id]="'daily-menu-' + section.category.id">{{ section.title }}</h3>
-                  <a [href]="categoryMenuPath(section.category)">Tümünü gör <span aria-hidden="true">↗</span></a>
-                </div>
-                <div class="featured-grid">
-                  @for (product of section.products; track productKey(product)) {
-                    <a class="featured-card" [href]="productPath(product)" [attr.data-product-key]="productKey(product)">
-                      <div class="product-photo">
-                        @if (productImage(product); as image) { <img [src]="image" [alt]="product.name" loading="lazy" (error)="imageFailed(product)" /> }
-                        @else {
-                          <span class="photo-placeholder" aria-hidden="true">
-                            <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="16"/><circle cx="32" cy="32" r="11"/><path d="M7 14v13m6-13v13m-6-7h6m-3 7v23m44-36v36m0-36c-7 4-9 13 0 15"/></svg>
-                          </span>
-                        }
-                      </div>
-                      <div class="featured-info"><div><h4>{{ product.name }}</h4>@if (product.description) { <p>{{ product.description }}</p> }</div><strong>{{ price(product) }}</strong></div>
-                    </a>
-                  }
-                </div>
-              </section>
-            }
-          </div>
-        }
-      </div>
-    </section>
-
     <section class="about-section section-wrap" id="hakkimizda">
-      <div class="about-art" aria-hidden="true"><span>BERATZADE</span><b>Afiyet<br />olsun.</b></div>
-      <div class="about-copy"><p class="eyebrow eyebrow-dark">BİZİ TANIYIN</p><h2>Bir masa,<br /><em>güzel bir başlangıç.</em></h2>
-        @if (tenant()?.description) { <p>{{ tenant()?.description }}</p> }
-        @else { <p class="muted">Restoran tanıtım yazısı işletme ayarlarına eklendiğinde burada paylaşılacaktır.</p> }
-        <a class="text-link" [href]="menuPath()" [class.disabled]="!tenant()">Menüyü keşfet <span>↗</span></a>
-      </div>
+      <div class="about-visual"><img src="/menu-categories/kahvalti.webp" alt="" loading="lazy" decoding="async" /><span aria-hidden="true">B.</span></div>
+      <div class="about-copy"><p class="eyebrow">{{ 'RESTAURANT_SITE.ABOUT_LABEL' | translate }}</p><h2>{{ 'RESTAURANT_SITE.ABOUT_TITLE' | translate }}</h2><p>{{ tenant()?.description || ('RESTAURANT_SITE.ABOUT_DESCRIPTION' | translate) }}</p><a class="button button-primary" [href]="menuPath()">{{ 'RESTAURANT_SITE.VIEW_MENU' | translate }} <span aria-hidden="true">↗</span></a></div>
     </section>
-
-    <section class="contact-band" id="iletisim"><div class="section-wrap contact-inner">
-      <div><p class="eyebrow">SOFRAMIZDA YERİNİZ HAZIR</p><h2>Görüşmek üzere.</h2></div>
-      <div class="contact-details">
-        @if (tenant()?.address) { <p><small>ADRES</small>{{ tenant()?.address }}</p> }
-        @if (tenant()?.phone) { <p><small>TELEFON</small><a [href]="'tel:' + tenant()?.phone">{{ tenant()?.phone }}</a></p> }
-        @if (openingHours()) { <p><small>ÇALIŞMA SAATLERİ</small>{{ openingHours() }}</p> }
-        @if (tenant()?.public_google_maps_url) { <a class="map-link" [href]="tenant()?.public_google_maps_url" target="_blank" rel="noopener noreferrer">Haritada aç ↗</a> }
-        @if (!tenant()?.address && !tenant()?.phone && !openingHours() && !tenant()?.public_google_maps_url) { <p class="muted">Adres ve iletişim bilgileri işletme ayarlarına eklendiğinde burada gösterilecektir.</p> }
-      </div>
+    <section class="contact-section" id="iletisim"><div class="section-wrap contact-inner">
+      <div class="contact-heading"><p class="eyebrow">{{ 'RESTAURANT_SITE.NAV_CONTACT' | translate }}</p><h2>{{ 'RESTAURANT_SITE.CONTACT_TITLE' | translate }}</h2>@if (directionsUrl()) { <a class="button button-light" [href]="directionsUrl()" target="_blank" rel="noopener noreferrer">{{ 'RESTAURANT_SITE.DIRECTIONS' | translate }} <span aria-hidden="true">↗</span></a> }</div>
+      <div class="contact-details">@if (tenant()?.address) { <div><span class="contact-label">{{ 'RESTAURANT_SITE.ADDRESS' | translate }}</span><p>{{ tenant()?.address }}</p></div> }@if (tenant()?.phone) { <div><span class="contact-label">{{ 'RESTAURANT_SITE.PHONE' | translate }}</span><a class="contact-phone" [href]="'tel:' + tenant()?.phone">{{ tenant()?.phone }}</a></div> }@if (openingHours()) { <div><span class="contact-label">{{ 'RESTAURANT_SITE.HOURS' | translate }}</span><p class="hours">{{ openingHours() }}</p></div> }</div>
     </div></section>
   </main>
-
-  <footer class="site-footer"><a class="brand footer-brand" href="#home"><span class="brand-mark">B</span><span>Beratzade <small>Kebap & Kahvaltı Salonu</small></span></a>
-    <nav aria-label="Alt gezinme"><a href="#menu-kategorileri">Menü</a><a href="#hakkimizda">Hakkımızda</a><a href="#iletisim">İletişim</a>@if (tenant()?.terms_of_service_url) { <a [href]="tenant()?.terms_of_service_url">Kullanım koşulları</a> }@if (tenant()?.privacy_policy_url) { <a [href]="tenant()?.privacy_policy_url">Gizlilik</a> }</nav>
+  <footer class="site-footer section-wrap">
+    <div class="footer-row"><a class="footer-wordmark" href="#home" (click)="scrollTo('home', $event)">BERATZADE<small>KEBAP & KAHVALTI SALONU</small></a><nav [attr.aria-label]="'RESTAURANT_SITE.OPEN_NAV' | translate"><a [href]="menuPath()">{{ 'RESTAURANT_SITE.NAV_MENU' | translate }}</a><a href="#hakkimizda" (click)="scrollTo('hakkimizda', $event)">{{ 'RESTAURANT_SITE.NAV_ABOUT' | translate }}</a><a href="#iletisim" (click)="scrollTo('iletisim', $event)">{{ 'RESTAURANT_SITE.NAV_CONTACT' | translate }}</a></nav></div>
     <app-legal-links [termsUrl]="tenant()?.terms_of_service_url" [privacyUrl]="tenant()?.privacy_policy_url" />
-    <nav [attr.aria-label]="'LOGIN_PORTAL.CHOOSE' | translate">
-      <a routerLink="/staff/login" [queryParams]="tenant() ? {tenant: tenant()?.id} : {}">{{ 'LOGIN_PORTAL.STAFF' | translate }}</a>
-      <a routerLink="/admin/login" [queryParams]="tenant() ? {tenant: tenant()?.id} : {}">{{ 'LOGIN_PORTAL.ADMIN' | translate }}</a>
-    </nav>
-    <span class="copyright">© Beratzade Kebap & Kahvaltı Salonu</span>
+    <div class="footer-bottom"><span>© {{ year }} Beratzade</span><nav [attr.aria-label]="'LOGIN_PORTAL.CHOOSE' | translate"><a routerLink="/staff/login" [queryParams]="tenant() ? {tenant: tenant()?.id} : {}">{{ 'LOGIN_PORTAL.STAFF' | translate }}</a><a routerLink="/admin/login" [queryParams]="tenant() ? {tenant: tenant()?.id} : {}">{{ 'LOGIN_PORTAL.ADMIN' | translate }}</a></nav><a href="#home" (click)="scrollTo('home', $event)" [attr.aria-label]="'RESTAURANT_SITE.NAV_HOME' | translate">↑</a></div>
   </footer>
 </div>

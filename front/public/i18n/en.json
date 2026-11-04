@@ -3496,5 +3496,33 @@
   },
   "STAFF_POS": {
     "SETTLE_CURRENT_SALE": "Complete payment for the current sale before starting a new sale. Review the current account in order tracking."
+  },
+  "RESTAURANT_SITE": {
+    "NAV_HOME": "Home",
+    "NAV_MENU": "Menu",
+    "NAV_ABOUT": "About us",
+    "NAV_CONTACT": "Contact",
+    "OPEN_NAV": "Open navigation",
+    "CLOSE_NAV": "Close navigation",
+    "HERO_LINE_ONE": "From the fire to your table,",
+    "HERO_LINE_TWO": "Beratzade.",
+    "HERO_DESCRIPTION": "Kebabs, grilled dishes and breakfast spreads. Explore our menu and meet us at Beratzade.",
+    "VIEW_MENU": "Explore the menu",
+    "CALL": "Call us",
+    "OUR_MENU": "Our menu",
+    "MENU_TITLE": "What are you craving?",
+    "MENU_DESCRIPTION": "Browse our categories, explore our dishes and see current prices.",
+    "FULL_MENU": "View the full menu",
+    "ABOUT_LABEL": "THE BERATZADE TABLE",
+    "ABOUT_TITLE": "A welcome break at the table.",
+    "ABOUT_DESCRIPTION": "From breakfast to dinner, gather around the table with the people you love.",
+    "CONTACT_TITLE": "Join us at our table.",
+    "ADDRESS": "Address",
+    "PHONE": "Phone",
+    "HOURS": "Opening hours",
+    "DIRECTIONS": "Get directions",
+    "EMPTY_MENU": "Our menu is coming soon.",
+    "LOADING": "Loading menu",
+    "ALL_CATEGORIES": "All categories"
   }
 }
