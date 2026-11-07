@@ -4,13 +4,15 @@
   [class.is-category-view]="isCategoryRoute()"
   [style.--color-bg]="tenant()?.public_background_color ?? null"
   [style.--hero-header-bg]="tenant()?.public_background_color ?? null"
-  [style.--color-primary]="isBeratzadeMenuOnly() ? '#76283b' : resolvePublicPrimaryColor(tenant()?.public_primary_color)"
+  [style.--color-primary]="isBeratzadeMenuOnly() ? '#983c2c' : resolvePublicPrimaryColor(tenant()?.public_primary_color)"
 >
   @if (isBeratzadeMenuOnly()) {
     <header class="beratzade-menu-header" data-testid="beratzade-menu-header">
-      <a class="beratzade-menu-brand" [routerLink]="['/public-menu', tenant()?.public_slug?.trim() || tenantId()]">
+      <a class="beratzade-menu-brand" [routerLink]="['/public-menu', tenant()?.public_slug?.trim() || tenantId()]" [queryParams]="languageQueryParams()">
         @if (logoUrl()) {
-          <img [src]="logoUrl()!" [alt]="displayName()" class="beratzade-menu-logo" />
+          <img [src]="logoUrl()!" [alt]="displayName()" class="beratzade-menu-logo" (error)="logoUrl.set(null)" />
+        } @else {
+          <span class="beratzade-menu-monogram" aria-hidden="true">B</span>
         }
         <span class="beratzade-menu-brand-copy">
           <strong>BERATZADE</strong>
@@ -50,6 +52,9 @@
               {{ 'PUBLIC_MENU.LOAD_FAILED' | translate }}
             }
           </p>
+          @if (errorKind() === 'menu_load_failed' && tenantId()) {
+            <button type="button" class="menu-retry" (click)="retryMenu()">{{ 'MENU_EXPERIENCE.RETRY' | translate }}</button>
+          }
           @if (tenantId() > 0) {
             <a
               [routerLink]="bookRouterLink()"
@@ -69,19 +74,21 @@
       <section class="beratzade-menu-intro" aria-labelledby="beratzade-menu-title">
         <div class="beratzade-menu-intro-inner">
           <div class="beratzade-menu-intro-copy">
-            <p class="beratzade-menu-eyebrow">{{ displayName() }}</p>
+            <p class="beratzade-menu-eyebrow">{{ 'MENU_EXPERIENCE.EYEBROW' | translate }} <span aria-hidden="true">✳</span></p>
             <h1 id="beratzade-menu-title">
               @if (activeSubcategory(); as subcategory) {
                 {{ getCategoryLabel(subcategory.name) }}
               } @else if (activeCategory(); as category) {
                 {{ getCategoryLabel(category.name) }}
               } @else {
-                {{ 'PUBLIC_MENU.PAGE_TITLE' | translate }}
+                {{ 'MENU_EXPERIENCE.TITLE' | translate }}
               }
             </h1>
+            <p class="beratzade-menu-description">{{ 'MENU_EXPERIENCE.DESCRIPTION' | translate }}</p>
+            <div class="beratzade-menu-meta"><span>{{ 'MENU_EXPERIENCE.PRODUCT_COUNT' | translate: { count: totalProducts() } }}</span><i aria-hidden="true"></i><span>{{ menu()?.currency || 'TRY' }}</span></div>
             <a routerLink="/beratzade" class="beratzade-menu-home-link">{{ 'PUBLIC_MENU.BACK_HOME' | translate }} <span aria-hidden="true">↗</span></a>
           </div>
-          <span class="beratzade-menu-seal" aria-hidden="true"><span>B</span></span>
+          <figure class="menu-editorial" aria-hidden="true"><img [src]="editorialImage()" alt="" fetchpriority="high" decoding="async" /><figcaption>BERATZADE <span>KEBAP & KAHVALTI</span></figcaption></figure>
         </div>
       </section>
     } @else {
@@ -122,8 +129,8 @@
               type="search"
               [value]="searchTerm()"
               (input)="setSearchTerm($any($event.target).value)"
-              [placeholder]="'COMMON.SEARCH' | translate"
-              [attr.aria-label]="'COMMON.SEARCH' | translate"
+              [placeholder]="(isBeratzadeMenuOnly() ? 'MENU_EXPERIENCE.SEARCH' : 'COMMON.SEARCH') | translate"
+              [attr.aria-label]="(isBeratzadeMenuOnly() ? 'MENU_EXPERIENCE.SEARCH' : 'COMMON.SEARCH') | translate"
               autocomplete="off"
             />
             @if (searchTerm()) {
@@ -131,10 +138,18 @@
                 class="public-menu-search-clear"
                 type="button"
                 (click)="clearSearch(searchInput)"
-                [attr.aria-label]="'COMMON.CLOSE' | translate"
+                [attr.aria-label]="'MENU_EXPERIENCE.CLEAR_SEARCH' | translate"
               >×</button>
             }
           </div>
+          @if (isBeratzadeMenuOnly()) {
+            <nav class="menu-quick-categories" [attr.aria-label]="'PUBLIC_MENU.CATEGORY_NAV' | translate" data-testid="menu-quick-categories">
+              <a [routerLink]="menuRouterLink()" [queryParams]="languageQueryParams()" [class.is-active]="!isCategoryRoute()" [attr.aria-current]="!isCategoryRoute() ? 'page' : null">{{ 'MENU_EXPERIENCE.ALL' | translate }}</a>
+              @for (category of orderedCategories(); track category.id) {
+                <a [routerLink]="categoryRouterLink(category)" [queryParams]="languageQueryParams()" [class.is-active]="activeCategory()?.id === category.id" [attr.aria-current]="activeCategory()?.id === category.id ? 'page' : null">{{ getCategoryLabel(category.name) }}<small>{{ categoryProductCount(category) }}</small></a>
+              }
+            </nav>
+          }
         </div>
         @if (!isBeratzadeMenuOnly()) {
           <nav class="public-menu-category-nav" [attr.aria-label]="'PUBLIC_MENU.PAGE_TITLE' | translate">
@@ -165,18 +180,8 @@
               }
             }
           </nav>
-          <nav class="beratzade-category-switcher" [attr.aria-label]="'PUBLIC_MENU.CATEGORY_NAV' | translate">
-            @for (category of orderedCategories(); track category.id) {
-              <a
-                [routerLink]="categoryRouterLink(category)"
-                [queryParams]="languageQueryParams()"
-                [class.is-active]="categoryRouteSlug(category.id) === categorySlug()"
-                [attr.aria-current]="categoryRouteSlug(category.id) === categorySlug() ? 'page' : null"
-              >{{ getCategoryLabel(category.name) }}</a>
-            }
-          </nav>
           @if (activeCategory(); as selectedCategory) {
-            @if (selectedCategory.subcategories?.length) {
+            @if (orderedSubcategories(selectedCategory).length > 1) {
               <nav
                 class="beratzade-category-switcher beratzade-subcategory-switcher"
                 [attr.aria-label]="getCategoryLabel(selectedCategory.name)"
@@ -194,6 +199,9 @@
           }
         }
       }
+      @if (refreshFailed()) {
+        <div class="menu-connection-note" role="status"><span>{{ 'MENU_EXPERIENCE.FRESHNESS_WARNING' | translate }}</span><button type="button" (click)="retryMenu()">{{ 'MENU_EXPERIENCE.RETRY' | translate }}</button></div>
+      }
       @if (!isBeratzadeMenuOnly()) {
         <p class="public-menu-delivery-cta">
           <a [routerLink]="['/delivery', tenantId()]" class="btn btn-primary">
@@ -207,11 +215,11 @@
       } @else if (categories().length === 0) {
         <p class="public-menu-status public-menu-empty">{{ 'PUBLIC_MENU.EMPTY_MENU' | translate }}</p>
       } @else {
-        @if (isBeratzadeMenuOnly() && !isCategoryRoute() && !searchTerm()) {
+        @if (isBeratzadeMenuOnly() && !isCategoryRoute() && !searchTerm() && orderedCategories().length > 1) {
           <section class="beratzade-category-index" aria-labelledby="beratzade-category-index-title">
             <h2 id="beratzade-category-index-title">{{ 'PUBLIC_MENU.CATEGORIES' | translate }}</h2>
             <div class="beratzade-category-grid">
-              @for (cat of visibleCategories(); track cat.id) {
+              @for (cat of orderedCategories(); track cat.id) {
                 <a
                   class="beratzade-category-card"
                   [routerLink]="categoryRouterLink(cat)"
@@ -219,7 +227,7 @@
                 >
                   <span class="beratzade-category-copy">
                     <span class="beratzade-category-title">{{ getCategoryLabel(cat.name) }}</span>
-                    <small>{{ categoryProductCount(cat) }}</small>
+                    <small>{{ 'MENU_EXPERIENCE.PRODUCT_COUNT' | translate: { count: categoryProductCount(cat) } }}</small>
                     <span class="beratzade-category-arrow" aria-hidden="true">→</span>
                   </span>
                   <span class="beratzade-category-photo" [attr.data-category]="categoryRouteSlug(cat.id)">
@@ -257,11 +265,11 @@
             {{ 'PUBLIC_MENU.EMPTY_MENU' | translate }}
           </p>
         } @else if (searchTerm() && !hasSearchResults()) {
-          <p class="public-menu-status public-menu-empty public-menu-no-results" role="status">
-            {{ 'MENU.NO_PRODUCTS' | translate }}
-          </p>
+          <div class="public-menu-status public-menu-empty public-menu-no-results" role="status"><span class="menu-empty-icon" aria-hidden="true">⌕</span><h2>{{ 'MENU_EXPERIENCE.NO_RESULTS_TITLE' | translate }}</h2><p>{{ 'MENU_EXPERIENCE.NO_RESULTS_HINT' | translate }}</p><button type="button" class="menu-retry" (click)="clearSearch()">{{ 'MENU_EXPERIENCE.CLEAR_SEARCH' | translate }}</button></div>
         }
-        @if (!isBeratzadeMenuOnly() || isCategoryRoute() || searchTerm()) {
+        @if (searchTerm().trim()) {
+          <p class="menu-result-count" role="status">{{ 'MENU_EXPERIENCE.SEARCH_COUNT' | translate: { count: resultCount() } }}</p>
+        }
         @for (cat of visibleCategories(); track cat.id) {
           <section class="public-menu-category" [attr.aria-labelledby]="'cat-' + cat.id">
             <h2 class="public-menu-category-title" [id]="'cat-' + cat.id">
@@ -269,6 +277,7 @@
                 type="button"
                 class="public-menu-category-toggle"
                 (click)="toggleCategory(cat.id)"
+                [disabled]="!!searchTerm().trim()"
                 [attr.aria-expanded]="isCategoryExpanded(cat.id)"
                 [attr.aria-controls]="categoryPanelId(cat.id)"
                 [attr.aria-label]="categoryToggleAriaLabel(cat)"
@@ -293,7 +302,7 @@
                       class="public-menu-product-card"
                       [class.is-unavailable]="!product.available"
                       type="button"
-                      [attr.aria-label]="product.name"
+                      [attr.aria-label]="product.name + ' — ' + ('MENU_EXPERIENCE.VIEW_DETAILS' | translate)"
                       (click)="openProductDetails(product)"
                     >
                       <span class="public-menu-product-image-wrap">
@@ -336,6 +345,7 @@
                         @if (!product.available) {
                           <span class="public-menu-product-unavailable">{{ 'PUBLIC_MENU.UNAVAILABLE' | translate }}</span>
                         }
+                        <span class="menu-product-detail-hint">{{ 'MENU_EXPERIENCE.VIEW_DETAILS' | translate }} <span aria-hidden="true">↗</span></span>
                       </span>
                     </button>
                   </li>
@@ -343,7 +353,6 @@
               </ul>
             }
           </section>
-        }
         }
       }
 
@@ -381,6 +390,7 @@
               }
             </div>
             <div class="public-menu-detail-copy">
+              <p class="menu-detail-eyebrow">{{ 'MENU_EXPERIENCE.PRODUCT_INFO' | translate }}</p>
               <h2 [id]="'product-detail-title-' + productKey(product)">{{ product.name }}</h2>
               @if (product.description?.trim()) {
                 <p>{{ product.description }}</p>
@@ -394,6 +404,7 @@
               @if (!product.available) {
                 <p class="public-menu-product-unavailable">{{ 'PUBLIC_MENU.UNAVAILABLE' | translate }}</p>
               }
+              <button type="button" class="menu-detail-done" (click)="closeProductDetails()">{{ 'MENU.BACK_TO_MENU' | translate }} <span aria-hidden="true">↗</span></button>
             </div>
           </section>
         </div>

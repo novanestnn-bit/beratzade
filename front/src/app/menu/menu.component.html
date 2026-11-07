@@ -6,6 +6,13 @@
   </section>
 }
 @if (httpOffline()) { <p role="status" data-testid="qr-offline">{{ 'SERVICE_REQUESTS.OFFLINE' | translate }}</p> }
+@if (submissionError()) { <p role="alert" data-testid="qr-submission-error">{{ submissionError() }}</p> }
+@if (orderUncertain()) {
+  <section role="status" data-testid="qr-order-uncertain">
+    <p>{{ 'SERVICE_REQUESTS.ORDER_UNCERTAIN' | translate }}</p>
+    <button type="button" [disabled]="submitting()" (click)="retryPendingOrder()" data-testid="qr-retry-order">{{ 'SERVICE_REQUESTS.VERIFY_ORDER' | translate }}</button>
+  </section>
+}
 <div class="menu-page" [style.--hero-header-bg]="tenantPublicBackgroundColor() ?? null" [style.--color-bg]="tenantPublicBackgroundColor() ?? null" [style.--color-primary]="resolvePublicPrimaryColor(tenantPublicPrimaryColor())">
   @if (loading()) {
   <div class="loading-screen">
@@ -55,6 +62,9 @@
     <p>{{ 'MENU.TABLE_CLOSED_MESSAGE' | translate }}</p>
     @if (closedTableName()) {
     <p class="closed-table-name">{{ closedTableName() }}</p>
+    }
+    @if (closedTenantId()) {
+      <a class="closed-menu-link" [routerLink]="['/public-menu', closedTenantId()]" [queryParams]="{lang: closedMenuLanguage}" data-testid="closed-table-public-menu">{{ 'MENU.BACK_TO_MENU' | translate }}</a>
     }
   </div>
   } @else if (error()) {
@@ -410,7 +420,7 @@
           </div>
 
           <!-- Add Button -->
-          <button class="add-to-cart-btn" (click)="addToCartWithQuestions(product); $event.stopPropagation()">
+          <button class="add-to-cart-btn" [disabled]="orderEditingLocked()" (click)="addToCartWithQuestions(product); $event.stopPropagation()">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -503,13 +513,13 @@
               [attr.aria-expanded]="isCartItemCommentExpanded(item)">
               {{ (isCartItemCommentExpanded(item) || item.notes?.trim()) ? ('MENU.HIDE_COMMENT' | translate) : ('MENU.ADD_COMMENT' | translate) }}
             </button>
-            <button class="qty-control-btn minus" (click)="decrementItem(item)">
+            <button class="qty-control-btn minus" [disabled]="orderEditingLocked()" (click)="decrementItem(item)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
             <span class="qty-display">{{ item.quantity }}</span>
-            <button class="qty-control-btn plus" (click)="incrementItem(item)">
+            <button class="qty-control-btn plus" [disabled]="orderEditingLocked() || item.quantity >= 99" (click)="incrementItem(item)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -523,7 +533,7 @@
           @if (isMyCartItem(item) && isCartItemCommentExpanded(item)) {
           <label class="cart-item-comment-field">
             <span class="sr-only">{{ 'MENU.ITEM_COMMENT' | translate }}</span>
-            <textarea class="cart-comment-input" rows="2" [value]="item.notes"
+            <textarea class="cart-comment-input" rows="2" [disabled]="orderEditingLocked()" [value]="item.notes"
               [placeholder]="'MENU.ITEM_COMMENT_PLACEHOLDER' | translate"
               [attr.maxlength]="maxNoteLength"
               (input)="updateCartItemNotes(item, $any($event.target).value)"></textarea>
@@ -535,7 +545,7 @@
 
       <div class="cart-order-notes">
         <label class="cart-order-notes-label" for="cart-order-notes">{{ 'MENU.ORDER_NOTES' | translate }}</label>
-        <textarea id="cart-order-notes" class="cart-comment-input" rows="2" [(ngModel)]="orderNotes"
+        <textarea id="cart-order-notes" class="cart-comment-input" rows="2" [disabled]="orderEditingLocked()" [(ngModel)]="orderNotes"
           [placeholder]="'MENU.ORDER_NOTES_PLACEHOLDER' | translate"
           [attr.maxlength]="maxNoteLength"></textarea>
       </div>
@@ -547,7 +557,7 @@
         </div>
       </div>
 
-      <button class="place-order-btn" (click)="submitOrder()" [disabled]="submitting()">
+      <button class="place-order-btn" (click)="submitOrder()" [disabled]="orderEditingLocked()">
         @if (submitting()) {
         <span class="btn-loading">
           <span class="spinner-small"></span>

@@ -1455,7 +1455,8 @@
     "ATTENDANCE_REGISTRO_HORARIO_HINT": "İspanya için çalışma saati çizelgesi (.xlsx): planlanan ve gerçekleşen saatleri, imza alanını ve her personel için ayrı sayfayı içerir.",
     "ATTENDANCE_REGISTRO_HORARIO_DOWNLOAD": "İspanyolca çalışma çizelgesini indir",
     "ATTENDANCE_REGISTRO_HORARIO_NO_DATA": "Bu ay için devam kaydı bulunan personel yok.",
-    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "Çalışma çizelgesi indirilemedi. Yeniden deneyin."
+    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "Çalışma çizelgesi indirilemedi. Yeniden deneyin.",
+    "FILTERS_PENDING": "Tarih aralığı değişti. Yeni dönemi görmek ve dışa aktarmak için raporu yenileyin."
   },
   "TABLES": {
     "TITLE": "Masalar",
@@ -1562,7 +1563,8 @@
     "GROUP_SIBLING_ACTIVITY_TITLE": "Bu gruptaki başka bir masa aktif",
     "GROUP_SIBLING_ACTIVITY_MESSAGE": "Birleştirilmiş gruptaki {{names}} masasında açık oturum veya sipariş var. Ayrı işlem gerekmiyorsa mevcut hesabı kullanın.",
     "GROUP_SIBLING_ACTIVITY_CONFIRM": "Yine de devam et",
-    "GROUP_SIBLING_FLOOR_DOT": "Bu gruptaki başka bir masada açık oturum veya sipariş var"
+    "GROUP_SIBLING_FLOOR_DOT": "Bu gruptaki başka bir masada açık oturum veya sipariş var",
+    "SYNC_UNAVAILABLE": "Bağlantı kurulamadı. Son masa durumu gösteriliyor; bilgiler güncel olmayabilir."
   },
   "TABLE_STATUS": {
     "available": "Available",
@@ -2881,7 +2883,8 @@
       "RECEPTIONIST": "Resepsiyon görevlisi",
       "COURIER": "Kurye",
       "PLATFORM_OPERATOR": "Platform yöneticisi"
-    }
+    },
+    "DELETING": "Siliniyor…"
   },
   "TRANSLATIONS": {
     "SELECT_ITEM_TO_TRANSLATE": "Select Item to Translate",
@@ -3497,7 +3500,10 @@
     "RESOLVE": "Tamamla",
     "OFFLINE": "Bağlantı kurulamadı. Son bilgiler ve taslaklar korunuyor.",
     "PAYMENT_UNCERTAIN": "Tahsilat sonucu belirsiz. Aynı işlemi tekrar doğrulamadan tutarı veya ödeme yöntemini değiştirmeyin.",
-    "CLOSED_DRAFT": "Taslak korundu. Kayıtlı masa kapalı; masayı açmadan önce kontrol edin."
+    "CLOSED_DRAFT": "Taslak korundu. Kayıtlı masa kapalı; masayı açmadan önce kontrol edin.",
+    "ORDER_UNCERTAIN": "Son siparişin kaydı henüz doğrulanamadı. Yeni ürün eklemeden aynı siparişi doğrulayın.",
+    "VERIFY_ORDER": "Siparişi doğrula",
+    "DRAFT_STORAGE_UNAVAILABLE": "Taslak bu cihazda güvenle saklanamadı. Tarayıcı depolamasını etkinleştirip tekrar deneyin."
   },
   "LOGIN_PORTAL": {
     "CHOOSE": "Giriş türünü seçin",
@@ -3543,5 +3549,54 @@
     "EMPTY_MENU": "Menümüz yakında burada.",
     "LOADING": "Menü yükleniyor",
     "ALL_CATEGORIES": "Tüm kategoriler"
+  },
+  "CASH_REGISTER": {
+    "TITLE": "Kasa",
+    "LOADING": "Kasa durumu yükleniyor",
+    "OPEN": "Kasa açık",
+    "CLOSED": "Kasa kapalı",
+    "EXPECTED": "Beklenen nakit",
+    "REFRESH": "Yenile",
+    "CLOSE_ACTION": "Kasayı kapat",
+    "OPEN_ACTION": "Kasayı aç",
+    "UNAVAILABLE": "Kasa durumuna ulaşılamıyor. İşlem yapmadan önce bağlantıyı kontrol edip yenileyin.",
+    "UNCERTAIN": "İşlem sonucu henüz doğrulanamadı. Yeniden göndermeden kasa durumunu yenileyin.",
+    "CLOSED_SUMMARY": "Sayılan nakit:",
+    "VARIANCE": "Kasa farkı",
+    "CLOSE_HELP": "Kasadaki nakdi sayıp girin. Fark, beklenen tutara göre hesaplanır.",
+    "OPEN_HELP": "Açılışta kasada bulunan nakdi girin. Bu işlem kasa oturumunu açar.",
+    "COUNTED_AMOUNT": "Sayılan nakit",
+    "OPENING_AMOUNT": "Açılış nakdi",
+    "NOTE": "Not (isteğe bağlı)",
+    "SAVING": "Kaydediliyor…",
+    "CONFIRM_CLOSE": "Kapanışı onayla",
+    "CONFIRM_OPEN": "Açılışı onayla",
+    "STORAGE_ERROR": "İşlem güvenle kaydedilemedi. Tarayıcı depolamasını etkinleştirip yeniden deneyin.",
+    "SAVE_FAILED": "Kasa işlemi kaydedilemedi. Güncel kasa durumunu kontrol edip yeniden deneyin.",
+    "CHECK_REQUIRED": "Doğrulama bekleniyor"
+  },
+  "WORKSPACE": {
+    "NO_CHANGES": "Kaydedilecek değişiklik yok.",
+    "SAVED": "Değişiklikler kaydedildi.",
+    "SAVE_FAILED": "Kaydedilemedi. Değişiklikleriniz bu ekranda korunuyor. Yeniden deneyin.",
+    "UNSAVED_CONFIRM": "Kaydedilmemiş değişiklikler var. Kaydetmeden ayrılmak istiyor musunuz?"
+  },
+  "MENU_EXPERIENCE": {
+    "EYEBROW": "BERATZADE MENÜ",
+    "TITLE": "Sofranıza ne yakışır?",
+    "DESCRIPTION": "Tüm lezzetlerimiz ve güncel fiyatlar bir arada.",
+    "SEARCH": "Canınız ne çekiyor? Menüde arayın",
+    "ALL": "Tüm menü",
+    "PRODUCT_COUNT": "{{count}} ürün",
+    "SEARCH_COUNT": "{{count}} sonuç",
+    "CLEAR_SEARCH": "Aramayı temizle",
+    "NO_RESULTS_TITLE": "Aradığınızı bulamadık",
+    "NO_RESULTS_HINT": "Farklı bir ürün adı deneyin veya tüm menüye dönün.",
+    "VIEW_DETAILS": "Ürünü incele",
+    "FRESHNESS_WARNING": "Bağlantı zayıf. Son yüklenen menü gösteriliyor.",
+    "RETRY": "Yeniden dene",
+    "TOP": "Başa dön",
+    "PHONE": "Restoranı ara",
+    "PRODUCT_INFO": "Ürün bilgileri"
   }
 }

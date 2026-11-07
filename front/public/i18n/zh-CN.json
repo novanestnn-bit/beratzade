@@ -1398,7 +1398,8 @@
     "ATTENDANCE_REGISTRO_HORARIO_HINT": "西班牙语 «registro horario»（.xlsx）：月度纸质风格表格（计划与实际打卡、签名列）。每位员工一张工作表。使用租户时区及设置中的可选 CIF/CCC。",
     "ATTENDANCE_REGISTRO_HORARIO_DOWNLOAD": "下载 registro horario（ES）",
     "ATTENDANCE_REGISTRO_HORARIO_NO_DATA": "该月没有员工考勤记录（或无记录）。请选择员工或先打卡。",
-    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "无法下载 registro horario 导出。请重试。"
+    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "无法下载 registro horario 导出。请重试。",
+    "FILTERS_PENDING": "日期范围已更改。请刷新报表后查看并导出新时段的数据。"
   },
   "TABLES": {
     "TITLE": "餐桌",
@@ -1503,7 +1504,8 @@
     "GROUP_SIBLING_ACTIVITY_TITLE": "同组另一张桌已激活",
     "GROUP_SIBLING_ACTIVITY_MESSAGE": "已合并组：{{names}} 已有活跃会话或未完成订单。除非需要单独一单，请优先使用该桌。",
     "GROUP_SIBLING_ACTIVITY_CONFIRM": "仍要继续",
-    "GROUP_SIBLING_FLOOR_DOT": "同组另一张桌有活跃会话或未完成订单"
+    "GROUP_SIBLING_FLOOR_DOT": "同组另一张桌有活跃会话或未完成订单",
+    "SYNC_UNAVAILABLE": "连接不可用。当前显示餐桌的上次状态，信息可能已过时。"
   },
   "TABLE_STATUS": {
     "available": "空闲",
@@ -2855,7 +2857,8 @@
       "RECEPTIONIST": "接待员",
       "COURIER": "配送员",
       "PLATFORM_OPERATOR": "平台运营"
-    }
+    },
+    "DELETING": "正在删除…"
   },
   "TRANSLATIONS": {
     "SELECT_ITEM_TO_TRANSLATE": "选择要翻译的项目",
@@ -3475,7 +3478,10 @@
     "RESOLVE": "完成",
     "OFFLINE": "连接不可用，已保留最近的信息和草稿。",
     "PAYMENT_UNCERTAIN": "支付结果尚未确认。更改金额或支付方式前，请核实同一笔交易。",
-    "CLOSED_DRAFT": "草稿已保留。保存的餐桌已关闭，请在开启前检查。"
+    "CLOSED_DRAFT": "草稿已保留。保存的餐桌已关闭，请在开启前检查。",
+    "ORDER_UNCERTAIN": "上次订单尚未确认。添加新商品前，请先核实同一订单。",
+    "VERIFY_ORDER": "核实订单",
+    "DRAFT_STORAGE_UNAVAILABLE": "无法在此设备上安全保存草稿。请启用浏览器存储后重试。"
   },
   "LOGIN_PORTAL": {
     "CHOOSE": "选择登录类型",
@@ -3524,5 +3530,54 @@
     "EMPTY_MENU": "菜单即将上线。",
     "LOADING": "正在加载菜单",
     "ALL_CATEGORIES": "全部分类"
+  },
+  "CASH_REGISTER": {
+    "TITLE": "收银台",
+    "LOADING": "正在加载收银台状态",
+    "OPEN": "收银台已开启",
+    "CLOSED": "收银台已关闭",
+    "EXPECTED": "预期现金",
+    "REFRESH": "刷新",
+    "CLOSE_ACTION": "关闭收银台",
+    "OPEN_ACTION": "开启收银台",
+    "UNAVAILABLE": "无法获取收银台状态。操作前请检查连接并刷新状态。",
+    "UNCERTAIN": "操作结果尚未确认。再次提交前请刷新收银台状态。",
+    "CLOSED_SUMMARY": "实点现金：",
+    "VARIANCE": "现金差额",
+    "CLOSE_HELP": "请清点收银台中的现金并输入金额。差额将根据预期金额计算。",
+    "OPEN_HELP": "请输入开启时的现金金额。此操作将开启收银台会话。",
+    "COUNTED_AMOUNT": "实点现金",
+    "OPENING_AMOUNT": "期初现金",
+    "NOTE": "备注（可选）",
+    "SAVING": "正在保存…",
+    "CONFIRM_CLOSE": "确认关闭",
+    "CONFIRM_OPEN": "确认开启",
+    "STORAGE_ERROR": "无法安全保存操作记录。请启用浏览器存储后重试。",
+    "SAVE_FAILED": "无法保存收银操作。请检查当前收银台状态后重试。",
+    "CHECK_REQUIRED": "等待核实"
+  },
+  "WORKSPACE": {
+    "NO_CHANGES": "没有需要保存的更改。",
+    "SAVED": "更改已保存。",
+    "SAVE_FAILED": "无法保存更改。您在此页面的修改已保留，请重试。",
+    "UNSAVED_CONFIRM": "您有未保存的更改。确定不保存并离开吗？"
+  },
+  "MENU_EXPERIENCE": {
+    "EYEBROW": "BERATZADE 菜单",
+    "TITLE": "今天想吃什么？",
+    "DESCRIPTION": "在这里查看我们的菜品和最新价格。",
+    "SEARCH": "找点美味",
+    "ALL": "完整菜单",
+    "PRODUCT_COUNT": "{{count}} 道菜",
+    "SEARCH_COUNT": "{{count}} 个结果",
+    "CLEAR_SEARCH": "清除搜索",
+    "NO_RESULTS_TITLE": "未找到菜品",
+    "NO_RESULTS_HINT": "请尝试其他菜名，或浏览完整菜单。",
+    "VIEW_DETAILS": "查看菜品",
+    "FRESHNESS_WARNING": "连接已中断，正在显示上次加载的菜单。",
+    "RETRY": "重试",
+    "TOP": "返回顶部",
+    "PHONE": "致电餐厅",
+    "PRODUCT_INFO": "菜品详情"
   }
 }

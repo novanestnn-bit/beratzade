@@ -1197,7 +1197,8 @@
     "GROUP_SIBLING_ACTIVITY_TITLE": "Ein anderer Tisch in dieser Gruppe ist aktiv",
     "GROUP_SIBLING_ACTIVITY_MESSAGE": "Verbundene Gruppe: {{names}} hat bereits eine aktive Sitzung oder offene Bestellung. Nutzen Sie diese, sofern möglich, es sei denn, Sie brauchen ein separates Ticket.",
     "GROUP_SIBLING_ACTIVITY_CONFIRM": "Trotzdem fortfahren",
-    "GROUP_SIBLING_FLOOR_DOT": "Ein anderer Tisch in dieser Gruppe hat eine aktive Sitzung oder offene Bestellung"
+    "GROUP_SIBLING_FLOOR_DOT": "Ein anderer Tisch in dieser Gruppe hat eine aktive Sitzung oder offene Bestellung",
+    "SYNC_UNAVAILABLE": "Verbindung nicht verfügbar. Der zuletzt bekannte Tischstatus wird angezeigt und ist möglicherweise nicht aktuell."
   },
   "TABLE_STATUS": {
     "available": "Verfügbar",
@@ -1590,7 +1591,8 @@
     "ATTENDANCE_REGISTRO_HORARIO_HINT": "Spanisches «registro horario» (.xlsx): monatliches Raster (Plan vs. gestempelt, Spalte für Unterschrift). Ein Blatt pro Mitarbeitendem. Nutzt Mandanten-Zeitzone und optionale CIF/CCC aus den Einstellungen.",
     "ATTENDANCE_REGISTRO_HORARIO_DOWNLOAD": "Registro horario (ES) herunterladen",
     "ATTENDANCE_REGISTRO_HORARIO_NO_DATA": "Keine Anwesenheit in diesem Monat (oder keine Datensätze). Personal wählen oder Zeiten erfassen.",
-    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "Registro-Horario-Export konnte nicht heruntergeladen werden. Bitte erneut versuchen."
+    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "Registro-Horario-Export konnte nicht heruntergeladen werden. Bitte erneut versuchen.",
+    "FILTERS_PENDING": "Der Zeitraum wurde geändert. Aktualisieren Sie den Bericht, um den neuen Zeitraum anzuzeigen und zu exportieren."
   },
   "WORKING_PLAN": {
     "TITLE": "Schichtplan",
@@ -2718,7 +2720,8 @@
       "RECEPTIONIST": "Empfangsmitarbeiter",
       "COURIER": "Kurier",
       "PLATFORM_OPERATOR": "Plattform-Betreiber"
-    }
+    },
+    "DELETING": "Wird gelöscht…"
   },
   "TRANSLATIONS": {
     "SELECT_ITEM_TO_TRANSLATE": "Element zum Übersetzen auswählen",
@@ -3475,7 +3478,10 @@
     "RESOLVE": "Abschließen",
     "OFFLINE": "Keine Verbindung. Letzte Informationen und Entwürfe bleiben erhalten.",
     "PAYMENT_UNCERTAIN": "Zahlungsergebnis unklar. Prüfen Sie dieselbe Transaktion, bevor Sie Betrag oder Zahlungsart ändern.",
-    "CLOSED_DRAFT": "Entwurf gespeichert. Der gespeicherte Tisch ist geschlossen; vor dem Öffnen prüfen."
+    "CLOSED_DRAFT": "Entwurf gespeichert. Der gespeicherte Tisch ist geschlossen; vor dem Öffnen prüfen.",
+    "ORDER_UNCERTAIN": "Die letzte Bestellung wurde noch nicht bestätigt. Prüfen Sie dieselbe Bestellung, bevor Sie weitere Artikel hinzufügen.",
+    "VERIFY_ORDER": "Bestellung prüfen",
+    "DRAFT_STORAGE_UNAVAILABLE": "Der Entwurf konnte auf diesem Gerät nicht sicher gespeichert werden. Aktivieren Sie den Browserspeicher und versuchen Sie es erneut."
   },
   "LOGIN_PORTAL": {
     "CHOOSE": "Anmeldebereich wählen",
@@ -3524,5 +3530,54 @@
     "EMPTY_MENU": "Unsere Speisekarte ist bald hier.",
     "LOADING": "Speisekarte wird geladen",
     "ALL_CATEGORIES": "Alle Kategorien"
+  },
+  "CASH_REGISTER": {
+    "TITLE": "Kasse",
+    "LOADING": "Kassenstatus wird geladen",
+    "OPEN": "Kasse geöffnet",
+    "CLOSED": "Kasse geschlossen",
+    "EXPECTED": "Erwarteter Bargeldbestand",
+    "REFRESH": "Aktualisieren",
+    "CLOSE_ACTION": "Kasse schließen",
+    "OPEN_ACTION": "Kasse öffnen",
+    "UNAVAILABLE": "Der Kassenstatus ist nicht verfügbar. Prüfen Sie die Verbindung und aktualisieren Sie den Status vor einer Buchung.",
+    "UNCERTAIN": "Das Ergebnis der Buchung wurde noch nicht bestätigt. Aktualisieren Sie den Kassenstatus, bevor Sie die Buchung erneut senden.",
+    "CLOSED_SUMMARY": "Gezähltes Bargeld:",
+    "VARIANCE": "Kassendifferenz",
+    "CLOSE_HELP": "Zählen Sie das Bargeld in der Kasse und geben Sie den Betrag ein. Die Differenz wird zum erwarteten Bestand berechnet.",
+    "OPEN_HELP": "Geben Sie den Bargeldbestand bei der Öffnung ein. Dadurch beginnt die Kassensitzung.",
+    "COUNTED_AMOUNT": "Gezähltes Bargeld",
+    "OPENING_AMOUNT": "Anfangsbestand",
+    "NOTE": "Notiz (optional)",
+    "SAVING": "Wird gespeichert…",
+    "CONFIRM_CLOSE": "Schließung bestätigen",
+    "CONFIRM_OPEN": "Öffnung bestätigen",
+    "STORAGE_ERROR": "Die Buchung konnte nicht sicher gespeichert werden. Aktivieren Sie den Browserspeicher und versuchen Sie es erneut.",
+    "SAVE_FAILED": "Die Kassenbuchung konnte nicht gespeichert werden. Prüfen Sie den aktuellen Kassenstatus und versuchen Sie es erneut.",
+    "CHECK_REQUIRED": "Bestätigung ausstehend"
+  },
+  "WORKSPACE": {
+    "NO_CHANGES": "Es gibt keine Änderungen zu speichern.",
+    "SAVED": "Änderungen gespeichert.",
+    "SAVE_FAILED": "Die Änderungen konnten nicht gespeichert werden. Ihre Eingaben bleiben auf dieser Seite erhalten. Versuchen Sie es erneut.",
+    "UNSAVED_CONFIRM": "Sie haben ungespeicherte Änderungen. Ohne Speichern verlassen?"
+  },
+  "MENU_EXPERIENCE": {
+    "EYEBROW": "BERATZADE SPEISEKARTE",
+    "TITLE": "Worauf haben Sie Appetit?",
+    "DESCRIPTION": "Entdecken Sie unsere Gerichte und aktuellen Preise auf einen Blick.",
+    "SEARCH": "Finden Sie etwas Leckeres",
+    "ALL": "Gesamte Speisekarte",
+    "PRODUCT_COUNT": "{{count}} Gerichte",
+    "SEARCH_COUNT": "{{count}} Ergebnisse",
+    "CLEAR_SEARCH": "Suche löschen",
+    "NO_RESULTS_TITLE": "Keine Gerichte gefunden",
+    "NO_RESULTS_HINT": "Suchen Sie nach einem anderen Gericht oder sehen Sie sich die gesamte Speisekarte an.",
+    "VIEW_DETAILS": "Gericht ansehen",
+    "FRESHNESS_WARNING": "Verbindung unterbrochen. Die zuletzt geladene Speisekarte wird angezeigt.",
+    "RETRY": "Erneut versuchen",
+    "TOP": "Nach oben",
+    "PHONE": "Restaurant anrufen",
+    "PRODUCT_INFO": "Gerichtdetails"
   }
 }

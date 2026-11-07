@@ -96,6 +96,14 @@ export class ReportsComponent implements OnInit {
   @ViewChild('attendanceStaffDropdownRoot') attendanceStaffDropdownRoot?: ElementRef<HTMLElement>;
   fromDate = signal('');
   toDate = signal('');
+  readonly appliedRange = signal<{ from: string; to: string } | null>(null);
+  readonly filtersPending = computed(() => {
+    const range = this.appliedRange();
+    return !!range && (range.from !== this.fromDate() || range.to !== this.toDate());
+  });
+  readonly canExport = computed(() => !!this.report() && !!this.appliedRange() && !this.filtersPending() && !this.loading() && !this.exporting() && !this.error());
+  private reportRequest = 0;
+  private workSessionsRequest = 0;
   currency = signal('€');
   currencyCode = signal<string | null>(null);
 
@@ -235,16 +243,21 @@ export class ReportsComponent implements OnInit {
     const from = this.fromDate();
     const to = this.toDate();
     if (!from || !to) return;
+    const request = ++this.reportRequest;
+    ++this.workSessionsRequest;
     this.loading.set(true);
     this.error.set(null);
     this.api.getSalesReports(from, to).subscribe({
       next: (data) => {
+        if (request !== this.reportRequest) return;
         this.report.set(data);
+        this.appliedRange.set({ from, to });
         this.loading.set(false);
         this.loadWorkSessions();
       },
       error: (err) => {
-        this.error.set(err?.message || 'Failed to load report');
+        if (request !== this.reportRequest) return;
+        this.error.set(this.apiErr.fromHttpError(err, 'COMMON.API_REQUEST_FAILED'));
         this.loading.set(false);
         this.loadWorkSessions();
       },
@@ -443,17 +456,21 @@ export class ReportsComponent implements OnInit {
       this.workSessionsLive.set([]);
       return;
     }
-    const from = this.fromDate();
-    const to = this.toDate();
+    const range = this.appliedRange();
+    const from = range?.from ?? this.fromDate();
+    const to = range?.to ?? this.toDate();
     if (!from || !to) return;
+    const request = ++this.workSessionsRequest;
     this.workSessionsLoading.set(true);
     this.workSessionsError.set(null);
     this.api.getReportWorkSessions(from, to).subscribe({
       next: (rows) => {
+        if (request !== this.workSessionsRequest) return;
         this.workSessions.set(rows);
         this.workSessionsLoading.set(false);
       },
       error: () => {
+        if (request !== this.workSessionsRequest) return;
         this.workSessions.set([]);
         this.workSessionsLoading.set(false);
         this.workSessionsError.set('Failed to load attendance');
@@ -722,9 +739,9 @@ export class ReportsComponent implements OnInit {
   }
 
   exportExcel() {
+    if (!this.canExport()) return;
     this.exporting.set(true);
-    const from = this.fromDate();
-    const to = this.toDate();
+    const { from, to } = this.appliedRange()!;
     this.api.getReportsExport(from, to, 'xlsx', 'summary', this.languageService.getLanguage()).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
@@ -740,13 +757,13 @@ export class ReportsComponent implements OnInit {
   }
 
   private export(format: 'csv' | 'xlsx', report: string) {
+    if (!this.canExport()) return;
     if (format === 'xlsx') {
       this.exportExcel();
       return;
     }
     this.exporting.set(true);
-    const from = this.fromDate();
-    const to = this.toDate();
+    const { from, to } = this.appliedRange()!;
     this.api.getReportsExport(from, to, 'csv', report, this.languageService.getLanguage()).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);

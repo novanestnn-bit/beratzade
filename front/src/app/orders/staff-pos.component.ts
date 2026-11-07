@@ -1,15 +1,18 @@
 import { ServiceRequestsComponent } from '../shared/service-requests.component';
+import { CashRegisterComponent } from '../shared/cash-register.component';
 import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { RouterLink } from '@angular/router';
-import { ApiService, CurrentTableOrder, Order, OrderPaymentLeg, ProductQuestion, StaffPosMenuProduct, Table } from '../services/api.service';
+import { ApiService, CurrentTableOrder, Order, OrderCreate, OrderPaymentLeg, ProductQuestion, StaffPosMenuProduct, StaffSaleCreate, Table } from '../services/api.service';
 import { SidebarComponent } from '../shared/sidebar.component';
 import { environment } from '../../environments/environment';
+import { pendingRequest } from '../shared/durable-request-key';
 
 type SaleMode = 'table' | 'quick_sale' | 'takeaway';
 type PaymentMethod = 'cash' | 'terminal' | 'meal_card';
+interface PendingPosSubmission { mode: SaleMode; tableId: number | null; body: OrderCreate | StaffSaleCreate; }
 
 interface PosCategory {
   id: string;
@@ -31,6 +34,7 @@ interface PayableOrder {
   amountDue: number;
   amountPaid: number;
   amountRemaining: number;
+  tableId?: number | null;
   items: Array<{ product_name: string; quantity: number; price_cents: number; notes?: string | null }>;
   payments: OrderPaymentLeg[];
 }
@@ -47,7 +51,7 @@ interface CompletedPaymentEntry {
 @Component({
   selector: 'app-staff-pos',
   standalone: true,
-  imports: [ServiceRequestsComponent, CommonModule, FormsModule, RouterLink, SidebarComponent, TranslateModule],
+  imports: [ServiceRequestsComponent, CashRegisterComponent, CommonModule, FormsModule, RouterLink, SidebarComponent, TranslateModule],
   template: `
     <app-sidebar>
       <app-service-requests />
@@ -63,6 +67,8 @@ interface CompletedPaymentEntry {
           </div>
         </header>
 
+        <app-cash-register [currency]="currency()" />
+
         <nav class="sale-modes" aria-label="Satış türü">
           <button type="button" [class.active]="mode() === 'table'" (click)="setMode('table')" data-testid="pos-mode-table">Masada satış</button>
           <button type="button" [class.active]="mode() === 'quick_sale'" (click)="setMode('quick_sale')" data-testid="pos-mode-quick">Hızlı satış</button>
@@ -71,6 +77,12 @@ interface CompletedPaymentEntry {
 
         @if (syncOffline()) { <p role="status" data-testid="pos-offline">{{ 'SERVICE_REQUESTS.OFFLINE' | translate }}</p> }
         @if (paymentUncertain()) { <p role="status">{{ 'SERVICE_REQUESTS.PAYMENT_UNCERTAIN' | translate }}</p> }
+        @if (orderUncertain()) {
+          <div class="pos-alert" role="status" data-testid="pos-order-uncertain">
+            {{ 'SERVICE_REQUESTS.ORDER_UNCERTAIN' | translate }}
+            <button type="button" class="primary-button" [disabled]="submitting()" (click)="submitOrder()" data-testid="pos-retry-order">{{ 'SERVICE_REQUESTS.VERIFY_ORDER' | translate }}</button>
+          </div>
+        }
         @if (counterSaleAwaitingPayment()) { <p class="pos-alert" role="status" data-testid="pos-unpaid-counter-sale">{{ 'STAFF_POS.SETTLE_CURRENT_SALE' | translate }}</p> }
         @if (error()) { <div class="pos-alert error" role="alert">{{ error() }}</div> }
         @if (success()) { <div class="pos-alert success" role="status">{{ success() }}</div> }
@@ -115,8 +127,8 @@ interface CompletedPaymentEntry {
 
               @if (mode() === 'takeaway' && !payableOrder()) {
                 <div class="customer-fields">
-                  <label>Müşteri adı<input [(ngModel)]="customerName" (ngModelChange)="persistDraft()" maxlength="160" autocomplete="name" placeholder="İsteğe bağlı" /></label>
-                  <label>Telefon<input [(ngModel)]="customerPhone" (ngModelChange)="persistDraft()" maxlength="40" autocomplete="tel" placeholder="İsteğe bağlı" /></label>
+                  <label>Müşteri adı<input [disabled]="orderEditingLocked()" [(ngModel)]="customerName" (ngModelChange)="persistDraft()" maxlength="160" autocomplete="name" placeholder="İsteğe bağlı" /></label>
+                  <label>Telefon<input [disabled]="orderEditingLocked()" [(ngModel)]="customerPhone" (ngModelChange)="persistDraft()" maxlength="40" autocomplete="tel" placeholder="İsteğe bağlı" /></label>
                 </div>
               }
 
@@ -146,6 +158,7 @@ interface CompletedPaymentEntry {
               }
 
               <section class="draft-section">
+                <fieldset [disabled]="orderEditingLocked()" style="border:0;padding:0;margin:0;min-width:0">
                 <div class="subsection-title"><strong>{{ payableOrder() ? 'Yeni ürünler' : 'Adisyon taslağı' }}</strong><span>{{ cartCount() }} ürün</span></div>
                 @if (cart().length === 0) {
                   <p class="empty-cart">Ürün seçmek için menüden bir karta dokun.</p>
@@ -195,6 +208,7 @@ interface CompletedPaymentEntry {
                     {{ submitting() ? 'Kaydediliyor…' : mode() === 'table' ? 'Siparişi mutfağa gönder' : 'Siparişi kaydet' }}
                   </button>
                 }
+                </fieldset>
               </section>
 
               @if (mode() === 'quick_sale' && paymentOptionsOpen() && cart().length > 0 && !payableOrder()) {
@@ -294,7 +308,7 @@ interface CompletedPaymentEntry {
               } @else {
                 <div class="product-grid">
                   @for (product of visibleProducts(); track trackProduct(product)) {
-                    <button type="button" class="product-card" [disabled]="!product.available || payableOrder()?.amountRemaining === 0 || submitting() || processingPayment() || counterSaleAwaitingPayment()" (click)="addProduct(product)" [attr.data-testid]="'pos-product-' + product.source + '-' + product.id">
+                    <button type="button" class="product-card" [disabled]="!product.available || payableOrder()?.amountRemaining === 0 || orderEditingLocked() || processingPayment() || counterSaleAwaitingPayment()" (click)="addProduct(product)" [attr.data-testid]="'pos-product-' + product.source + '-' + product.id">
                       <span class="product-media">
                         @if (product.image_url && !failedImages().has(product.image_url)) { <img [src]="productImageUrl(product)" [alt]="''" loading="lazy" (error)="hideProductImage(product.image_url)" /> } @else { <span class="product-placeholder" aria-hidden="true">✦</span> }
                       </span>
@@ -489,7 +503,8 @@ export class StaffPosComponent implements OnDestroy {
   private paymentKey = '';
   private collectAfterOrderLoad = false;
   private menuRequest = 0;
-  readonly counterSaleAwaitingPayment = computed(() => this.mode() !== 'table' && (this.payableOrder()?.amountRemaining ?? 0) > 0);
+  private recoveringCounterSale = signal(false);
+  readonly counterSaleAwaitingPayment = computed(() => this.mode() !== 'table' && (this.recoveringCounterSale() || (this.payableOrder()?.amountRemaining ?? 0) > 0));
 
   readonly cartCount = computed(() => this.cart().reduce((sum, line) => sum + line.quantity, 0));
   readonly draftTotal = computed(() => this.cart().reduce((sum, line) => sum + line.product.price_cents * line.quantity, 0));
@@ -523,27 +538,52 @@ export class StaffPosComponent implements OnDestroy {
   readonly syncOffline = signal(false);
   private translate = inject(TranslateService);
   readonly paymentUncertain = signal(false);
+  readonly orderUncertain = signal(false);
+  readonly orderEditingLocked = computed(() => this.submitting() || this.orderUncertain());
+  private pendingSubmission: PendingPosSubmission | null = null;
+  private selectionVersion = 0;
+  private tableOrderRequest = 0;
+  private orderReadRequest = 0;
+  private destroyed = false;
   private restoredTableId: number | null = null;
   private restoredPaymentOrderId: number | null = null;
   private syncTimer: ReturnType<typeof setInterval>;
   private beforeUnload = (event: BeforeUnloadEvent) => {
     this.persistDraft();
-    if (this.cart().length || this.submitting() || this.processingPayment() || this.paymentUncertain()) { event.preventDefault(); event.returnValue = ''; }
+    if (this.cart().length || this.submitting() || this.processingPayment() || this.paymentUncertain() || this.orderUncertain()) { event.preventDefault(); event.returnValue = ''; }
   };
   private draftKey(): string {
     const user = this.api.getCurrentUser();
     return `pos-draft:v1:${user?.tenant_id}:${user?.id}`;
   }
-  persistDraft(): void {
+  persistDraft(): boolean {
+    if (this.destroyed) return false;
     try {
-      localStorage.setItem(this.draftKey(), JSON.stringify({ at: Date.now(), mode: this.mode(), tableId: this.selectedTable()?.id ?? this.restoredTableId, cart: this.cart(), notes: this.orderNotesValue, customerName: this.customerName, customerPhone: this.customerPhone, paymentOrderId: this.paymentKey || this.mode() !== 'table' ? (this.payableOrder()?.id ?? this.restoredPaymentOrderId) : null, paymentKey: this.paymentKey, paymentFingerprint: this.paymentKeyFingerprint, paymentMethod: this.paymentMethod, paymentAmount: this.paymentAmount, cashReceived: this.cashReceived, paymentUncertain: this.paymentUncertain() }));
-    } catch { this.error.set('Taslak bu cihazda saklanamadı. Sayfayı yenilemeden önce siparişi gönderin.'); }
+      const user = this.api.getCurrentUser();
+      localStorage.setItem(this.draftKey(), JSON.stringify({ at: Date.now(), tenantId: user?.tenant_id, userId: user?.id, mode: this.mode(), tableId: this.selectedTable()?.id ?? this.restoredTableId, cart: this.cart(), notes: this.orderNotesValue, customerName: this.customerName, customerPhone: this.customerPhone, paymentOrderId: this.paymentKey || this.mode() !== 'table' ? (this.payableOrder()?.id ?? this.restoredPaymentOrderId) : null, paymentKey: this.paymentKey, paymentFingerprint: this.paymentKeyFingerprint, paymentMethod: this.paymentMethod, paymentAmount: this.paymentAmount, cashReceived: this.cashReceived, paymentUncertain: this.paymentUncertain(), pendingSubmission: this.pendingSubmission }));
+      return true;
+    } catch { this.error.set(this.translate.instant('SERVICE_REQUESTS.DRAFT_STORAGE_UNAVAILABLE')); return false; }
   }
   private restoreDraft(): void {
     try {
       const draft = JSON.parse(localStorage.getItem(this.draftKey()) || 'null');
-      if (!draft || Date.now() - draft.at > 8 * 3600000) return;
+      if (!draft || !Number.isFinite(draft.at)) return;
+      const user = this.api.getCurrentUser();
+      if ((draft.tenantId != null && draft.tenantId !== user?.tenant_id) || (draft.userId != null && draft.userId !== user?.id)) return;
       if (!['table', 'quick_sale', 'takeaway'].includes(draft.mode) || !Array.isArray(draft.cart)) return;
+      const pending = draft.pendingSubmission;
+      const body = pending?.body;
+      const validOrder = pending?.mode === draft.mode && typeof body?.idempotency_key === 'string' && body.idempotency_key.length >= 8 && body.idempotency_key.length <= 128
+        && Array.isArray(body.items) && body.items.length > 0 && body.items.every((item: { product_id: number; quantity: number }) => Number.isSafeInteger(item.product_id) && item.product_id > 0 && Number.isSafeInteger(item.quantity) && item.quantity >= 1 && item.quantity <= 99)
+        && !('staff_access' in body) && !('pin' in body)
+        && (draft.mode === 'table' ? Number.isSafeInteger(pending.tableId) && pending.tableId > 0 && pending.tableId === draft.tableId : pending.tableId == null && body.sale_type === draft.mode);
+      const paymentParts = typeof draft.paymentFingerprint === 'string' ? draft.paymentFingerprint.split(':') : [];
+      const validPayment = typeof draft.paymentKey === 'string' && draft.paymentKey.length >= 8 && draft.paymentKey.length <= 64 && Number.isSafeInteger(draft.paymentOrderId) && draft.paymentOrderId > 0
+        && paymentParts.length === 3 && Number(paymentParts[0]) === draft.paymentOrderId && Number.isSafeInteger(Number(paymentParts[1])) && Number(paymentParts[1]) > 0
+        && ['cash', 'terminal', 'meal_card'].includes(draft.paymentMethod) && paymentParts[2] === draft.paymentMethod
+        && typeof draft.paymentAmount === 'string' && this.parseMoney(draft.paymentAmount) === Number(paymentParts[1]);
+      const knownCounterBill = draft.mode !== 'table' && Number.isSafeInteger(draft.paymentOrderId) && draft.paymentOrderId > 0;
+      if (Date.now() - draft.at > 8 * 3600000 && !validOrder && !validPayment && !knownCounterBill) return;
       this.mode.set(draft.mode);
       this.cart.set(draft.cart.filter((line: CartLine) => line.product?.id && line.quantity > 0));
       this.restoredTableId = draft.tableId || null;
@@ -551,15 +591,20 @@ export class StaffPosComponent implements OnDestroy {
       this.customerName = draft.customerName || '';
       this.customerPhone = draft.customerPhone || '';
       this.restoredPaymentOrderId = draft.paymentOrderId || null;
-      this.paymentKey = draft.paymentKey || '';
-      this.paymentKeyFingerprint = draft.paymentFingerprint || '';
+      this.recoveringCounterSale.set(draft.mode !== 'table' && this.restoredPaymentOrderId != null);
+      this.paymentKey = validPayment ? draft.paymentKey : '';
+      this.paymentKeyFingerprint = validPayment ? draft.paymentFingerprint : '';
       this.paymentMethod = draft.paymentMethod || 'cash';
       this.paymentAmount = draft.paymentAmount || '0.00';
       this.cashReceived = draft.cashReceived || '0.00';
-      this.paymentUncertain.set(draft.paymentUncertain === true);
+      this.paymentUncertain.set(validPayment);
+      if (validOrder) {
+        this.pendingSubmission = draft.pendingSubmission;
+        this.orderUncertain.set(true);
+      }
     } catch { }
   }
-  ngOnDestroy() { clearInterval(this.syncTimer); window.removeEventListener('beforeunload', this.beforeUnload); this.persistDraft(); }
+  ngOnDestroy() { this.persistDraft(); this.destroyed = true; this.selectionVersion++; clearInterval(this.syncTimer); window.removeEventListener('beforeunload', this.beforeUnload); }
 
   constructor() {
     this.restoreDraft();
@@ -604,12 +649,13 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   setMode(mode: SaleMode): void {
-    if (this.submitting() || this.processingPayment() || this.paymentUncertain() || this.counterSaleAwaitingPayment()) return;
+    if (this.orderEditingLocked() || this.processingPayment() || this.paymentUncertain() || this.counterSaleAwaitingPayment()) return;
     if (this.cart().length > 0) {
       this.error.set('Önce taslağı kaydet veya taslaktaki ürünleri kaldır.');
       return;
     }
     this.restoredTableId = null;
+    this.selectionVersion++;
     this.mode.set(mode);
     this.selectedSubcategory.set('all');
     this.error.set('');
@@ -638,13 +684,13 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   openPaymentOptions(): void {
-    if (!this.cart().length || this.submitting() || this.processingPayment()) return;
+    if (!this.cart().length || this.orderEditingLocked() || this.processingPayment()) return;
     this.error.set('');
     this.paymentOptionsOpen.set(true);
   }
 
   checkoutQuickSale(method: PaymentMethod): void {
-    if (this.mode() !== 'quick_sale' || !this.paymentOptionsOpen() || this.submitting() || this.processingPayment()) return;
+    if (this.mode() !== 'quick_sale' || !this.paymentOptionsOpen() || this.orderEditingLocked() || this.processingPayment()) return;
     this.setPaymentMethod(method);
     if (this.payableOrder()) {
       this.collectPayment();
@@ -674,15 +720,23 @@ export class StaffPosComponent implements OnDestroy {
     this.loadCompletedPayments();
     const order = this.payableOrder();
     if (order) this.loadOrderRecord(order.id);
+    else if (this.restoredPaymentOrderId) this.loadOrderRecord(this.restoredPaymentOrderId);
   }
 
   openTable(table: Table, restoring = false): void {
-    if (!restoring && (this.processingPayment() || this.paymentUncertain())) return;
+    if (this.destroyed) return;
+    if (!restoring && (this.processingPayment() || this.paymentUncertain() || this.orderEditingLocked())) return;
     if (table.id == null || this.openingTable()) return;
+    const selection = ++this.selectionVersion;
+    this.currentOrder.set(null);
+    this.payableOrder.set(null);
+    this.tableToken.set('');
+    this.staffAccess.set('');
     this.error.set('');
     this.openingTable.set(true);
     const continueOpen = () => this.api.getStaffMenuToken(table.id!).subscribe({
       next: (access) => {
+        if (this.destroyed || selection !== this.selectionVersion) return;
         this.staffAccess.set(access.token);
         this.tableToken.set(access.table_token);
         this.selectedTable.set({ ...table, is_active: true });
@@ -691,6 +745,7 @@ export class StaffPosComponent implements OnDestroy {
         this.refreshTableOrder();
       },
       error: (err) => {
+        if (this.destroyed || selection !== this.selectionVersion) return;
         this.openingTable.set(false);
         this.error.set(err.error?.detail || 'Masa bağlantısı açılamadı.');
       },
@@ -700,7 +755,7 @@ export class StaffPosComponent implements OnDestroy {
       return;
     }
     this.api.activateTable(table.id).subscribe({
-      next: () => continueOpen(),
+      next: () => { if (!this.destroyed && selection === this.selectionVersion) continueOpen(); },
       error: (err) => {
         this.openingTable.set(false);
         this.error.set(err.error?.detail || 'Masa açılamadı.');
@@ -709,12 +764,13 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   changeTable(): void {
-    if (this.processingPayment() || this.paymentUncertain()) return;
+    if (this.processingPayment() || this.paymentUncertain() || this.orderUncertain() || this.openingTable()) return;
     if (this.cart().length > 0 || this.submitting()) {
       this.error.set('Masa değiştirmeden önce taslağı gönder veya ürünleri kaldır.');
       return;
     }
     this.restoredTableId = null;
+    this.selectionVersion++;
     this.selectedTable.set(null);
     this.currentOrder.set(null);
     this.payableOrder.set(null);
@@ -724,7 +780,7 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   addProduct(product: StaffPosMenuProduct): void {
-    if (!product.available || this.payableOrder()?.amountRemaining === 0 || this.submitting() || this.processingPayment() || this.counterSaleAwaitingPayment()) return;
+    if (!product.available || this.payableOrder()?.amountRemaining === 0 || this.orderEditingLocked() || this.processingPayment() || this.counterSaleAwaitingPayment()) return;
     if (this.mode() === 'table' && !this.selectedTable()) {
       this.error.set('Önce masa seç.');
       return;
@@ -740,19 +796,19 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   changeQuantity(product: StaffPosMenuProduct, delta: number): void {
-    if (this.submitting() || this.processingPayment()) return;
+    if (this.orderEditingLocked() || this.processingPayment()) return;
     this.cart.update((lines) => lines
       .map((line) => this.lineKey(line.product) === this.lineKey(product) ? { ...line, quantity: Math.max(0, Math.min(99, line.quantity + delta)) } : line)
       .filter((line) => line.quantity > 0));
   }
 
   removeLine(product: StaffPosMenuProduct): void {
-    if (this.submitting() || this.processingPayment()) return;
+    if (this.orderEditingLocked() || this.processingPayment()) return;
     this.cart.update((lines) => lines.filter((line) => this.lineKey(line.product) !== this.lineKey(product)));
   }
 
   setLineNote(product: StaffPosMenuProduct, notes: string): void {
-    if (this.submitting() || this.processingPayment()) return;
+    if (this.orderEditingLocked() || this.processingPayment()) return;
     this.cart.update((lines) => lines.map((line) => this.lineKey(line.product) === this.lineKey(product) ? { ...line, notes } : line));
   }
 
@@ -775,7 +831,7 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   setAnswer(product: StaffPosMenuProduct, question: ProductQuestion, value: unknown): void {
-    if (this.submitting() || this.processingPayment()) return;
+    if (this.orderEditingLocked() || this.processingPayment()) return;
     this.cart.update((lines) => lines.map((line) => {
       if (this.lineKey(line.product) !== this.lineKey(product)) return line;
       const answers = { ...line.answers };
@@ -786,7 +842,7 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   toggleAnswer(product: StaffPosMenuProduct, question: ProductQuestion, option: string, checked: boolean): void {
-    if (this.submitting() || this.processingPayment()) return;
+    if (this.orderEditingLocked() || this.processingPayment()) return;
     this.cart.update((lines) => lines.map((line) => {
       if (this.lineKey(line.product) !== this.lineKey(product)) return line;
       const answers = { ...line.answers };
@@ -807,8 +863,8 @@ export class StaffPosComponent implements OnDestroy {
 
   submitOrder(): void {
     const lines = this.cart();
-    if (!lines.length || this.submitting() || this.processingPayment() || this.counterSaleAwaitingPayment()) return;
-    const missing = lines.find((line) => (line.product.questions ?? []).some((question) =>
+    if (this.submitting() || this.processingPayment() || (!this.pendingSubmission && (!lines.length || this.counterSaleAwaitingPayment()))) return;
+    const missing = !this.pendingSubmission && lines.find((line) => (line.product.questions ?? []).some((question) =>
       question.required && !this.hasRequiredAnswer(line.answers[question.id]),
     ));
     if (missing) {
@@ -831,62 +887,76 @@ export class StaffPosComponent implements OnDestroy {
         customization_answers: Object.keys(answers).length ? answers : undefined,
       };
     });
-    if (this.mode() === 'table') {
-      const access = this.staffAccess();
-      const token = this.tableToken();
-      if (!access || !token) {
-        this.submitting.set(false);
-        this.error.set('Masa personel bağlantısı kurulmadı. Masayı yeniden aç.');
-        return;
-      }
-      this.api.submitOrder(token, {
-        items,
-        notes: this.orderNotesValue.trim() || undefined,
-        staff_access: access,
-      }).subscribe({
-        next: (response) => {
-          this.cart.set([]);
-          this.orderNotesValue = '';
-          this.success.set(`Sipariş #${response.order_id} mutfağa gönderildi.`);
-          this.submitting.set(false);
-          this.refreshTableOrder();
-          this.loadOrderRecord(response.order_id);
-        },
-        error: (err) => {
-          this.submitting.set(false);
-          this.error.set(err.error?.detail || 'Sipariş kaydedilemedi; taslak korunuyor.');
-        },
-      });
+    if (!this.pendingSubmission) {
+      const tableMode = this.mode() === 'table';
+      const content = tableMode ? { items, notes: this.orderNotesValue.trim() || undefined } : {
+        sale_type: this.mode() === 'takeaway' ? 'takeaway' as const : 'quick_sale' as const,
+        items, customer_name: this.customerName.trim() || null,
+        customer_phone: this.customerPhone.trim() || null, notes: this.orderNotesValue.trim() || null,
+      };
+      const user = this.api.getCurrentUser();
+      const scope = tableMode ? `order:${user?.id || 'guest'}:${this.tableToken()}` : `sale:${user?.tenant_id}:${user?.id}`;
+      const key = pendingRequest(scope, content).key;
+      this.pendingSubmission = { mode: this.mode(), tableId: this.selectedTable()?.id ?? null, body: JSON.parse(JSON.stringify({ ...content, idempotency_key: key })) };
+    }
+    const pending = this.pendingSubmission;
+    const wasUncertain = this.orderUncertain();
+    if (!this.persistDraft() && !wasUncertain) {
+      this.pendingSubmission = null;
+      this.submitting.set(false);
       return;
     }
-    const saleKey = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 18)}`;
-    this.api.createStaffSale({
-      idempotency_key: saleKey,
-      sale_type: this.mode() === 'takeaway' ? 'takeaway' : 'quick_sale',
-      items,
-      customer_name: this.customerName.trim() || null,
-      customer_phone: this.customerPhone.trim() || null,
-      notes: this.orderNotesValue.trim() || null,
-    }).subscribe({
+    const failed = (err: { status?: number; error?: { detail?: string } }) => {
+      this.collectAfterOrderLoad = false;
+      this.submitting.set(false);
+      const uncertain = wasUncertain || err.status === 0 || err.status === 408 || (err.status ?? 0) >= 500;
+      this.orderUncertain.set(uncertain);
+      if (!uncertain) this.pendingSubmission = null;
+      this.error.set(uncertain ? this.translate.instant('SERVICE_REQUESTS.ORDER_UNCERTAIN') : err.error?.detail || 'Sipariş kaydedilemedi; taslak korunuyor.');
+      this.persistDraft();
+    };
+    const confirmed = () => {
+      this.pendingSubmission = null;
+      this.orderUncertain.set(false);
+      this.cart.set([]);
+      this.orderNotesValue = '';
+      this.submitting.set(false);
+      this.persistDraft();
+    };
+    if (pending.mode === 'table') {
+      const send = (access: string, token: string) => this.api.submitOrder(token, { ...pending.body as OrderCreate, staff_access: access }).subscribe({
+        next: (response) => {
+          confirmed();
+          this.success.set(`Sipariş #${response.order_id} mutfağa gönderildi.`);
+          if (!this.destroyed && this.selectedTable()?.id === pending.tableId) {
+            this.refreshTableOrder();
+            this.loadOrderRecord(response.order_id);
+          }
+        },
+        error: failed,
+      });
+      if (this.staffAccess() && this.tableToken() && this.selectedTable()?.id === pending.tableId) send(this.staffAccess(), this.tableToken());
+      else if (pending.tableId != null) this.api.getStaffMenuToken(pending.tableId).subscribe({ next: access => send(access.token, access.table_token), error: failed });
+      else failed({ status: wasUncertain ? 0 : 400 });
+      return;
+    }
+    this.api.createStaffSale(pending.body as StaffSaleCreate).subscribe({
       next: (response) => {
-        this.cart.set([]);
-        this.orderNotesValue = '';
+        confirmed();
+        this.restoredPaymentOrderId = response.id;
+        this.recoveringCounterSale.set(true);
+        this.persistDraft();
         this.success.set(`Sipariş #${response.id} kaydedildi ve operasyon ekranına iletildi.`);
-        this.submitting.set(false);
         const collectAfterLoad = this.collectAfterOrderLoad;
         this.collectAfterOrderLoad = false;
-        this.loadOrderRecord(response.id, response.total_cents, collectAfterLoad ? () => this.collectPayment() : undefined);
+        if (!this.destroyed) this.loadOrderRecord(response.id, response.total_cents, collectAfterLoad ? () => this.collectPayment() : undefined);
       },
-      error: (err) => {
-        this.collectAfterOrderLoad = false;
-        this.submitting.set(false);
-        this.error.set(err.error?.detail || 'Sipariş kaydedilemedi; taslak korunuyor.');
-      },
+      error: failed,
     });
   }
 
   setPaymentMethod(method: PaymentMethod): void {
-    if (this.paymentUncertain() || this.processingPayment()) { this.error.set(this.translate.instant('SERVICE_REQUESTS.PAYMENT_UNCERTAIN')); return; }
+    if (this.paymentUncertain() || this.processingPayment() || this.orderEditingLocked()) { this.error.set(this.translate.instant('SERVICE_REQUESTS.PAYMENT_UNCERTAIN')); return; }
     this.paymentMethod = method;
     this.resetPaymentKey();
     const remaining = this.payableOrder()?.amountRemaining ?? 0;
@@ -895,7 +965,7 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   setCashReceived(value: string | number): void {
-    if (this.paymentUncertain() || this.processingPayment()) return;
+    if (this.paymentUncertain() || this.processingPayment() || this.orderEditingLocked()) return;
     this.cashReceived = String(value ?? '');
     const received = this.parseMoney(this.cashReceived);
     const remaining = this.payableOrder()?.amountRemaining ?? 0;
@@ -904,7 +974,7 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   setPaymentAmount(value: string | number): void {
-    if (this.paymentUncertain() || this.processingPayment()) return;
+    if (this.paymentUncertain() || this.processingPayment() || this.orderEditingLocked()) return;
     this.paymentAmount = String(value ?? '');
     this.resetPaymentKey();
   }
@@ -920,7 +990,7 @@ export class StaffPosComponent implements OnDestroy {
   collectPayment(): void {
     const order = this.payableOrder();
     const amount = this.paymentAmountCents();
-    if (!order || amount < 1 || (!this.paymentUncertain() && amount > order.amountRemaining) || this.processingPayment()) return;
+    if (!order || this.orderEditingLocked() || (this.mode() === 'table' && this.selectedTable()?.id != null && order.tableId !== this.selectedTable()?.id) || amount < 1 || (!this.paymentUncertain() && amount > order.amountRemaining) || this.processingPayment()) return;
     this.processingPayment.set(true);
     this.error.set('');
     this.api.recordOrderPayment(order.id, {
@@ -953,6 +1023,7 @@ export class StaffPosComponent implements OnDestroy {
           this.currentOrder.set(null);
           this.collectAfterOrderLoad = false;
           this.restoredPaymentOrderId = null;
+          this.recoveringCounterSale.set(false);
           this.customerName = '';
           this.customerPhone = '';
           this.persistDraft();
@@ -972,7 +1043,7 @@ export class StaffPosComponent implements OnDestroy {
       },
       error: (err) => {
         this.processingPayment.set(false);
-        this.paymentUncertain.set(err.status === 0 || err.status >= 500);
+        this.paymentUncertain.set(this.paymentUncertain() || err.status === 0 || err.status === 408 || err.status >= 500);
         this.persistDraft();
         this.error.set(err.error?.detail || 'Tahsilat kaydedilemedi. Masa açık kaldı; aynı işlemi güvenle yeniden deneyebilirsin.');
       },
@@ -1049,14 +1120,18 @@ export class StaffPosComponent implements OnDestroy {
   private refreshTableOrder(): void {
     const token = this.tableToken();
     if (!token) return;
+    const selection = this.selectionVersion;
+    const request = ++this.tableOrderRequest;
     this.currentOrderLoading.set(true);
     this.api.getCurrentOrder(token).subscribe({
       next: (response) => {
+        if (this.destroyed || selection !== this.selectionVersion || token !== this.tableToken() || request !== this.tableOrderRequest) return;
         this.currentOrder.set(response.order);
         this.currentOrderLoading.set(false);
         if (response.order) this.loadOrderRecord(response.order.id);
       },
       error: (err) => {
+        if (this.destroyed || selection !== this.selectionVersion || token !== this.tableToken() || request !== this.tableOrderRequest) return;
         this.currentOrderLoading.set(false);
         this.error.set(err.error?.detail || 'Masanın açık hesabı yüklenemedi.');
       },
@@ -1064,21 +1139,29 @@ export class StaffPosComponent implements OnDestroy {
   }
 
   private loadOrderRecord(orderId: number, fallbackDue?: number, afterLoad?: () => void): void {
+    const selection = this.selectionVersion;
+    const request = ++this.orderReadRequest;
+    const tableId = this.selectedTable()?.id ?? null;
+    const current = () => !this.destroyed && selection === this.selectionVersion && request === this.orderReadRequest && (this.selectedTable()?.id ?? null) === tableId;
     this.api.getOrders().subscribe({
       next: (orders: Order[]) => {
+        if (!current()) return;
         this.tableOrders.set(orders);
         this.setCompletedPayments(orders);
         const order = orders.find((item) => item.id === orderId);
         if (!order) {
           if (fallbackDue != null) {
-            this.payableOrder.set({ id: orderId, tableName: this.selectedTable()?.name || this.modeLabel(), amountDue: fallbackDue, amountPaid: 0, amountRemaining: fallbackDue, items: [], payments: [] });
+            this.payableOrder.set({ id: orderId, tableId, tableName: this.selectedTable()?.name || this.modeLabel(), amountDue: fallbackDue, amountPaid: 0, amountRemaining: fallbackDue, items: [], payments: [] });
             afterLoad?.();
           }
           return;
         }
+        if (tableId != null && order.table_id != null && order.table_id !== tableId) return;
+        this.recoveringCounterSale.set(false);
         const previous = this.payableOrder();
         this.payableOrder.set({
           id: order.id,
+          tableId: order.table_id ?? tableId,
           tableName: order.table_name || this.modeLabel(),
           amountDue: order.amount_due_cents ?? order.total_cents,
           amountPaid: order.amount_paid_cents ?? 0,
@@ -1104,8 +1187,9 @@ export class StaffPosComponent implements OnDestroy {
         afterLoad?.();
       },
       error: () => {
+        if (!current()) return;
         if (fallbackDue != null) {
-          this.payableOrder.set({ id: orderId, tableName: this.selectedTable()?.name || this.modeLabel(), amountDue: fallbackDue, amountPaid: 0, amountRemaining: fallbackDue, items: [], payments: [] });
+          this.payableOrder.set({ id: orderId, tableId, tableName: this.selectedTable()?.name || this.modeLabel(), amountDue: fallbackDue, amountPaid: 0, amountRemaining: fallbackDue, items: [], payments: [] });
           afterLoad?.();
         }
       },

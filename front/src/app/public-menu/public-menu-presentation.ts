@@ -1,5 +1,14 @@
 import type { PublicTenantMenuCategory, PublicTenantMenuProduct } from '../services/api.service';
 
+/** Turkish accents, word order and category names should not prevent finding a dish. */
+export function matchesMenuSearch(product: PublicTenantMenuProduct, query: string, context = ''): boolean {
+  const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('tr-TR').replace(/ı/g, 'i');
+  const words = normalize(query).trim().split(/\s+/).filter(Boolean);
+  const text = normalize(`${product.name} ${product.description ?? ''} ${product.category ?? ''} ${product.subcategory ?? ''} ${context}`);
+  return words.every(word => text.includes(word));
+}
+
 /** Product ids belong to separate tables; the source is part of their public identity. */
 export function publicProductKey(product: PublicTenantMenuProduct): string {
   const source = product.source;

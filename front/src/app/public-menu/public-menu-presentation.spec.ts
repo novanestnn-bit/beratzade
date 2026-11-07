@@ -1,12 +1,24 @@
 import type { PublicTenantMenuCategory, PublicTenantMenuProduct } from '../services/api.service';
 import { orderBeratzadeMenuCategories } from '../shared/public-menu-categories';
-import { categoryForProduct, categoryProducts, menuProducts, publicImageUrl, publicProductKey } from './public-menu-presentation';
+import { categoryForProduct, categoryProducts, matchesMenuSearch, menuProducts, publicImageUrl, publicProductKey } from './public-menu-presentation';
 
 function product(id: number, source: 'product' | 'tenant_product', name = 'Isolated dish'): PublicTenantMenuProduct {
   return { id, source, name, price_cents: 1500, price_formatted: '15.00', description: null, category: null, subcategory: null, image_url: null, available: true };
 }
 
 describe('restaurant public menu presentation', () => {
+  it('finds Turkish dish names without accents and regardless of search word order', () => {
+    const dish = product(1, 'product', 'Çıtır Tavuk Dürüm');
+    expect(matchesMenuSearch(dish, 'durum citir')).toBeTrue();
+    expect(matchesMenuSearch(dish, '  TAVUK   dürüm ')).toBeTrue();
+    expect(matchesMenuSearch(dish, 'tavuk kebap')).toBeFalse();
+  });
+  it('searches category and description without hiding a dish for whitespace input', () => {
+    const dish = { ...product(1, 'product', 'Ayran'), description: 'Soğuk içecek', category: 'İçecekler' };
+    expect(matchesMenuSearch(dish, 'icecek soguk')).toBeTrue();
+    expect(matchesMenuSearch(dish, '  ')).toBeTrue();
+    expect(matchesMenuSearch(dish, 'salata')).toBeFalse();
+  });
   it('keeps equal ids from different product sources distinct', () => {
     expect(publicProductKey(product(7, 'product'))).not.toBe(publicProductKey(product(7, 'tenant_product')));
   });

@@ -2,8 +2,8 @@ import { Component, effect, inject, signal, computed, OnInit, OnDestroy, HostLis
 import { DomSanitizer, SafeResourceUrl, SafeStyle } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { CommonModule, SlicePipe } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
-import { ApiService, Product, ProductQuestion, OrderItemCreate, OrderHistoryItem, TableCartResponse } from '../services/api.service';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ApiService, Product, ProductQuestion, OrderCreate, OrderItemCreate, OrderHistoryItem, TableCartResponse } from '../services/api.service';
 import { AudioService } from '../services/audio.service';
 import { environment } from '../../environments/environment';
 import { FocusFirstInputDirective } from '../shared/focus-first-input.directive';
@@ -12,6 +12,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { getSubcategoryLabel as resolveSubcategoryLabel } from '../shared/product-subcategory-label.util';
 import { productStockLeft } from '../shared/product-stock.util';
 import { resolvePublicPrimaryColor } from '../shared/public-brand-colors';
+import { pendingRequest } from '../shared/durable-request-key';
 
 interface CartItem {
   product: Product;
@@ -40,7 +41,7 @@ interface PlacedOrder {
 @Component({
   selector: 'app-menu',
   standalone: true,
-  imports: [CommonModule, FormsModule, FocusFirstInputDirective, LanguagePickerComponent, TranslateModule, SlicePipe],
+  imports: [CommonModule, FormsModule, RouterLink, FocusFirstInputDirective, LanguagePickerComponent, TranslateModule, SlicePipe],
   templateUrl: './menu.component.html',
   styleUrl: './menu.component.scss'
 })
@@ -60,6 +61,12 @@ export class MenuComponent implements OnInit, OnDestroy {
   closedTenantName = signal('');
   closedTenantLogo = signal<string | null>(null);
   closedTenantId = signal<number | null>(null);
+  get closedMenuLanguage(): string { return this.translate.currentLang || this.translate.getDefaultLang() || 'tr'; }
+  private setClosedTenantId(value?: unknown): void {
+    const candidate = Number(value);
+    const known = Number.isSafeInteger(candidate) && candidate > 0 ? candidate : this.tenantId;
+    this.closedTenantId.set(Number.isSafeInteger(known) && known > 0 ? known : null);
+  }
   products = signal<Product[]>([]);
   filteredProducts = signal<Product[]>([]);
   selectedCategory = signal<string | null>(null);
@@ -205,12 +212,22 @@ export class MenuComponent implements OnInit, OnDestroy {
   readonly httpOffline = signal(false);
   private httpTimer: ReturnType<typeof setInterval> | null = null;
   private httpBusy = false;
+  readonly orderUncertain = signal(false);
+  readonly submissionError = signal('');
+  readonly orderEditingLocked = computed(() => this.submitting() || this.orderUncertain());
+  private pendingSubmission: OrderCreate | null = null;
+  private destroyed = false;
+  private persistQrDraft(): boolean {
+    if (this.destroyed || !this.tableToken || !this.sessionId) return false;
+    try {
+      localStorage.setItem(`qr-draft:${this.tableToken}:${this.sessionId}`, JSON.stringify({ at: Date.now(), tableToken: this.tableToken, sessionId: this.sessionId, cart: this.cart().filter(item => this.isMyCartItem(item)), orderNotes: this.orderNotes, pendingSubmission: this.pendingSubmission }));
+      return true;
+    } catch { this.submissionError.set(this.translate.instant('SERVICE_REQUESTS.DRAFT_STORAGE_UNAVAILABLE')); return false; }
+  }
   constructor() {
     effect(() => {
-      const cart = this.cart();
-      if (this.tableToken && this.sessionId && !this.sharedCartEnabled()) {
-        try { localStorage.setItem(`qr-draft:${this.tableToken}:${this.sessionId}`, JSON.stringify({ at: Date.now(), cart })); } catch { }
-      }
+      this.cart(); this.submitting(); this.orderUncertain();
+      this.persistQrDraft();
     });
   }
   private syncHttp() {
@@ -233,6 +250,7 @@ export class MenuComponent implements OnInit, OnDestroy {
           this.tableIsActive.set(false);
           this.closedTenantName.set(error.error.detail.tenant_name || '');
           this.closedTableName.set(error.error.detail.table_name || '');
+          this.setClosedTenantId(error.error.detail.tenant_id);
         } else this.httpOffline.set(true);
       },
     });
@@ -248,7 +266,20 @@ export class MenuComponent implements OnInit, OnDestroy {
     this.initializeSession();
     try {
       const draft = JSON.parse(localStorage.getItem(`qr-draft:${this.tableToken}:${this.sessionId}`) || 'null');
-      if (draft && Date.now() - draft.at < 8 * 3600000 && Array.isArray(draft.cart)) this.cart.set(draft.cart);
+      const pending = draft?.pendingSubmission;
+      const validPending = typeof pending?.idempotency_key === 'string' && pending.idempotency_key.length >= 8 && pending.idempotency_key.length <= 128
+        && pending.session_id === this.sessionId && !('pin' in pending) && !('staff_access' in pending)
+        && Array.isArray(pending.items) && pending.items.length > 0 && pending.items.every((item: { product_id: number; quantity: number }) => Number.isSafeInteger(item.product_id) && item.product_id > 0 && Number.isSafeInteger(item.quantity) && item.quantity >= 1 && item.quantity <= 99);
+      const validScope = draft && (draft.tableToken == null || draft.tableToken === this.tableToken) && (draft.sessionId == null || draft.sessionId === this.sessionId);
+      if (validScope && Number.isFinite(draft.at) && (Date.now() - draft.at < 8 * 3600000 || validPending) && Array.isArray(draft.cart)) {
+        this.cart.set(draft.cart);
+        this.orderNotes = draft.orderNotes || '';
+        if (validPending) {
+          this.pendingSubmission = draft.pendingSubmission;
+          this.orderUncertain.set(true);
+          this.showNameModal.set(false);
+        }
+      }
     } catch { }
     this.httpTimer = setInterval(() => this.syncHttp(), 10000);
     this.loadMenu();
@@ -258,6 +289,8 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.persistQrDraft();
+    this.destroyed = true;
     if (this.httpTimer) clearInterval(this.httpTimer);
     this.ws?.close();
     for (const t of this.notesSyncTimers.values()) {
@@ -411,9 +444,10 @@ export class MenuComponent implements OnInit, OnDestroy {
         if (err.status === 403 && err.error?.detail?.code === 'TABLE_CLOSED') {
           const detail = err.error.detail;
           this.tableClosed.set(true);
+          this.tableIsActive.set(false);
           this.closedTableName.set(detail.table_name || '');
           this.closedTenantName.set(detail.tenant_name || '');
-          this.closedTenantId.set(detail.tenant_id || null);
+          this.setClosedTenantId(detail.tenant_id);
           this.tenantPublicBackgroundColor.set(detail.tenant_public_background_color ?? null);
           this.tenantPublicPrimaryColor.set(detail.tenant_public_primary_color ?? null);
           this.tenantHeaderBackgroundFilename.set(detail.tenant_header_background_filename ?? null);
@@ -462,6 +496,7 @@ export class MenuComponent implements OnInit, OnDestroy {
           this.closedTenantName.set(this.tenantName());
           this.closedTenantLogo.set(this.tenantLogo());
           this.closedTableName.set(this.tableName());
+          this.setClosedTenantId(data.tenant_id);
           // Clear stored session data for this table
           sessionStorage.removeItem(`pin_${this.tableToken}`);
           this.currentPin = '';
@@ -730,6 +765,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   private applySharedCartResponse(res: TableCartResponse): void {
+    if (this.orderEditingLocked()) return;
     if (!res.shared) {
       this.sharedCartEnabled.set(false);
       return;
@@ -797,6 +833,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   updateCartItemNotes(item: CartItem, notes: string): void {
+    if (this.orderEditingLocked()) return;
     const trimmed = notes.slice(0, this.maxNoteLength);
     const oldKey = this.getCartLineKey(item);
     if (!this.isMyCartItem(item)) {
@@ -936,6 +973,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   // CART OPERATIONS
   // ============================================
   addToCart(product: Product, customizationAnswers?: Record<string, string | number | string[]>) {
+    if (this.orderEditingLocked()) return;
     const newLine: CartItem = {
       product,
       quantity: 1,
@@ -974,6 +1012,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   private addToCartLocal(product: Product, customizationAnswers?: Record<string, string | number | string[]>) {
+    if (this.orderEditingLocked()) return;
     const newLine: CartItem = {
       product,
       quantity: 1,
@@ -986,7 +1025,7 @@ export class MenuComponent implements OnInit, OnDestroy {
       const existing = items.find(i => this.getCartLineKey(i) === lineKey);
       if (existing) {
         return items.map(i =>
-          this.getCartLineKey(i) === lineKey ? { ...i, quantity: i.quantity + 1 } : i
+          this.getCartLineKey(i) === lineKey ? { ...i, quantity: Math.min(99, i.quantity + 1) } : i
         );
       }
       return [...items, newLine];
@@ -999,6 +1038,7 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   /** Open questions modal for a product that has customization questions. */
   addToCartWithQuestions(product: Product) {
+    if (this.orderEditingLocked()) return;
     if (product.questions && product.questions.length > 0) {
       this.productToAddWithQuestions.set(product);
       this.customizationAnswersForm.set({});
@@ -1053,6 +1093,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   confirmAddWithQuestions() {
+    if (this.orderEditingLocked()) return;
     const product = this.productToAddWithQuestions();
     if (!product) return;
     const answers = this.customizationAnswersForm();
@@ -1091,6 +1132,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   incrementItem(item: CartItem) {
+    if (this.orderEditingLocked() || item.quantity >= 99) return;
     if (!this.isMyCartItem(item)) return;
     const lineKey = this.getCartLineKey(item);
     if (this.sharedCartEnabled() && item.lineId) {
@@ -1112,6 +1154,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   decrementItem(item: CartItem) {
+    if (this.orderEditingLocked()) return;
     if (!this.isMyCartItem(item)) return;
     const lineKey = this.getCartLineKey(item);
     if (this.sharedCartEnabled() && item.lineId) {
@@ -1218,6 +1261,8 @@ export class MenuComponent implements OnInit, OnDestroy {
   // ORDER SUBMISSION
   // ============================================
   submitOrder() {
+    if (this.submitting()) return;
+    if (this.orderUncertain()) { this.retryPendingOrder(); return; }
     // Check if table is active
     if (!this.tableIsActive()) {
       alert('This table is not accepting orders. Please ask staff for assistance.');
@@ -1255,9 +1300,21 @@ export class MenuComponent implements OnInit, OnDestroy {
     this.pinError.set('');
   }
 
+  retryPendingOrder(): void {
+    if (!this.pendingSubmission || this.submitting()) return;
+    if (this.tableRequiresPin() && !this.currentPin && !this.staffAccess) {
+      this.showPinModal.set(true);
+      this.pinValue.set('');
+      this.pinError.set('');
+      return;
+    }
+    void this.doSubmitOrder();
+  }
+
   private async doSubmitOrder() {
+    if (this.submitting()) return;
     const myLines = this.cart().filter(item => this.isMyCartItem(item));
-    if (myLines.length === 0) {
+    if (!this.pendingSubmission && myLines.length === 0) {
       alert(this.translate.instant('MENU.PLACE_OWN_ITEMS_ONLY'));
       return;
     }
@@ -1268,6 +1325,22 @@ export class MenuComponent implements OnInit, OnDestroy {
       source: item.product._source || undefined,
       customization_answers: item.customization_answers && Object.keys(item.customization_answers).length > 0 ? item.customization_answers : undefined
     }));
+
+    if (!this.pendingSubmission) {
+      const content = { items, notes: this.orderNotes.trim() || undefined, session_id: this.sessionId, customer_name: this.customerName() || undefined };
+      const key = pendingRequest(`order:${this.api.getCurrentUser()?.id || 'guest'}:${this.tableToken}`, content).key;
+      this.pendingSubmission = JSON.parse(JSON.stringify({ ...content, idempotency_key: key }));
+    }
+    const snapshot = this.pendingSubmission!;
+    const wasUncertain = this.orderUncertain();
+    // Freeze the batch before any asynchronous location prompt, not only the POST.
+    this.submitting.set(true);
+    this.submissionError.set('');
+    if (!this.persistQrDraft() && !wasUncertain) {
+      this.pendingSubmission = null;
+      this.submitting.set(false);
+      return;
+    }
 
     // Try to get location (optional, non-blocking)
     let latitude: number | null = null;
@@ -1288,18 +1361,19 @@ export class MenuComponent implements OnInit, OnDestroy {
       // Location denied or unavailable - continue without it
     }
 
-    this.submitting.set(true);
+    if (this.destroyed) return;
+
     this.api.submitOrder(this.tableToken, {
-      items,
-      notes: this.orderNotes.trim() || undefined,
-      session_id: this.sessionId,
-      customer_name: this.customerName() || undefined,
+      ...snapshot,
       pin: this.currentPin || undefined,
       staff_access: this.staffAccess ?? undefined,
       latitude,
       longitude
     }).subscribe({
       next: (response: any) => {
+        if (this.destroyed) return;
+        this.pendingSubmission = null;
+        this.orderUncertain.set(false);
         const orderId = response.order_id;
 
         if (response.session_id && response.session_id !== this.sessionId) {
@@ -1326,6 +1400,7 @@ export class MenuComponent implements OnInit, OnDestroy {
           this.cart.set([]);
           this.cartExpanded.set(false);
         }
+        this.persistQrDraft();
 
         this.loadStoredOrders();
 
@@ -1340,7 +1415,13 @@ export class MenuComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
+        if (this.destroyed) return;
         this.submitting.set(false);
+        const uncertain = wasUncertain || err.status === 0 || err.status === 408 || err.status >= 500;
+        this.orderUncertain.set(uncertain);
+        if (!uncertain) this.pendingSubmission = null;
+        this.persistQrDraft();
+        if (uncertain) return;
         const detail = err.error?.detail;
         const errorMsg = typeof detail === 'string' ? detail : 'Failed to place order.';
 

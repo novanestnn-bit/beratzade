@@ -1432,7 +1432,8 @@
     "ATTENDANCE_REGISTRO_HORARIO_HINT": "Spanish «registro horario» (.xlsx): paper-style monthly grid (planned vs clocked, signature column). One sheet per employee. Uses tenant timezone and optional CIF/CCC from settings.",
     "ATTENDANCE_REGISTRO_HORARIO_DOWNLOAD": "Download registro horario (ES)",
     "ATTENDANCE_REGISTRO_HORARIO_NO_DATA": "No staff with attendance in that month (or no records). Select staff or clock time first.",
-    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "Could not download the registro horario export. Try again."
+    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "Could not download the registro horario export. Try again.",
+    "FILTERS_PENDING": "The date range has changed. Refresh the report to view and export the new period."
   },
   "TABLES": {
     "TITLE": "Tables",
@@ -1537,7 +1538,8 @@
     "GROUP_SIBLING_ACTIVITY_TITLE": "Another table in this group is active",
     "GROUP_SIBLING_ACTIVITY_MESSAGE": "Joined group: {{names}} already has an active session or open order. Prefer using that ticket unless you need a separate one.",
     "GROUP_SIBLING_ACTIVITY_CONFIRM": "Continue anyway",
-    "GROUP_SIBLING_FLOOR_DOT": "Another table in this group has an active session or open order"
+    "GROUP_SIBLING_FLOOR_DOT": "Another table in this group has an active session or open order",
+    "SYNC_UNAVAILABLE": "Connection unavailable. The last table status is shown and may be out of date."
   },
   "TABLE_STATUS": {
     "available": "Available",
@@ -2889,7 +2891,8 @@
       "RECEPTIONIST": "Receptionist",
       "COURIER": "Courier",
       "PLATFORM_OPERATOR": "Platform operator"
-    }
+    },
+    "DELETING": "Deleting…"
   },
   "TRANSLATIONS": {
     "SELECT_ITEM_TO_TRANSLATE": "Select Item to Translate",
@@ -3475,7 +3478,10 @@
     "RESOLVE": "Complete",
     "OFFLINE": "Connection unavailable. Last information and drafts are preserved.",
     "PAYMENT_UNCERTAIN": "Payment result is uncertain. Verify the same transaction before changing its amount or method.",
-    "CLOSED_DRAFT": "Draft preserved. The saved table is closed; check before opening it."
+    "CLOSED_DRAFT": "Draft preserved. The saved table is closed; check before opening it.",
+    "ORDER_UNCERTAIN": "The last order has not been confirmed. Verify the same order before adding new items.",
+    "VERIFY_ORDER": "Verify order",
+    "DRAFT_STORAGE_UNAVAILABLE": "The draft could not be saved safely on this device. Enable browser storage and try again."
   },
   "LOGIN_PORTAL": {
     "CHOOSE": "Choose how to sign in",
@@ -3524,5 +3530,54 @@
     "EMPTY_MENU": "Our menu is coming soon.",
     "LOADING": "Loading menu",
     "ALL_CATEGORIES": "All categories"
+  },
+  "CASH_REGISTER": {
+    "TITLE": "Cash register",
+    "LOADING": "Loading register status",
+    "OPEN": "Register open",
+    "CLOSED": "Register closed",
+    "EXPECTED": "Expected cash",
+    "REFRESH": "Refresh",
+    "CLOSE_ACTION": "Close register",
+    "OPEN_ACTION": "Open register",
+    "UNAVAILABLE": "Register status is unavailable. Check the connection and refresh before making a transaction.",
+    "UNCERTAIN": "The transaction result has not been confirmed. Refresh the register status before submitting again.",
+    "CLOSED_SUMMARY": "Counted cash:",
+    "VARIANCE": "Cash difference",
+    "CLOSE_HELP": "Count and enter the cash in the register. The difference is calculated against the expected amount.",
+    "OPEN_HELP": "Enter the cash in the register at opening. This starts the register session.",
+    "COUNTED_AMOUNT": "Counted cash",
+    "OPENING_AMOUNT": "Opening cash",
+    "NOTE": "Note (optional)",
+    "SAVING": "Saving…",
+    "CONFIRM_CLOSE": "Confirm closing",
+    "CONFIRM_OPEN": "Confirm opening",
+    "STORAGE_ERROR": "The transaction could not be saved safely. Enable browser storage and try again.",
+    "SAVE_FAILED": "The register transaction could not be saved. Check the current register status and try again.",
+    "CHECK_REQUIRED": "Awaiting verification"
+  },
+  "WORKSPACE": {
+    "NO_CHANGES": "There are no changes to save.",
+    "SAVED": "Changes saved.",
+    "SAVE_FAILED": "Changes could not be saved. Your edits are preserved on this screen. Try again.",
+    "UNSAVED_CONFIRM": "You have unsaved changes. Leave without saving?"
+  },
+  "MENU_EXPERIENCE": {
+    "EYEBROW": "BERATZADE MENU",
+    "TITLE": "What are you in the mood for?",
+    "DESCRIPTION": "Explore our dishes and current prices, all in one place.",
+    "SEARCH": "Find something delicious",
+    "ALL": "Full menu",
+    "PRODUCT_COUNT": "{{count}} dishes",
+    "SEARCH_COUNT": "{{count}} results",
+    "CLEAR_SEARCH": "Clear search",
+    "NO_RESULTS_TITLE": "No dishes found",
+    "NO_RESULTS_HINT": "Try another dish name or explore the full menu.",
+    "VIEW_DETAILS": "View dish",
+    "FRESHNESS_WARNING": "Connection interrupted. Showing the last loaded menu.",
+    "RETRY": "Try again",
+    "TOP": "Back to top",
+    "PHONE": "Call the restaurant",
+    "PRODUCT_INFO": "Dish details"
   }
 }

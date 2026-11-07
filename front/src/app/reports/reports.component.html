@@ -8,20 +8,20 @@
     <div class="header-actions">
       <div class="date-range">
         <label>{{ 'REPORTS.FROM' | translate }}</label>
-        <input type="date" [ngModel]="fromDate()" (ngModelChange)="fromDate.set($event)" />
+        <input type="date" [ngModel]="fromDate()" (ngModelChange)="fromDate.set($event)" data-testid="reports-from" />
       </div>
       <div class="date-range">
         <label>{{ 'REPORTS.TO' | translate }}</label>
-        <input type="date" [ngModel]="toDate()" (ngModelChange)="toDate.set($event)" />
+        <input type="date" [ngModel]="toDate()" (ngModelChange)="toDate.set($event)" data-testid="reports-to" />
       </div>
       <button class="btn btn-primary" (click)="loadReport()" [disabled]="loading()">
         {{ loading() ? ('REPORTS.LOADING' | translate) : ('REPORTS.REFRESH' | translate) }}
       </button>
       <div class="export-buttons">
-        <button class="btn btn-secondary" (click)="exportCSV()" [disabled]="exporting() || !report()">
+        <button class="btn btn-secondary" (click)="exportCSV()" [disabled]="!canExport()" data-testid="reports-export-csv">
           {{ 'REPORTS.EXPORT_CSV' | translate }}
         </button>
-        <button class="btn btn-secondary" (click)="exportExcel()" [disabled]="exporting() || !report()">
+        <button class="btn btn-secondary" (click)="exportExcel()" [disabled]="!canExport()" data-testid="reports-export-excel">
           {{ exporting() ? ('REPORTS.EXPORTING' | translate) : ('REPORTS.EXPORT_EXCEL' | translate) }}
         </button>
       </div>
@@ -50,6 +50,15 @@
 
   @if (error()) {
     <div class="error-banner">{{ error() }}</div>
+  }
+  @if (appliedRange(); as range) {
+    <p class="subtitle" data-testid="reports-applied-range">{{ 'REPORTS.FROM' | translate }} {{ range.from }} — {{ 'REPORTS.TO' | translate }} {{ range.to }}</p>
+  }
+  @if (filtersPending()) {
+    <p class="error-banner" role="status" data-testid="reports-filters-pending">{{ 'REPORTS.FILTERS_PENDING' | translate }}</p>
+  }
+  @if (loading() && report()) {
+    <p role="status">{{ 'REPORTS.LOADING' | translate }}</p>
   }
 
   @if (loading() && !report()) {

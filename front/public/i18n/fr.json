@@ -1261,7 +1261,8 @@
     "ATTENDANCE_REGISTRO_HORARIO_HINT": "« Registro horario » espagnol (.xlsx) : grille mensuelle (prévu vs pointé, colonne signature). Une feuille par employé. Fuseau du site et CIF/CCC optionnels depuis les réglages.",
     "ATTENDANCE_REGISTRO_HORARIO_DOWNLOAD": "Télécharger registro horario (ES)",
     "ATTENDANCE_REGISTRO_HORARIO_NO_DATA": "Aucun personnel avec présence ce mois-ci (ou aucun enregistrement). Sélectionnez du personnel ou enregistrez des pointages.",
-    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "Impossible de télécharger le registro horario. Réessayez."
+    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "Impossible de télécharger le registro horario. Réessayez.",
+    "FILTERS_PENDING": "La période a changé. Actualisez le rapport pour consulter et exporter la nouvelle période."
   },
   "TABLES": {
     "TITLE": "Tables",
@@ -1366,7 +1367,8 @@
     "GROUP_SIBLING_ACTIVITY_TITLE": "Une autre table du groupe est active",
     "GROUP_SIBLING_ACTIVITY_MESSAGE": "Groupe lié : {{names}} a déjà une session active ou une commande ouverte. Utilisez ce ticket sauf si vous avez besoin d'un autre.",
     "GROUP_SIBLING_ACTIVITY_CONFIRM": "Continuer quand même",
-    "GROUP_SIBLING_FLOOR_DOT": "Une autre table du groupe a une session active ou une commande ouverte"
+    "GROUP_SIBLING_FLOOR_DOT": "Une autre table du groupe a une session active ou une commande ouverte",
+    "SYNC_UNAVAILABLE": "Connexion indisponible. Le dernier état des tables est affiché et peut ne plus être à jour."
   },
   "TABLE_STATUS": {
     "available": "Disponible",
@@ -2665,7 +2667,8 @@
       "RECEPTIONIST": "Réception",
       "COURIER": "Livreur",
       "PLATFORM_OPERATOR": "Opérateur plateforme"
-    }
+    },
+    "DELETING": "Suppression…"
   },
   "TRANSLATIONS": {
     "SELECT_ITEM_TO_TRANSLATE": "Choisir un élément à traduire",
@@ -3475,7 +3478,10 @@
     "RESOLVE": "Terminer",
     "OFFLINE": "Connexion indisponible. Les dernières informations et les brouillons sont conservés.",
     "PAYMENT_UNCERTAIN": "Résultat du paiement incertain. Vérifiez la même opération avant de modifier le montant ou le moyen.",
-    "CLOSED_DRAFT": "Brouillon conservé. La table enregistrée est fermée ; vérifiez avant de l’ouvrir."
+    "CLOSED_DRAFT": "Brouillon conservé. La table enregistrée est fermée ; vérifiez avant de l’ouvrir.",
+    "ORDER_UNCERTAIN": "La dernière commande n’a pas encore été confirmée. Vérifiez cette même commande avant d’ajouter des articles.",
+    "VERIFY_ORDER": "Vérifier la commande",
+    "DRAFT_STORAGE_UNAVAILABLE": "Le brouillon n’a pas pu être enregistré de manière sûre sur cet appareil. Activez le stockage du navigateur et réessayez."
   },
   "LOGIN_PORTAL": {
     "CHOOSE": "Choisissez votre espace de connexion",
@@ -3524,5 +3530,54 @@
     "EMPTY_MENU": "Notre carte arrive bientôt.",
     "LOADING": "Chargement de la carte",
     "ALL_CATEGORIES": "Toutes les catégories"
+  },
+  "CASH_REGISTER": {
+    "TITLE": "Caisse",
+    "LOADING": "Chargement de l’état de la caisse",
+    "OPEN": "Caisse ouverte",
+    "CLOSED": "Caisse fermée",
+    "EXPECTED": "Espèces attendues",
+    "REFRESH": "Actualiser",
+    "CLOSE_ACTION": "Fermer la caisse",
+    "OPEN_ACTION": "Ouvrir la caisse",
+    "UNAVAILABLE": "L’état de la caisse est indisponible. Vérifiez la connexion et actualisez avant toute opération.",
+    "UNCERTAIN": "Le résultat de l’opération n’a pas encore été confirmé. Actualisez l’état de la caisse avant de la renvoyer.",
+    "CLOSED_SUMMARY": "Espèces comptées :",
+    "VARIANCE": "Écart de caisse",
+    "CLOSE_HELP": "Comptez les espèces en caisse et saisissez le montant. L’écart est calculé par rapport au montant attendu.",
+    "OPEN_HELP": "Saisissez les espèces présentes à l’ouverture. Cela démarre la session de caisse.",
+    "COUNTED_AMOUNT": "Espèces comptées",
+    "OPENING_AMOUNT": "Fond de caisse initial",
+    "NOTE": "Note (facultative)",
+    "SAVING": "Enregistrement…",
+    "CONFIRM_CLOSE": "Confirmer la fermeture",
+    "CONFIRM_OPEN": "Confirmer l’ouverture",
+    "STORAGE_ERROR": "L’opération n’a pas pu être enregistrée de manière sûre. Activez le stockage du navigateur et réessayez.",
+    "SAVE_FAILED": "L’opération de caisse n’a pas pu être enregistrée. Vérifiez l’état actuel de la caisse et réessayez.",
+    "CHECK_REQUIRED": "En attente de vérification"
+  },
+  "WORKSPACE": {
+    "NO_CHANGES": "Aucune modification à enregistrer.",
+    "SAVED": "Modifications enregistrées.",
+    "SAVE_FAILED": "Impossible d’enregistrer les modifications. Vos saisies sont conservées sur cet écran. Réessayez.",
+    "UNSAVED_CONFIRM": "Des modifications ne sont pas enregistrées. Quitter sans enregistrer ?"
+  },
+  "MENU_EXPERIENCE": {
+    "EYEBROW": "CARTE BERATZADE",
+    "TITLE": "De quoi avez-vous envie ?",
+    "DESCRIPTION": "Tous nos plats et leurs prix actuels au même endroit.",
+    "SEARCH": "Trouvez quelque chose de délicieux",
+    "ALL": "Toute la carte",
+    "PRODUCT_COUNT": "{{count}} plats",
+    "SEARCH_COUNT": "{{count}} résultats",
+    "CLEAR_SEARCH": "Effacer la recherche",
+    "NO_RESULTS_TITLE": "Aucun plat trouvé",
+    "NO_RESULTS_HINT": "Essayez un autre nom de plat ou consultez toute la carte.",
+    "VIEW_DETAILS": "Voir le plat",
+    "FRESHNESS_WARNING": "Connexion interrompue. La dernière carte chargée est affichée.",
+    "RETRY": "Réessayer",
+    "TOP": "Retour en haut",
+    "PHONE": "Appeler le restaurant",
+    "PRODUCT_INFO": "Détails du plat"
   }
 }

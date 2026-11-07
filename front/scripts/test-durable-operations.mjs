@@ -64,12 +64,14 @@ try {
     }else await request.continue();
   };
   staff.on('request',intercept);
-  await staff.click('[data-testid="pos-submit-order"]');
+  const pendingRetry = await staff.$('[data-testid="pos-retry-order"]');
+  await staff.click(pendingRetry && await pendingRetry.isVisible() ? '[data-testid="pos-retry-order"]' : '[data-testid="pos-submit-order"]');
   await staff.waitForFunction(()=>!document.querySelector('[data-testid="pos-submit-order"]').disabled);
   assert.equal(forwardError,'');assert.ok(orderId);
   await staff.reload({waitUntil:'networkidle2'});await staff.waitForSelector('.cart-line');
   const retried=staff.waitForResponse(r=>r.request().method()==='POST'&&/\/api\/menu\/[^/]+\/order$/.test(new URL(r.url()).pathname));
-  await staff.click('[data-testid="pos-submit-order"]');const retry=await retried;assert.equal(retry.status(),200);assert.equal((await retry.json()).order_id,orderId);
+  const restoredRetry = await staff.$('[data-testid="pos-retry-order"]');
+  await staff.click(restoredRetry && await restoredRetry.isVisible() ? '[data-testid="pos-retry-order"]' : '[data-testid="pos-submit-order"]');const retry=await retried;assert.equal(retry.status(),200);assert.equal((await retry.json()).order_id,orderId);
   await staff.waitForFunction(()=>!document.querySelector('.cart-line'));
   staff.off('request',intercept);await staff.setRequestInterception(false);
   let order=(await api(staff,'/orders')).find(row=>row.id===orderId);assert.equal(order.total_cents,2000);assert.equal(order.items.reduce((sum,i)=>sum+i.quantity,0),1);

@@ -1261,7 +1261,8 @@
     "ATTENDANCE_REGISTRO_HORARIO_HINT": "«Registro horario» (.xlsx): cuadrícula mensual tipo papel (plan vs fichado, columna de firma). Una hoja por empleado. Usa la zona horaria del local y CIF/CCC opcionales en ajustes.",
     "ATTENDANCE_REGISTRO_HORARIO_DOWNLOAD": "Descargar registro horario (ES)",
     "ATTENDANCE_REGISTRO_HORARIO_NO_DATA": "No hay personal con asistencia ese mes (o sin registros). Selecciona personal o registra fichajes.",
-    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "No se pudo descargar el registro horario. Inténtalo de nuevo."
+    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "No se pudo descargar el registro horario. Inténtalo de nuevo.",
+    "FILTERS_PENDING": "El intervalo de fechas ha cambiado. Actualiza el informe para ver y exportar el nuevo periodo."
   },
   "TABLES": {
     "TITLE": "Mesas",
@@ -1366,7 +1367,8 @@
     "GROUP_SIBLING_ACTIVITY_TITLE": "Otra mesa de este grupo está activa",
     "GROUP_SIBLING_ACTIVITY_MESSAGE": "Grupo unido: {{names}} ya tiene una sesión activa o un pedido abierto. Use ese ticket salvo que necesite otro aparte.",
     "GROUP_SIBLING_ACTIVITY_CONFIRM": "Continuar de todos modos",
-    "GROUP_SIBLING_FLOOR_DOT": "Otra mesa de este grupo tiene sesión activa o pedido abierto"
+    "GROUP_SIBLING_FLOOR_DOT": "Otra mesa de este grupo tiene sesión activa o pedido abierto",
+    "SYNC_UNAVAILABLE": "Sin conexión. Se muestra el último estado de las mesas; podría no estar actualizado."
   },
   "TABLE_STATUS": {
     "available": "Disponible",
@@ -2718,7 +2720,8 @@
       "RECEPTIONIST": "Recepcionista",
       "COURIER": "Repartidor",
       "PLATFORM_OPERATOR": "Operador de plataforma"
-    }
+    },
+    "DELETING": "Eliminando…"
   },
   "TRANSLATIONS": {
     "SELECT_ITEM_TO_TRANSLATE": "Seleccionar elemento para traducir",
@@ -3475,7 +3478,10 @@
     "RESOLVE": "Completar",
     "OFFLINE": "Sin conexión. Se conservan los últimos datos y borradores.",
     "PAYMENT_UNCERTAIN": "Resultado del pago incierto. Verifique la misma operación antes de cambiar el importe o método.",
-    "CLOSED_DRAFT": "Borrador guardado. La mesa guardada está cerrada; revísela antes de abrirla."
+    "CLOSED_DRAFT": "Borrador guardado. La mesa guardada está cerrada; revísela antes de abrirla.",
+    "ORDER_UNCERTAIN": "El último pedido aún no se ha confirmado. Verifica ese mismo pedido antes de añadir nuevos artículos.",
+    "VERIFY_ORDER": "Verificar pedido",
+    "DRAFT_STORAGE_UNAVAILABLE": "No se pudo guardar el borrador de forma segura en este dispositivo. Activa el almacenamiento del navegador e inténtalo de nuevo."
   },
   "LOGIN_PORTAL": {
     "CHOOSE": "Elige cómo iniciar sesión",
@@ -3524,5 +3530,54 @@
     "EMPTY_MENU": "Nuestra carta estará aquí pronto.",
     "LOADING": "Cargando la carta",
     "ALL_CATEGORIES": "Todas las categorías"
+  },
+  "CASH_REGISTER": {
+    "TITLE": "Caja",
+    "LOADING": "Cargando el estado de la caja",
+    "OPEN": "Caja abierta",
+    "CLOSED": "Caja cerrada",
+    "EXPECTED": "Efectivo previsto",
+    "REFRESH": "Actualizar",
+    "CLOSE_ACTION": "Cerrar caja",
+    "OPEN_ACTION": "Abrir caja",
+    "UNAVAILABLE": "No se puede consultar el estado de la caja. Comprueba la conexión y actualiza antes de realizar una operación.",
+    "UNCERTAIN": "El resultado de la operación aún no se ha confirmado. Actualiza el estado de la caja antes de volver a enviarla.",
+    "CLOSED_SUMMARY": "Efectivo contado:",
+    "VARIANCE": "Diferencia de caja",
+    "CLOSE_HELP": "Cuenta el efectivo de la caja e introduce el importe. La diferencia se calcula respecto al efectivo previsto.",
+    "OPEN_HELP": "Introduce el efectivo de la caja al abrir. Esto inicia la sesión de caja.",
+    "COUNTED_AMOUNT": "Efectivo contado",
+    "OPENING_AMOUNT": "Efectivo inicial",
+    "NOTE": "Nota (opcional)",
+    "SAVING": "Guardando…",
+    "CONFIRM_CLOSE": "Confirmar cierre",
+    "CONFIRM_OPEN": "Confirmar apertura",
+    "STORAGE_ERROR": "No se pudo guardar la operación de forma segura. Activa el almacenamiento del navegador e inténtalo de nuevo.",
+    "SAVE_FAILED": "No se pudo guardar la operación de caja. Comprueba su estado actual e inténtalo de nuevo.",
+    "CHECK_REQUIRED": "Pendiente de verificación"
+  },
+  "WORKSPACE": {
+    "NO_CHANGES": "No hay cambios que guardar.",
+    "SAVED": "Cambios guardados.",
+    "SAVE_FAILED": "No se pudieron guardar los cambios. Tus modificaciones se conservan en esta pantalla. Inténtalo de nuevo.",
+    "UNSAVED_CONFIRM": "Hay cambios sin guardar. ¿Quieres salir sin guardarlos?"
+  },
+  "MENU_EXPERIENCE": {
+    "EYEBROW": "MENÚ BERATZADE",
+    "TITLE": "¿Qué te apetece?",
+    "DESCRIPTION": "Todos nuestros platos y precios actuales en un solo lugar.",
+    "SEARCH": "Encuentra algo delicioso",
+    "ALL": "Menú completo",
+    "PRODUCT_COUNT": "{{count}} platos",
+    "SEARCH_COUNT": "{{count}} resultados",
+    "CLEAR_SEARCH": "Borrar búsqueda",
+    "NO_RESULTS_TITLE": "No encontramos platos",
+    "NO_RESULTS_HINT": "Prueba con otro nombre o consulta el menú completo.",
+    "VIEW_DETAILS": "Ver plato",
+    "FRESHNESS_WARNING": "Conexión interrumpida. Se muestra el último menú cargado.",
+    "RETRY": "Reintentar",
+    "TOP": "Volver arriba",
+    "PHONE": "Llamar al restaurante",
+    "PRODUCT_INFO": "Información del plato"
   }
 }

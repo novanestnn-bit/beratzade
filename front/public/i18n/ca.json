@@ -1398,7 +1398,8 @@
     "ATTENDANCE_REGISTRO_HORARIO_HINT": "«Registro horario» (.xlsx): graella mensual tipus paper (pla vs fitxatge, columna de signatura). Un full per empleat. Zona horària del local i CIF/CCC opcionals als ajustos.",
     "ATTENDANCE_REGISTRO_HORARIO_DOWNLOAD": "Baixa registro horario (ES)",
     "ATTENDANCE_REGISTRO_HORARIO_NO_DATA": "No hi ha personal amb assistència aquest mes (o sense registres). Selecciona personal o registra fitxatges.",
-    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "No s’ha pogut baixar el registro horario. Torna-ho a provar."
+    "ATTENDANCE_REGISTRO_HORARIO_ERROR": "No s’ha pogut baixar el registro horario. Torna-ho a provar.",
+    "FILTERS_PENDING": "El període ha canviat. Actualitza l’informe per veure i exportar el nou període."
   },
   "TABLES": {
     "TITLE": "Taules",
@@ -1503,7 +1504,8 @@
     "GROUP_SIBLING_ACTIVITY_TITLE": "Una altra taula d'aquest grup està activa",
     "GROUP_SIBLING_ACTIVITY_MESSAGE": "Grup unit: {{names}} ja té una sessió activa o una comanda oberta. Preferible usar aquella tret que en necessiteu una de separada.",
     "GROUP_SIBLING_ACTIVITY_CONFIRM": "Continuar igualment",
-    "GROUP_SIBLING_FLOOR_DOT": "Una altra taula d'aquest grup té sessió activa o comanda oberta"
+    "GROUP_SIBLING_FLOOR_DOT": "Una altra taula d'aquest grup té sessió activa o comanda oberta",
+    "SYNC_UNAVAILABLE": "No hi ha connexió. Es mostra l’últim estat de les taules, que pot no estar actualitzat."
   },
   "TABLE_STATUS": {
     "available": "Disponible",
@@ -2855,7 +2857,8 @@
       "RECEPTIONIST": "Recepcionista",
       "COURIER": "Repartidor",
       "PLATFORM_OPERATOR": "Operador de plataforma"
-    }
+    },
+    "DELETING": "S’està suprimint…"
   },
   "TRANSLATIONS": {
     "SELECT_ITEM_TO_TRANSLATE": "Selecciona element per traduir",
@@ -3475,7 +3478,10 @@
     "RESOLVE": "Completar",
     "OFFLINE": "Sense connexió. Es conserven les darreres dades i els esborranys.",
     "PAYMENT_UNCERTAIN": "Resultat del pagament incert. Verifiqueu la mateixa operació abans de canviar l’import o el mètode.",
-    "CLOSED_DRAFT": "Esborrany conservat. La taula desada està tancada; reviseu-la abans d’obrir-la."
+    "CLOSED_DRAFT": "Esborrany conservat. La taula desada està tancada; reviseu-la abans d’obrir-la.",
+    "ORDER_UNCERTAIN": "Encara no s’ha confirmat l’última comanda. Verifica la mateixa comanda abans d’afegir-hi més articles.",
+    "VERIFY_ORDER": "Verifica la comanda",
+    "DRAFT_STORAGE_UNAVAILABLE": "No s’ha pogut desar l’esborrany de manera segura en aquest dispositiu. Activa l’emmagatzematge del navegador i torna-ho a provar."
   },
   "LOGIN_PORTAL": {
     "CHOOSE": "Trieu com voleu iniciar la sessió",
@@ -3524,5 +3530,54 @@
     "EMPTY_MENU": "La nostra carta arribarà aviat.",
     "LOADING": "Carregant la carta",
     "ALL_CATEGORIES": "Totes les categories"
+  },
+  "CASH_REGISTER": {
+    "TITLE": "Caixa",
+    "LOADING": "S’està carregant l’estat de la caixa",
+    "OPEN": "Caixa oberta",
+    "CLOSED": "Caixa tancada",
+    "EXPECTED": "Efectiu previst",
+    "REFRESH": "Actualitza",
+    "CLOSE_ACTION": "Tanca la caixa",
+    "OPEN_ACTION": "Obre la caixa",
+    "UNAVAILABLE": "No es pot consultar l’estat de la caixa. Comprova la connexió i actualitza abans de fer una operació.",
+    "UNCERTAIN": "Encara no s’ha confirmat el resultat de l’operació. Actualitza l’estat de la caixa abans de tornar-la a enviar.",
+    "CLOSED_SUMMARY": "Efectiu comptat:",
+    "VARIANCE": "Diferència de caixa",
+    "CLOSE_HELP": "Compta l’efectiu de la caixa i introdueix-ne l’import. La diferència es calcula respecte de l’efectiu previst.",
+    "OPEN_HELP": "Introdueix l’efectiu de la caixa en obrir. Això inicia la sessió de caixa.",
+    "COUNTED_AMOUNT": "Efectiu comptat",
+    "OPENING_AMOUNT": "Efectiu inicial",
+    "NOTE": "Nota (opcional)",
+    "SAVING": "S’està desant…",
+    "CONFIRM_CLOSE": "Confirma el tancament",
+    "CONFIRM_OPEN": "Confirma l’obertura",
+    "STORAGE_ERROR": "No s’ha pogut desar l’operació de manera segura. Activa l’emmagatzematge del navegador i torna-ho a provar.",
+    "SAVE_FAILED": "No s’ha pogut desar l’operació de caixa. Comprova’n l’estat actual i torna-ho a provar.",
+    "CHECK_REQUIRED": "Pendent de verificació"
+  },
+  "WORKSPACE": {
+    "NO_CHANGES": "No hi ha canvis per desar.",
+    "SAVED": "S’han desat els canvis.",
+    "SAVE_FAILED": "No s’han pogut desar els canvis. Les modificacions es conserven en aquesta pantalla. Torna-ho a provar.",
+    "UNSAVED_CONFIRM": "Hi ha canvis sense desar. Vols sortir sense desar-los?"
+  },
+  "MENU_EXPERIENCE": {
+    "EYEBROW": "CARTA BERATZADE",
+    "TITLE": "Què et ve de gust?",
+    "DESCRIPTION": "Tots els nostres plats i preus actuals en un sol lloc.",
+    "SEARCH": "Troba alguna cosa deliciosa",
+    "ALL": "Carta completa",
+    "PRODUCT_COUNT": "{{count}} plats",
+    "SEARCH_COUNT": "{{count}} resultats",
+    "CLEAR_SEARCH": "Neteja la cerca",
+    "NO_RESULTS_TITLE": "No hem trobat plats",
+    "NO_RESULTS_HINT": "Prova un altre nom de plat o consulta la carta completa.",
+    "VIEW_DETAILS": "Veure el plat",
+    "FRESHNESS_WARNING": "Connexió interrompuda. Es mostra l’última carta carregada.",
+    "RETRY": "Torna-ho a provar",
+    "TOP": "Torna a dalt",
+    "PHONE": "Truca al restaurant",
+    "PRODUCT_INFO": "Informació del plat"
   }
 }

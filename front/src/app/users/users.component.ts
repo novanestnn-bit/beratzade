@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { SidebarComponent } from '../shared/sidebar.component';
 import { ApiService, User, UserRole, UserCreate, UserUpdate } from '../services/api.service';
 import { PermissionService } from '../services/permission.service';
-import { ConfirmationModalComponent } from '../shared/confirmation-modal.component';
+import { ApiErrorMessageService } from '../services/api-error-message.service';
 import { FocusFirstInputDirective } from '../shared/focus-first-input.directive';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
@@ -14,7 +14,7 @@ export const SUPPORT_USER_EMAIL = 'support@satisfecho.de';
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, FormsModule, SidebarComponent, ConfirmationModalComponent, FocusFirstInputDirective, TranslateModule],
+  imports: [CommonModule, FormsModule, SidebarComponent, FocusFirstInputDirective, TranslateModule],
   template: `
     <app-sidebar>
       <div class="users-page">
@@ -231,15 +231,19 @@ export const SUPPORT_USER_EMAIL = 'support@satisfecho.de';
 
         <!-- Delete Confirmation -->
         @if (showDeleteConfirm()) {
-          <app-confirmation-modal
-            [title]="'USERS.DELETE_CONFIRM_TITLE' | translate"
-            [message]="'USERS.DELETE_CONFIRM_MESSAGE' | translate: { name: userToDelete()?.email }"
-            [confirmText]="'COMMON.DELETE' | translate"
-            [cancelText]="'COMMON.CANCEL' | translate"
-            [confirmBtnClass]="'btn-danger'"
-            (confirm)="deleteUser()"
-            (cancel)="cancelDelete()"
-          ></app-confirmation-modal>
+          <div class="modal-overlay" (click)="cancelDelete()">
+            <section class="modal" role="dialog" aria-modal="true" aria-labelledby="user-delete-title" [attr.aria-busy]="deleting()" data-testid="user-delete-dialog" (click)="$event.stopPropagation()" (keydown)="onDeleteDialogKeydown($event)">
+              <header class="modal-header"><h2 id="user-delete-title">{{ 'USERS.DELETE_CONFIRM_TITLE' | translate }}</h2><button type="button" class="btn-close" [disabled]="deleting()" (click)="cancelDelete()" [attr.aria-label]="'COMMON.CLOSE' | translate">×</button></header>
+              <div class="modal-body">
+                <p>{{ 'USERS.DELETE_CONFIRM_MESSAGE' | translate: { name: userToDelete()?.email } }}</p>
+                @if (deleteError()) { <p class="form-error" role="alert" data-testid="user-delete-error">{{ deleteError() }}</p> }
+                <div class="modal-actions">
+                  <button type="button" class="btn btn-secondary" [disabled]="deleting()" (click)="cancelDelete()" data-testid="user-delete-cancel">{{ 'COMMON.CANCEL' | translate }}</button>
+                  <button type="button" class="btn btn-danger" [disabled]="deleting()" (click)="deleteUser()" data-testid="user-delete-submit">{{ (deleting() ? 'USERS.DELETING' : 'COMMON.DELETE') | translate }}</button>
+                </div>
+              </div>
+            </section>
+          </div>
         }
       </div>
     </app-sidebar>
@@ -612,12 +616,14 @@ export const SUPPORT_USER_EMAIL = 'support@satisfecho.de';
       gap: var(--space-3);
       margin-top: var(--space-5);
     }
+    .modal-actions .btn-danger { background: var(--color-error, #dc2626); color: white; }
   `]
 })
 export class UsersComponent implements OnInit {
   private api = inject(ApiService);
   private permissions = inject(PermissionService);
   private translate = inject(TranslateService);
+  private apiErr = inject(ApiErrorMessageService);
 
   users = signal<User[]>([]);
   currentUser = signal<User | null>(null);
@@ -644,6 +650,9 @@ export class UsersComponent implements OnInit {
   // Delete confirmation
   showDeleteConfirm = signal(false);
   userToDelete = signal<User | null>(null);
+  readonly deleting = signal(false);
+  readonly deleteError = signal<string | null>(null);
+  private deleteTrigger: HTMLElement | null = null;
 
   /** True when edit modal was opened via "Add Satisfecho support" for an existing support user. */
   supportAccessFromShortcut = signal(false);
@@ -881,28 +890,48 @@ export class UsersComponent implements OnInit {
   }
 
   confirmDelete(user: User) {
+    if (this.deleting() || !this.canDeleteUser(user)) return;
+    this.deleteTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.deleteError.set(null);
     this.userToDelete.set(user);
     this.showDeleteConfirm.set(true);
+    setTimeout(() => document.querySelector<HTMLButtonElement>('[data-testid="user-delete-cancel"]')?.focus());
   }
 
   cancelDelete() {
+    if (this.deleting()) return;
+    this.deleteError.set(null);
     this.showDeleteConfirm.set(false);
     this.userToDelete.set(null);
+    this.deleteTrigger?.focus();
+  }
+
+  onDeleteDialogKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') { this.cancelDelete(); return; }
+    if (event.key !== 'Tab') return;
+    const buttons = [...(event.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
+    if (!buttons.length) { event.preventDefault(); return; }
+    const first = buttons[0], last = buttons[buttons.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 
   deleteUser() {
     const user = this.userToDelete();
-    if (!user) return;
+    if (!user || this.deleting() || !this.canDeleteUser(user)) return;
+    this.deleting.set(true);
+    this.deleteError.set(null);
 
     this.api.deleteUser(user.id!).subscribe({
       next: () => {
+        this.deleting.set(false);
         this.showDeleteConfirm.set(false);
         this.userToDelete.set(null);
         this.loadUsers();
       },
       error: (err) => {
-        console.error('Delete failed:', err);
-        this.showDeleteConfirm.set(false);
+        this.deleting.set(false);
+        this.deleteError.set(this.apiErr.fromHttpError(err, 'COMMON.API_REQUEST_FAILED'));
       }
     });
   }

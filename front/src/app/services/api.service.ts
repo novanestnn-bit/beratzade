@@ -12,6 +12,7 @@ import {
   finalize,
   filter,
   take,
+  defer,
 } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { LanguageService } from './language.service';
@@ -3028,9 +3029,11 @@ export class ApiService {
   }
 
   createStaffSale(body: StaffSaleCreate): Observable<StaffSaleCreateResponse> {
-    const { idempotency_key, ...content } = body;
-    const request = pendingRequest(`sale:${this.getCurrentUser()?.tenant_id}:${this.getCurrentUser()?.id}`, content);
-    return this.http.post<StaffSaleCreateResponse>(`${this.apiUrl}/orders/staff-sale`, { ...body, idempotency_key: request.key }).pipe(tap(() => request.done()));
+    return defer(() => {
+      const { idempotency_key, ...content } = body;
+      const request = pendingRequest(`sale:${this.getCurrentUser()?.tenant_id}:${this.getCurrentUser()?.id}`, content, idempotency_key);
+      return this.http.post<StaffSaleCreateResponse>(`${this.apiUrl}/orders/staff-sale`, { ...body, idempotency_key: request.key }).pipe(tap(() => request.done()));
+    });
   }
 
   getCurrentCashRegister(): Observable<CashRegisterSession | null> {
@@ -3503,9 +3506,11 @@ export class ApiService {
   }
 
   submitOrder(tableToken: string, order: OrderCreate): Observable<any> {
-    const { pin, staff_access, latitude, longitude, idempotency_key, ...content } = order;
-    const request = pendingRequest(`order:${this.getCurrentUser()?.id || 'guest'}:${tableToken}`, content);
-    return this.http.post(`${this.apiUrl}/menu/${tableToken}/order`, { ...order, idempotency_key: request.key }, { withCredentials: true }).pipe(tap(() => request.done()));
+    return defer(() => {
+      const { pin, staff_access, latitude, longitude, idempotency_key, ...content } = order;
+      const request = pendingRequest(`order:${this.getCurrentUser()?.id || 'guest'}:${tableToken}`, content, idempotency_key);
+      return this.http.post(`${this.apiUrl}/menu/${tableToken}/order`, { ...order, idempotency_key: request.key }, { withCredentials: true }).pipe(tap(() => request.done()));
+    });
   }
 
   getCurrentOrder(tableToken: string, sessionId?: string, forDisplay = false): Observable<any> {

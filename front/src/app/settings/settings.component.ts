@@ -1,3 +1,4 @@
+import { settingsPatch } from '../shared/settings-patch';
 import { ServiceRequestsComponent } from '../shared/service-requests.component';
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -94,6 +95,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
 
 @Component({
   selector: 'app-settings',
+  host: { '(window:beforeunload)': 'preventUnsavedClose($event)' },
   standalone: true,
   imports: [ServiceRequestsComponent,
     CommonModule,
@@ -435,7 +437,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
               }
               <div class="form-actions">
                 <button type="button" class="btn btn-secondary" (click)="cancel()">{{ 'SETTINGS.CANCEL' | translate }}</button>
-                <button type="submit" class="btn btn-primary" [disabled]="saving()">
+                <button type="submit" data-testid="settings-save" class="btn btn-primary" [disabled]="saving()">
                   {{ saving() ? ('SETTINGS.SAVING' | translate) : ('SETTINGS.SAVE_CHANGES' | translate) }}
                 </button>
               </div>
@@ -2141,7 +2143,7 @@ const SETTINGS_SECTION_HASH: Record<SettingsSectionId, string> = {
               <!-- Form Actions -->
               <div class="form-actions">
                 <button type="button" class="btn btn-secondary" (click)="cancel()">{{ 'SETTINGS.CANCEL' | translate }}</button>
-                <button type="submit" class="btn btn-primary" [disabled]="saving()">
+                <button type="submit" data-testid="settings-save" class="btn btn-primary" [disabled]="saving()">
                   {{ saving() ? ('SETTINGS.SAVING' | translate) : ('SETTINGS.SAVE_CHANGES' | translate) }}
                 </button>
               </div>
@@ -3488,6 +3490,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   settings = signal<TenantSettings | null>(null);
+  private settingsBaseline: Partial<TenantSettings> | null = null;
   taxes = signal<Tax[]>([]);
   taxError = signal('');
   newTaxName = '';
@@ -4049,6 +4052,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.syncPrepaymentFieldsFromCents();
         this.loadTaxes();
         this.autoGenerateReviewUrlFromPlaceId();
+        this.settingsBaseline = structuredClone(this.settingsPayload());
         this.loading.set(false);
       },
       error: (err) => {
@@ -5047,6 +5051,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   saveSettings() {
+    if (this.saving() || this.loading()) return;
     this.saving.set(true);
     this.error.set(null);
     this.clearSuccessDismissTimer();
@@ -5121,7 +5126,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
   }
 
-  private updateSettings() {
+  private settingsPayload(): Partial<TenantSettings> {
     // Ensure opening hours are serialized before saving
     this.serializeOpeningHours();
 
@@ -5129,7 +5134,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     const updateData = { ...this.formData };
     delete (updateData as Record<string, unknown>)['clock_qr_active'];
 
-    // Always send reminder options so they are persisted (default false if unset)
+    // Normalize the form before comparing with its loaded baseline.
     updateData.reservation_reminder_24h_enabled = this.formData.reservation_reminder_24h_enabled ?? false;
     updateData.reservation_reminder_2h_enabled = this.formData.reservation_reminder_2h_enabled ?? false;
     updateData.guest_birthday_capture_enabled = this.formData.guest_birthday_capture_enabled ?? true;
@@ -5161,13 +5166,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
       ...(this.formData.ui_modules || {}),
     };
 
-    if (updateData.stripe_secret_key === '') {
+    if (updateData.stripe_secret_key === '' || updateData.stripe_secret_key == null) {
       delete updateData.stripe_secret_key;
     }
-    if (updateData.revolut_merchant_secret === '') {
+    if (updateData.revolut_merchant_secret === '' || updateData.revolut_merchant_secret == null) {
       delete updateData.revolut_merchant_secret;
     }
-    if (updateData.smtp_password === '') {
+    if (updateData.smtp_password === '' || updateData.smtp_password == null) {
       delete updateData.smtp_password;
     }
     if (updateData.fiscal_aeat_api_secret === '' || updateData.fiscal_aeat_api_secret == null) {
@@ -5182,21 +5187,34 @@ export class SettingsComponent implements OnInit, OnDestroy {
       updateData.tse_client_id = null;
     }
 
+    return updateData;
+  }
+
+  private updateSettings() {
+    const submitted = this.settingsPayload();
+    const updateData = settingsPatch(this.settingsBaseline ?? {}, submitted);
+    if (!Object.keys(updateData).length) {
+      this.success.set(this.translate.instant('WORKSPACE.NO_CHANGES'));
+      this.scheduleSuccessDismiss();
+      this.saving.set(false);
+      return;
+    }
+
     this.api.updateTenantSettings(updateData).subscribe({
       next: (updatedSettings) => {
         this.settings.set(updatedSettings);
-        this.formData.default_tax_id = updatedSettings.default_tax_id ?? null;
-        this.formData.latitude = updatedSettings.latitude ?? null;
-        this.formData.longitude = updatedSettings.longitude ?? null;
-        this.formData.location_radius_meters = updatedSettings.location_radius_meters ?? 100;
-        this.formData.location_check_enabled = updatedSettings.location_check_enabled ?? false;
+        this.settingsBaseline = structuredClone(submitted);
+        for (const key of ['stripe_secret_key', 'revolut_merchant_secret', 'smtp_password', 'fiscal_aeat_api_secret', 'tse_api_secret'] as const) {
+          if (this.formData[key] === submitted[key]) this.formData[key] = null;
+          delete this.settingsBaseline[key];
+        }
         this.api.applyTenantUiModulesFromSettings(updatedSettings);
-        this.success.set('Settings saved successfully!');
+        this.success.set(this.translate.instant('WORKSPACE.SAVED'));
         this.scheduleSuccessDismiss();
         this.saving.set(false);
       },
       error: (err) => {
-        this.error.set('Failed to save settings. Please try again.');
+        this.error.set(this.translate.instant('WORKSPACE.SAVE_FAILED'));
         this.saving.set(false);
         console.error('Error updating settings:', err);
       }
@@ -5213,16 +5231,36 @@ export class SettingsComponent implements OnInit, OnDestroy {
       next: (updatedSettings) => {
         this.settings.set(updatedSettings);
         this.formData.default_tax_id = updatedSettings.default_tax_id ?? null;
+        if (this.settingsBaseline) this.settingsBaseline.default_tax_id = this.formData.default_tax_id;
         this.success.set(this.translate.instant('SETTINGS.SAVE_CHANGES'));
         this.scheduleSuccessDismiss();
         this.saving.set(false);
       },
       error: (err) => {
-        this.error.set('Failed to save settings. Please try again.');
+        this.error.set(this.translate.instant('WORKSPACE.SAVE_FAILED'));
         this.saving.set(false);
         console.error('Error updating default tax:', err);
       },
     });
+  }
+
+  hasUnsavedChanges(): boolean {
+    return !this.loading() && this.settingsBaseline !== null && (
+      !!this.logoFile || !!this.headerBackgroundFile ||
+      Object.keys(settingsPatch(this.settingsBaseline, this.settingsPayload())).length > 0
+    );
+  }
+
+  confirmCanDeactivate(): boolean {
+    if (this.saving()) return false;
+    return !this.hasUnsavedChanges() || window.confirm(this.translate.instant('WORKSPACE.UNSAVED_CONFIRM'));
+  }
+
+  preventUnsavedClose(event: BeforeUnloadEvent): void {
+    if (this.saving() || this.hasUnsavedChanges()) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
   }
 
   cancel() {

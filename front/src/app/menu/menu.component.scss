@@ -168,6 +168,22 @@ $cart-expanded-max: 60vh;
       color: var(--color-text-muted);
       opacity: 0.7;
     }
+
+    .closed-menu-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      margin-top: var(--space-5);
+      padding: var(--space-3) var(--space-5);
+      border: 1px solid var(--color-text);
+      border-radius: var(--radius-md);
+      background: var(--color-text);
+      color: var(--color-surface);
+      font-weight: 600;
+      text-decoration: none;
+      &:focus-visible { outline: 2px solid var(--color-text); outline-offset: 3px; }
+    }
   }
 }
 

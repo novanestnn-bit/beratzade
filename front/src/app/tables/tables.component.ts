@@ -15,6 +15,8 @@ import { ApiErrorMessageService } from '../services/api-error-message.service';
 import { LanguageService } from '../services/language.service';
 import { findNonOverlappingDefaultPosition } from './table-floor-layout.util';
 import { formatActivatedAtTime, formatElapsedActiveDuration } from './table-active-duration.util';
+import { forkJoin } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 const TABLES_VIEW_STORAGE_KEY = 'pos.tables.viewMode';
 
@@ -73,8 +75,8 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
               </div>
             }
           </div>
-          @if (!showForm() && floors().length > 0) {
-            <button class="btn btn-primary" (click)="showForm.set(true)">
+          @if (canManageTableAssignments() && !showForm() && floors().length > 0) {
+            <button class="btn btn-primary" (click)="showForm.set(true)" data-testid="tables-add-table">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
@@ -85,7 +87,7 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
         </div>
 
         <div class="content">
-          @if (showForm()) {
+          @if (showForm() && canManageTableAssignments()) {
             <div class="form-card">
               <form (submit)="createTable($event)">
                 <div class="form-inline">
@@ -113,9 +115,14 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
           @if (error()) {
             <div class="error-banner">{{ error() }}</div>
           }
+          @if (syncUnavailable()) {
+            <p class="error-banner" role="status" data-testid="tables-sync-status">{{ 'TABLES.SYNC_UNAVAILABLE' | translate }}</p>
+          }
 
           @if (loading()) {
             <div class="empty-state"><p>{{ 'COMMON.LOADING' | translate }}</p></div>
+          } @else if (syncUnavailable() && floors().length === 0) {
+            <div class="empty-state"><button type="button" class="btn btn-secondary" (click)="loadData()">{{ 'REPORTS.REFRESH' | translate }}</button></div>
           } @else if (floors().length === 0) {
             <div class="empty-state">
               <div class="empty-icon">
@@ -126,9 +133,11 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
               </div>
               <h3>{{ 'TABLES.CREATE_FIRST_FLOOR' | translate }}</h3>
               <p>{{ 'TABLES.CREATE_FIRST_FLOOR_DESC' | translate }}</p>
+              @if (canManageFloors()) {
               <a routerLink="/tables/canvas" class="btn btn-primary">
                 {{ 'TABLES.ADD_FLOOR' | translate }}
               </a>
+              }
             </div>
           } @else if (tables().length === 0) {
             <div class="empty-state">
@@ -140,7 +149,9 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
               </div>
               <h3>{{ 'TABLES.NO_TABLES' | translate }}</h3>
               <p>{{ 'TABLES.CREATE_FIRST_FLOOR_DESC' | translate }}</p>
-              <button class="btn btn-primary" (click)="showForm.set(true)">{{ 'TABLES.ADD_TABLE' | translate }}</button>
+              @if (canManageTableAssignments()) {
+              <button class="btn btn-primary" (click)="showForm.set(true)" data-testid="tables-add-first">{{ 'TABLES.ADD_TABLE' | translate }}</button>
+              }
             </div>
           } @else if (viewMode() === 'table') {
             <!-- Table view: all tables in a data table -->
@@ -208,7 +219,7 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
                     @if (editingTableId() === table.id) {
                       <input type="text" [(ngModel)]="editingName" class="edit-input-inline" (keydown.enter)="saveTable(table)" (keydown.escape)="cancelEdit()">
                     } @else {
-                      <span class="table-name" (click)="startEdit(table)">{{ table.name }}</span>
+                      <span class="table-name" [class.editable]="canManageTableAssignments()" (click)="canManageTableAssignments() && startEdit(table)">{{ table.name }}</span>
                     }
                   </td>
                   <td>
@@ -270,7 +281,9 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
                       <button type="button" class="icon-btn icon-btn-success" (click)="saveTable(table)" [title]="'COMMON.SAVE' | translate">✓</button>
                       <button type="button" class="icon-btn" (click)="cancelEdit()" [title]="'COMMON.CANCEL' | translate">✕</button>
                     } @else {
-                      <button type="button" class="icon-btn icon-btn-edit" (click)="startEdit(table)" [title]="'COMMON.EDIT' | translate">✎</button>
+                      @if (canManageTableAssignments()) {
+                      <button type="button" class="icon-btn icon-btn-edit" (click)="startEdit(table)" [title]="'COMMON.EDIT' | translate" [attr.data-testid]="'table-edit-' + table.id">✎</button>
+                      }
                       @if (table.is_active) {
                         <button type="button" class="btn btn-sm btn-ghost" (click)="regeneratePin(table)" [disabled]="activatingTableId() === table.id" [title]="'TABLES.NEW_PIN' | translate">↻</button>
                         <button type="button" class="btn btn-sm btn-warning" (click)="confirmCloseTable(table)" [disabled]="activatingTableId() === table.id" [title]="'TABLES.CLOSE_TABLE' | translate">⌫</button>
@@ -281,7 +294,9 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
                         [disabled]="staffMenuOpeningTableId() === table.id"
                         [title]="'TABLES.OPEN_MENU' | translate">↗</button>
                       <button type="button" class="icon-btn" (click)="copyLink(table)" [title]="'COMMON.COPY' | translate">⎘</button>
-                      <button type="button" class="icon-btn icon-btn-danger" (click)="deleteTable(table)" [title]="'COMMON.DELETE' | translate">🗑</button>
+                      @if (canManageTableAssignments()) {
+                      <button type="button" class="icon-btn icon-btn-danger" (click)="deleteTable(table)" [title]="'COMMON.DELETE' | translate" [attr.data-testid]="'table-delete-' + table.id">🗑</button>
+                      }
                     }
                   </td>
                 </ng-template>
@@ -456,8 +471,8 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
                 } @else {
                   @if (!hideTitle) {
                     <div class="table-info">
-                      <h3 (click)="startEdit(table)" class="editable-name">{{ table.name }}</h3>
-                      <div class="seat-count" (click)="startEdit(table)">
+                      <h3 (click)="canManageTableAssignments() && startEdit(table)" [class.editable-name]="canManageTableAssignments()">{{ table.name }}</h3>
+                      <div class="seat-count" [class.editable]="canManageTableAssignments()" (click)="canManageTableAssignments() && startEdit(table)">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
                           <circle cx="9" cy="7" r="4"/>
@@ -467,20 +482,22 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
                       </div>
                     </div>
                   }
+                  @if (canManageTableAssignments()) {
                   <div class="header-actions" [class.header-actions--solo]="hideTitle">
-                    <button class="icon-btn icon-btn-edit" (click)="startEdit(table)" [title]="'COMMON.EDIT' | translate">
+                    <button class="icon-btn icon-btn-edit" (click)="startEdit(table)" [title]="'COMMON.EDIT' | translate" [attr.data-testid]="'table-edit-' + table.id">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                         <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                       </svg>
                     </button>
-                    <button class="icon-btn icon-btn-danger" (click)="deleteTable(table)" [title]="'COMMON.DELETE' | translate">
+                    <button class="icon-btn icon-btn-danger" (click)="deleteTable(table)" [title]="'COMMON.DELETE' | translate" [attr.data-testid]="'table-delete-' + table.id">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="3,6 5,6 21,6"/>
                         <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                       </svg>
                     </button>
                   </div>
+                  }
                 }
               </div>
 
@@ -934,7 +951,8 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
     .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); gap: var(--space-2); }
     
     .table-info { flex: 1; min-width: 0; text-align: left; }
-    .editable-name { cursor: pointer; margin: 0; font-size: 1rem; font-weight: 600; color: var(--color-text); }
+    .table-info h3 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--color-text); }
+    .editable-name,.seat-count.editable { cursor: pointer; }
     .editable-name:hover { color: var(--color-primary); }
     .seat-count {
       display: flex;
@@ -943,7 +961,6 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
       font-size: 0.8125rem;
       color: var(--color-text-muted);
       margin-top: var(--space-1);
-      cursor: pointer;
     }
     
     .edit-fields { display: flex; gap: var(--space-2); align-items: center; flex: 1; flex-wrap: wrap; }
@@ -1143,8 +1160,9 @@ function getInitialTablesViewMode(): 'tiles' | 'table' {
     .tables-data-table th.th-actions { text-align: right; }
     .tables-data-table td.td-actions { text-align: right; }
     .tables-data-table tbody tr:hover td { background: var(--color-bg); }
-    .tables-data-table .table-name { font-weight: 600; cursor: pointer; }
-    .tables-data-table .table-name:hover { color: var(--color-primary); }
+    .tables-data-table .table-name { font-weight: 600; }
+    .tables-data-table .table-name.editable { cursor: pointer; }
+    .tables-data-table .table-name.editable:hover { color: var(--color-primary); }
     .tables-data-table .pin-cell { font-family: ui-monospace, monospace; font-weight: 600; letter-spacing: 0.05em; }
     .tables-data-table .waiter-select-inline { padding: var(--space-1) var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: 0.8125rem; background: var(--color-surface); color: var(--color-text); min-width: 120px; }
     .tables-data-table .waiter-inherited-inline { font-size: 0.6875rem; color: var(--color-text-muted); font-style: italic; margin-top: 2px; }
@@ -1197,6 +1215,10 @@ export class TablesComponent implements OnInit {
   floors = signal<Floor[]>([]);
   loading = signal(true);
   error = signal('');
+  readonly syncUnavailable = signal(false);
+  private dataRequest = 0;
+  private dataRefreshing = false;
+  private tableMutationRevision = 0;
   showForm = signal(false);
   viewMode = signal<'tiles' | 'table'>(getInitialTablesViewMode());
   newTableName = '';
@@ -1308,7 +1330,10 @@ export class TablesComponent implements OnInit {
     this.loadData();
     this.loadTenantSettings();
     const tickId = setInterval(() => this.nowTick.set(Date.now()), 30_000);
-    this.destroyRef.onDestroy(() => clearInterval(tickId));
+    const refreshId = setInterval(() => {
+      if (document.visibilityState === 'visible' && !this.showForm() && this.editingTableId() == null && this.activatingTableId() == null) this.loadData(true);
+    }, 10_000);
+    this.destroyRef.onDestroy(() => { clearInterval(tickId); clearInterval(refreshId); });
     this.api.waitForInitialAuthCheck().subscribe(() => {
       if (this.canManageTableAssignments()) {
         this.api.getWaiters().subscribe({
@@ -1420,22 +1445,38 @@ export class TablesComponent implements OnInit {
     });
   }
 
-  loadData() {
-    this.loading.set(true);
-    // Use forkJoin if needed, but sequential is fine for now
-    this.api.getFloors().subscribe({
-      next: floors => {
-        this.floors.set(floors);
-        if (floors.length > 0) {
-          this.selectedFloorId = floors[0].id!;
-        }
-        this.api.getTables().subscribe({
-          next: tables => { this.tables.set(tables); this.loading.set(false); },
-          error: err => { this.error.set(this.apiErr.fromHttpError(err, 'COMMON.API_REQUEST_FAILED')); this.loading.set(false); }
-        });
-      },
-      error: err => { this.error.set(this.apiErr.fromHttpError(err, 'COMMON.API_REQUEST_FAILED')); this.loading.set(false); }
-    });
+  loadData(background = false) {
+    if (background && this.dataRefreshing) return;
+    const request = ++this.dataRequest;
+    const mutationRevision = this.tableMutationRevision;
+    this.dataRefreshing = true;
+    if (!background) this.loading.set(true);
+    forkJoin({ floors: this.api.getFloors(), tables: this.api.getTables() })
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: ({ floors, tables }) => {
+          if (request !== this.dataRequest) return;
+          this.dataRefreshing = false;
+          this.loading.set(false);
+          if (mutationRevision !== this.tableMutationRevision || (background && (this.showForm() || this.editingTableId() != null || this.activatingTableId() != null))) return;
+          this.floors.set(floors);
+          this.tables.set(tables);
+          if (!floors.some(floor => floor.id === Number(this.selectedFloorId))) this.selectedFloorId = floors[0]?.id ?? null;
+          this.syncUnavailable.set(false);
+          if (!background) this.error.set('');
+        },
+        error: err => {
+          if (request !== this.dataRequest) return;
+          this.dataRefreshing = false;
+          this.loading.set(false);
+          this.syncUnavailable.set(true);
+          if (!background) this.error.set(this.apiErr.fromHttpError(err, 'COMMON.API_REQUEST_FAILED'));
+        },
+      });
+  }
+
+  private updateTables(update: (tables: Table[]) => Table[]): void {
+    ++this.tableMutationRevision;
+    this.tables.update(update);
   }
 
   getTablesByFloor(floorId: number): Table[] {
@@ -1633,6 +1674,7 @@ export class TablesComponent implements OnInit {
 
   createTable(e: Event) {
     e.preventDefault();
+    if (!this.canManageTableAssignments()) return;
     if (!this.newTableName || !this.selectedFloorId) return;
     const floorId = this.selectedFloorId;
     const onFloor = this.tables().filter(t => t.floor_id === floorId || (!t.floor_id && !floorId));
@@ -1642,7 +1684,7 @@ export class TablesComponent implements OnInit {
     this.api.createTable(this.newTableName, floorId).subscribe({
       next: table => {
         if (table.id == null) {
-          this.tables.update(t => [...t, table]);
+          this.updateTables(t => [...t, table]);
           this.newTableName = '';
           this.showForm.set(false);
           return;
@@ -1657,12 +1699,12 @@ export class TablesComponent implements OnInit {
           })
           .subscribe({
             next: updated => {
-              this.tables.update(t => [...t, updated]);
+              this.updateTables(t => [...t, updated]);
               this.newTableName = '';
               this.showForm.set(false);
             },
             error: err => {
-              this.tables.update(t => [...t, table]);
+              this.updateTables(t => [...t, table]);
               this.newTableName = '';
               this.showForm.set(false);
               this.error.set(this.apiErr.fromHttpError(err, 'COMMON.API_REQUEST_FAILED'));
@@ -1674,6 +1716,7 @@ export class TablesComponent implements OnInit {
   }
 
   deleteTable(table: Table) {
+    if (!this.canManageTableAssignments()) return;
     if (!table.id) return;
     this.confirmationModal.set({
       show: true,
@@ -1710,7 +1753,7 @@ export class TablesComponent implements OnInit {
       this.activatingTableId.set(tableId);
       this.api.closeTable(tableId).subscribe({
         next: () => {
-          this.tables.update(tables => tables.map(t =>
+          this.updateTables(tables => tables.map(t =>
             t.id === tableId
               ? { ...t, is_active: false, order_pin: null, active_order_id: null }
               : t
@@ -1731,7 +1774,7 @@ export class TablesComponent implements OnInit {
     if (table?.id) {
       this.api.deleteTable(table.id).subscribe({
         next: () => {
-          this.tables.update(t => t.filter(x => x.id !== table.id));
+          this.updateTables(t => t.filter(x => x.id !== table.id));
           this.onConfirmationCancel();
         },
         error: err => {
@@ -1766,7 +1809,7 @@ export class TablesComponent implements OnInit {
     if (!table?.id || targetId == null) return;
     this.api.deleteTable(table.id, targetId).subscribe({
       next: () => {
-        this.tables.update(t => t.filter(x => x.id !== table.id));
+        this.updateTables(t => t.filter(x => x.id !== table.id));
         this.cancelReassign();
         this.showToast('TABLES.TABLE_DELETED', 'success');
       },
@@ -1876,6 +1919,7 @@ export class TablesComponent implements OnInit {
   }
 
   startEdit(table: Table) {
+    if (!this.canManageTableAssignments()) return;
     if (!table.id) return;
     this.editingTableId.set(table.id);
     this.editingName = table.name;
@@ -1891,6 +1935,7 @@ export class TablesComponent implements OnInit {
   }
 
   saveTable(table: Table) {
+    if (!this.canManageTableAssignments()) return;
     if (!table.id || !this.editingName.trim()) return;
 
     const updates: Partial<Table> = {
@@ -1906,7 +1951,7 @@ export class TablesComponent implements OnInit {
 
     this.api.updateTable(table.id, updates).subscribe({
       next: updated => {
-        this.tables.update(t => t.map(x => x.id === table.id ? updated : x));
+        this.updateTables(t => t.map(x => x.id === table.id ? updated : x));
         this.cancelEdit();
       },
       error: err => this.error.set(this.apiErr.fromHttpError(err, 'COMMON.API_REQUEST_FAILED'))
@@ -1935,7 +1980,7 @@ export class TablesComponent implements OnInit {
     this.activatingTableId.set(table.id);
     this.api.activateTable(table.id).subscribe({
       next: response => {
-        this.tables.update(tables => tables.map(t =>
+        this.updateTables(tables => tables.map(t =>
           t.id === table.id
             ? { ...t, is_active: true, order_pin: response.pin, active_order_id: response.active_order_id, activated_at: response.activated_at }
             : t
@@ -1954,7 +1999,7 @@ export class TablesComponent implements OnInit {
     this.activatingTableId.set(table.id);
     this.api.closeTable(table.id).subscribe({
       next: () => {
-        this.tables.update(tables => tables.map(t =>
+        this.updateTables(tables => tables.map(t =>
           t.id === table.id
             ? { ...t, is_active: false, order_pin: null, active_order_id: null }
             : t
@@ -1973,7 +2018,7 @@ export class TablesComponent implements OnInit {
     this.activatingTableId.set(table.id);
     this.api.regenerateTablePin(table.id).subscribe({
       next: (response: TableActivateResponse) => {
-        this.tables.update(tables => tables.map(t =>
+        this.updateTables(tables => tables.map(t =>
           t.id === table.id
             ? { ...t, order_pin: response.pin }
             : t
@@ -1993,7 +2038,7 @@ export class TablesComponent implements OnInit {
     if (!table.id) return;
     this.api.assignWaiterToTable(table.id, waiterId).subscribe({
       next: (res: any) => {
-        this.tables.update(tables => tables.map(t =>
+        this.updateTables(tables => tables.map(t =>
           t.id === table.id
             ? { ...t, assigned_waiter_id: res.assigned_waiter_id, assigned_waiter_name: res.assigned_waiter_name }
             : t

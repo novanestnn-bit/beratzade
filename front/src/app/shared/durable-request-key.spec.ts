@@ -1,6 +1,12 @@
 import { pendingRequest } from './durable-request-key';
 
 describe('durable request keys', () => {
+  it('honours a restored immutable submission key instead of replacing it with a newer cached key', () => {
+    const scope = crypto.randomUUID(), key = crypto.randomUUID();
+    pendingRequest(scope, { item: 'a newer action' });
+    expect(pendingRequest(scope, { item: 'the restored action' }, key).key).toBe(key);
+    expect(() => pendingRequest(scope, { item: 'changed content' }, key)).toThrow();
+  });
   it('retains a key until a successful response, then permits a new action', () => {
     const scope = crypto.randomUUID();
     const first = pendingRequest(scope, { amount: 50 });
