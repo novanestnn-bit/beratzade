@@ -70,7 +70,7 @@
       </main>
     </div>
   } @else {
-    @if (isBeratzadeMenuOnly()) {
+    @if (isBeratzadeMenuOnly() && hasAnyProducts()) {
       <section class="beratzade-menu-intro" aria-labelledby="beratzade-menu-title">
         <div class="beratzade-menu-intro-inner">
           <div class="beratzade-menu-intro-copy">
@@ -106,7 +106,7 @@
           <figure class="menu-editorial" aria-hidden="true"><img [src]="editorialImage()" alt="" fetchpriority="high" decoding="async" /><figcaption>BERATZADE <span>KEBAP & KAHVALTI</span></figcaption></figure>
         </div>
       </section>
-    } @else {
+    } @else if (!isBeratzadeMenuOnly()) {
       <header
         class="hero-header"
         [class.has-bg-image]="tenant()?.header_background_filename"
@@ -238,7 +238,16 @@
         </p>
       }
 
-      @if (isBeratzadeLanding()) {
+      @if (isBeratzadeMenuOnly() && !hasAnyProducts()) {
+        <section class="beratzade-menu-intro beratzade-empty-menu" role="status" data-testid="beratzade-empty-menu">
+          <div class="beratzade-menu-intro-inner">
+            <div class="beratzade-menu-intro-copy">
+              <p class="beratzade-menu-eyebrow">{{ 'MENU_EXPERIENCE.EYEBROW' | translate }}</p>
+              <h1>{{ 'RESTAURANT_SITE.EMPTY_MENU' | translate }}</h1>
+            </div>
+          </div>
+        </section>
+      } @else if (isBeratzadeLanding()) {
         <section class="beratzade-main-choices" [attr.aria-label]="'MENU_EXPERIENCE.MENU_SECTIONS' | translate" data-testid="beratzade-main-choices">
           @for (section of beratzadeSections; track section.id) {
             <button type="button" class="beratzade-choice-card" (click)="openBeratzadeSection(section)" [attr.data-section]="section.id">

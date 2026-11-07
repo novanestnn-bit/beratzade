@@ -35,13 +35,14 @@ const categories = [
   { id: 'kahvalti', name: 'Kahvaltı', products: products.slice(0, 2), subcategories: [] },
   { id: 'kebaplar-ve-izgaralar', name: 'Kebaplar ve Izgaralar', products: [products[2]], subcategories: [] },
 ];
-const menu = {
+const fullMenu = {
   tenant_id: tenant.id,
   tenant_name: tenant.name,
   currency: 'TRY',
   categories,
   category_tree: categories,
 };
+let currentMenu = fullMenu;
 
 const browser = await puppeteer.launch({
   executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
@@ -60,11 +61,14 @@ try {
       writes.push(`${request.method()} ${url.pathname}`);
       return request.abort('blockedbyclient');
     }
+    if (url.pathname === '/api/users/me') {
+      return request.respond({ status: 200, contentType: 'application/json', body: 'null' });
+    }
     if (url.pathname === '/api/public/tenants/beratzade-test-fixture') {
       return request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(tenant) });
     }
     if (url.pathname === `/api/public/tenants/${tenant.id}/menu`) {
-      return request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(menu) });
+      return request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(currentMenu) });
     }
     return request.continue();
   });
@@ -100,6 +104,17 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.querySelector('.public-menu-detail'));
 
+  currentMenu = { ...fullMenu, categories: [], category_tree: [] };
+  await page.goto(`${base}/public-menu/${tenant.public_slug}?lang=tr`, { waitUntil: 'networkidle2' });
+  await page.waitForSelector('[data-testid="beratzade-empty-menu"]');
+  assert.match(
+    await page.$eval('[data-testid="beratzade-empty-menu"]', element => element.innerText),
+    /Menümüz hazırlanıyor\./,
+  );
+  assert.equal(await page.$('.beratzade-choice-card'), null, 'Empty catalog must not show category navigation');
+  assert.equal(await page.$('.beratzade-group-card'), null, 'Empty catalog must not show category groups');
+  assert.equal(await page.$('.public-menu-product'), null, 'Empty catalog must not show product cards');
+
   assert.deepEqual(writes, [], 'No API write requests may be made');
   assert.deepEqual(runtimeErrors, [], 'Browser must have no runtime errors');
   console.log(JSON.stringify({
@@ -109,6 +124,7 @@ try {
     entryCards: 2,
     breakfastGroups: 6,
     grillGroups: 8,
+    emptyCatalog: 'preparing message; no categories or products shown',
     orderWrites: 0,
     runtimeErrors: 0,
   }));
