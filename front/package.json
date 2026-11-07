@@ -8,6 +8,7 @@
     "build": "node scripts/build.mjs",
     "build:vercel": "npm run build -- --vercel",
     "test:deployment-config": "node --test scripts/deployment-config.test.mjs",
+    "test:beratzade-menu-design": "node scripts/test-beratzade-menu-design.mjs",
     "test:three-panel-operations": "node scripts/test-three-panel-operations.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
