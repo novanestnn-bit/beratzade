@@ -146,6 +146,103 @@
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
 
+/* Beratzade's dark charcoal and gold customer menu. */
+.public-menu-page.is-beratzade {
+  --color-primary: #e9c98a;
+  --color-text: #f7f0df;
+  --color-text-muted: #c6b995;
+  --color-surface: #22271f;
+  --color-border: #74613d;
+  color: #f7f0df;
+  background: #171915;
+}
+.is-beratzade .beratzade-menu-header { border-bottom-color: #e9c98a55; background: #10140f; }
+.is-beratzade .beratzade-menu-monogram { border-color: #e9c98a; color: #e9c98a; }
+.is-beratzade .beratzade-menu-brand-copy strong { color: #e9c98a; }
+.is-beratzade .beratzade-menu-intro { border-bottom-color: #74613d; background: radial-gradient(ellipse at 76% 15%, #27372a, #171915 62%); }
+.is-beratzade .beratzade-menu-intro h1 { color: #f6e9cc; }
+.is-beratzade .beratzade-menu-eyebrow { color: #e9c98a; }
+.is-beratzade .beratzade-menu-description, .is-beratzade .beratzade-menu-meta { color: #c6b995; }
+.is-beratzade .beratzade-menu-meta i { background: #e9c98a; }
+.is-beratzade .beratzade-menu-home-link { display: inline-flex; align-items: center; margin-top: .85rem; min-height: 40px; padding: .35rem .75rem; border: 1px solid #e9c98a80; border-radius: 7px; background: #171915; color: #e9c98a; font: 500 .75rem/1.4 system-ui, sans-serif; text-decoration: none; cursor: pointer; }
+.is-beratzade .menu-editorial { border: 1px solid #e9c98a; background: #263326; }
+.is-beratzade .beratzade-menu-tools { border-bottom-color: #74613d; background: #171915f5; }
+.is-beratzade .beratzade-menu-tools .public-menu-search input { border-color: #74613d; background: #22271f; color: #f7f0df; }
+.is-beratzade .menu-quick-categories a, .is-beratzade .menu-quick-categories button { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: .65rem; min-height: 44px; padding: .55rem 1rem; border: 1px solid #74613d; border-radius: 7px; background: #22271f; color: #f7f0df; text-decoration: none; font: 500 .76rem/1.4 system-ui, sans-serif; cursor: pointer; }
+.is-beratzade .menu-quick-categories a.is-active, .is-beratzade .menu-quick-categories button.is-active { border-color: #e9c98a; background: #e9c98a; color: #171915; }
+.is-beratzade .beratzade-category-index h2 { color: #c6b995; }
+.is-beratzade .beratzade-category-card { border-color: #74613d; background: #22271f; color: #f7f0df; }
+.is-beratzade .beratzade-category-title { color: #f7f0df; }
+.is-beratzade .public-menu-product { border: 1px solid #74613d; border-radius: 12px; background: #22271f; color: #f7f0df; box-shadow: 0 4px 12px #0003; }
+.is-beratzade .public-menu-product-image-wrap { background: #171915; }
+.is-beratzade .public-menu-product-name { color: #f7f0df; }
+.is-beratzade .public-menu-product-price { color: #e9c98a; }
+.is-beratzade .public-menu-product-desc, .is-beratzade .menu-product-detail-hint { color: #c6b995; }
+.is-beratzade .menu-product-detail-hint > span { color: #e9c98a; }
+.is-beratzade .public-menu-category-toggle { color: #e9c98a; }
+.is-beratzade .public-menu-category-count { background: #e9c98a; color: #171915; }
+.is-beratzade .menu-result-count { color: #c6b995; }
+.is-beratzade .menu-connection-note { border-color: #e9c98a; background: #2b281d; color: #f7e6b5; }
+.is-beratzade .menu-connection-note button { border-color: #e9c98a; background: #171915; color: #e9c98a; }
+.is-beratzade .public-menu-no-results h2 { color: #f7f0df; }
+.is-beratzade .menu-retry, .is-beratzade .menu-detail-done { border-color: #e9c98a; background: #e9c98a; color: #171915; }
+.is-beratzade .public-menu-contact-footer { border: 1px solid #74613d; background: #22271f; }
+.is-beratzade .public-menu-contact-title, .is-beratzade .public-menu-contact-footer .contact-link { color: #e9c98a; }
+.is-beratzade .public-menu-contact-footer .restaurant-location { color: #c6b995; }
+
+.beratzade-main-choices, .beratzade-group-index { width: min(100%, 72rem); margin: 0 auto; }
+.beratzade-toast-note { padding: .85rem 1rem; margin: 0 0 1rem; border: 1px solid #74613d; border-radius: 9px; background: #22271f; color: #e9c98a; font-size: .82rem; line-height: 1.5; }
+.beratzade-main-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(.8rem, 2.3vw, 1.5rem); padding: 1.5rem 0 2.5rem; }
+.beratzade-choice-card { position: relative; display: block; aspect-ratio: 1 / 1; min-width: 0; padding: 0; overflow: hidden; border: 1px solid #e9c98a; border-radius: 18px; background: #20271e; color: #fff7e6; text-align: left; cursor: pointer; box-shadow: 0 14px 36px #0006; isolation: isolate; }
+.beratzade-choice-card img { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.beratzade-choice-card:hover img { transform: scale(1.035); }
+.beratzade-choice-card:focus-visible, .beratzade-group-card:focus-visible { outline: 3px solid #e9c98a; outline-offset: 4px; }
+.beratzade-choice-shade { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, #080b0866 0%, #080b0820 36%, #080b08dc 100%); }
+.beratzade-choice-copy { position: absolute; inset: auto 1.25rem 1.3rem; z-index: 2; display: grid; gap: .6rem; }
+.beratzade-choice-copy strong { max-width: 15ch; color: #fff7e6; font: 600 clamp(1.35rem, 3vw, 2.5rem)/1.05 Georgia, serif; text-shadow: 0 2px 12px #000b; }
+.beratzade-choice-copy > span { display: inline-flex; align-items: center; gap: .6rem; color: #e9c98a; font: 600 .76rem/1.4 system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; }
+.beratzade-choice-copy i { font-size: 1rem; font-style: normal; }
+.beratzade-choice-count { position: absolute; top: 1rem; right: 1rem; z-index: 2; padding: .45rem .65rem; border: 1px solid #e9c98a88; border-radius: 999px; background: #171915b8; color: #f2d99e; font-size: .68rem; backdrop-filter: blur(8px); }
+.beratzade-group-index { padding: .5rem 0 2.5rem; }
+.beratzade-group-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin: 0 0 1rem; color: #e9c98a; font: 600 .78rem/1.4 system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+.beratzade-group-heading small { color: #c6b995; font-size: .68rem; font-weight: 400; letter-spacing: .04em; text-transform: none; }
+.beratzade-group-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
+.beratzade-group-card { display: grid; grid-template-columns: 5.2rem minmax(0, 1fr) 1.5rem; align-items: center; gap: .85rem; min-height: 6rem; padding: .65rem; border: 1px solid #74613d; border-radius: 12px; background: linear-gradient(145deg, #252b22, #1c201a); color: #f7f0df; text-align: left; cursor: pointer; transition: border-color .18s ease, transform .18s ease, background .18s ease; }
+.beratzade-group-card:hover { transform: translateY(-2px); border-color: #e9c98a; background: #2a2f24; }
+.beratzade-group-image { width: 5.2rem; height: 4.6rem; overflow: hidden; border-radius: 8px; background: #30372a; }
+.beratzade-group-image img { width: 100%; height: 100%; object-fit: cover; }
+.beratzade-group-copy { display: grid; gap: .35rem; min-width: 0; }
+.beratzade-group-copy strong { color: #f7f0df; font: 500 .95rem/1.25 Georgia, serif; }
+.beratzade-group-copy small { color: #c6b995; font-size: .67rem; }
+.beratzade-group-arrow { color: #e9c98a; font-size: 1.05rem; }
+.is-beratzade .public-menu-detail { background: #22271f; color: #f7f0df; }
+.is-beratzade .public-menu-detail-copy h2 { color: #f7f0df; }
+.is-beratzade .public-menu-detail-copy > p:not(.menu-detail-eyebrow) { color: #c6b995; }
+.is-beratzade .public-menu-detail-price strong { color: #e9c98a; }
+.is-beratzade .public-menu-detail-close { color: #f7f0df; }
+
+@media (max-width: 850px) { .beratzade-group-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 699px) {
+  .is-beratzade .public-menu-content { padding-top: 0; }
+  .beratzade-main-choices { padding: 1rem 0 2rem; gap: .65rem; }
+  .beratzade-choice-card { border-radius: 13px; }
+  .beratzade-choice-copy { inset-inline: .8rem; bottom: .9rem; gap: .4rem; }
+  .beratzade-choice-copy strong { font-size: clamp(1.05rem, 5vw, 1.7rem); }
+  .beratzade-choice-copy > span { font-size: .62rem; }
+  .beratzade-choice-count { top: .65rem; right: .65rem; padding: .35rem .5rem; font-size: .6rem; }
+  .beratzade-group-index { padding-top: .2rem; }
+  .beratzade-group-grid { gap: .55rem; }
+  .beratzade-group-card { grid-template-columns: 3.8rem minmax(0, 1fr) 1rem; gap: .55rem; min-height: 4.8rem; padding: .5rem; border-radius: 10px; }
+  .beratzade-group-image { width: 3.8rem; height: 3.8rem; }
+  .beratzade-group-copy strong { font-size: .8rem; }
+  .beratzade-group-copy small { font-size: .61rem; }
+  .beratzade-group-arrow { font-size: .9rem; }
+}
+@media (max-width: 380px) {
+  .beratzade-main-choices, .beratzade-group-grid { grid-template-columns: minmax(0, 1fr); }
+  .beratzade-choice-card { aspect-ratio: 1.35 / 1; }
+}
+
 /* Restaurant menu: a clear catalogue first, with compact navigation on every screen. */
 .public-menu-page.is-beratzade {
   --color-primary: #983c2c;

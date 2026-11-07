@@ -36,7 +36,17 @@ import { publicBookRouterLink } from '../shared/public-book-path';
 import { LanguageService } from '../services/language.service';
 import { LegalLinksComponent } from '../shared/legal-links.component';
 import { formatMoneyCents } from '../shared/currency-symbol';
-import { categoryProducts, matchesMenuSearch, menuProducts, publicImageUrl, publicProductKey } from './public-menu-presentation';
+import {
+  BERATZADE_MENU_SECTIONS,
+  BeratzadeMenuGroup,
+  BeratzadeMenuSection,
+  beratzadeProductMatchesGroup,
+  categoryProducts,
+  matchesMenuSearch,
+  menuProducts,
+  publicImageUrl,
+  publicProductKey,
+} from './public-menu-presentation';
 
 @Component({
   selector: 'app-public-menu',
@@ -66,12 +76,30 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
   searchTerm = signal('');
   categorySlug = signal('');
   subcategorySlug = signal('');
+  menuSectionSlug = signal('');
+  menuGroupSlug = signal('');
   activeCategoryId = signal('');
   selectedProduct = signal<PublicTenantMenuProduct | null>(null);
   failedImageIds = signal<Set<string>>(new Set());
   productUnavailable = signal(false);
   readonly refreshFailed = signal(false);
   readonly totalProducts = computed(() => menuProducts(this.menuCategories()).length);
+  readonly beratzadeSections = BERATZADE_MENU_SECTIONS;
+  readonly activeBeratzadeSection = computed(() =>
+    this.beratzadeSections.find(section => section.id === this.menuSectionSlug()) ?? null,
+  );
+  readonly activeBeratzadeGroup = computed(() =>
+    this.activeBeratzadeSection()?.groups.find(group => group.id === this.menuGroupSlug()) ?? null,
+  );
+  readonly isBeratzadeLanding = computed(() =>
+    this.isBeratzadeMenuOnly() && !this.activeBeratzadeSection() && !this.isCategoryRoute(),
+  );
+  readonly isBeratzadeSectionLanding = computed(() =>
+    this.isBeratzadeMenuOnly() && !!this.activeBeratzadeSection() && !this.activeBeratzadeGroup(),
+  );
+  readonly isBeratzadeGroupView = computed(() =>
+    this.isBeratzadeMenuOnly() && !!this.activeBeratzadeSection() && !!this.activeBeratzadeGroup(),
+  );
   readonly resultCount = computed(() => this.visibleCategories().reduce((count, category) => count + category.products.length, 0));
   private menuRequestVersion = 0;
   private productQuery = '';
@@ -150,8 +178,17 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
       }
     });
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
+      const nextSection = params.get('section') ?? '';
+      const nextGroup = params.get('group') ?? '';
+      if (nextSection !== this.menuSectionSlug() || nextGroup !== this.menuGroupSlug()) {
+        this.menuSectionSlug.set(nextSection);
+        this.menuGroupSlug.set(nextGroup);
+        this.searchTerm.set('');
+        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' });
+      }
       this.productQuery = params.get('product') ?? '';
       this.syncSelectedProduct();
+      this.updateDocumentTitle();
     });
 
     const refParam = (this.route.snapshot.paramMap.get('tenantId') || '').trim();
@@ -274,12 +311,59 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
     return orderBeratzadeSubcategories(category.name, category.subcategories ?? []).filter(child => child.products.length > 0);
   }
 
+  beratzadeSectionProductCount(section: BeratzadeMenuSection): number {
+    const groupIds = new Set(section.groups.map(group => group.id));
+    return menuProducts(this.menuCategories()).filter(product =>
+      [...groupIds].some(groupId => beratzadeProductMatchesGroup(product, groupId)),
+    ).length;
+  }
+
+  beratzadeGroupProductCount(group: BeratzadeMenuGroup): number {
+    return menuProducts(this.menuCategories()).filter(product => beratzadeProductMatchesGroup(product, group.id)).length;
+  }
+
+  openBeratzadeSection(section: BeratzadeMenuSection): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { section: section.id, group: null, product: null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  openBeratzadeGroup(group: BeratzadeMenuGroup): void {
+    const section = this.activeBeratzadeSection();
+    if (!section) return;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { section: section.id, group: group.id, product: null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  backToBeratzadeLanding(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { section: null, group: null, product: null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  backToBeratzadeSection(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { group: null, product: null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   categoryImage(category: PublicTenantMenuCategory): string {
     const product = categoryProducts(category).find(product => this.hasProductImage(product));
     return product ? this.productImageUrl(product.image_url) : '';
   }
 
   editorialImage(): string {
+    if (this.activeBeratzadeGroup()) return this.activeBeratzadeGroup()!.image;
+    if (this.activeBeratzadeSection()) return this.activeBeratzadeSection()!.image;
     const category = this.activeCategory();
     const slug = category ? this.categoryRouteSlug(category.id) : 'kebaplar-ve-izgaralar';
     const available = ['kahvalti', 'kebaplar-ve-izgaralar', 'mezeler-ve-salatalar', 'gunun-corbalari', 'ev-yemekleri', 'icecekler', 'tatlilar'];
@@ -307,6 +391,15 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
   visibleCategories(): PublicTenantMenuCategory[] {
     const query = this.searchTerm().trim();
     const selected = this.activeCategory();
+    if (this.isBeratzadeMenuOnly() && this.menuSectionSlug()) {
+      const section = this.activeBeratzadeSection();
+      const group = this.activeBeratzadeGroup();
+      if (!section || !group) return [];
+      const products = menuProducts(this.menuCategories())
+        .filter(product => beratzadeProductMatchesGroup(product, group.id))
+        .filter(product => matchesMenuSearch(product, query, `${section.label} ${group.label}`));
+      return products.length ? [{ id: group.id, name: group.label, products }] : [];
+    }
     if (this.isCategoryRoute() && !selected) return [];
     if (this.isCategoryRoute() && this.subcategorySlug() && !this.activeSubcategory()) return [];
     const source = this.isBeratzadeMenuOnly() ? selected
@@ -532,6 +625,8 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
       key = 'PUBLIC_MENU.TENANT_NOT_FOUND';
     } else if (err === 'menu_load_failed') {
       key = 'PUBLIC_MENU.LOAD_FAILED';
+    } else if (name && this.isBeratzadeMenuOnly() && this.activeBeratzadeGroup()) {
+      key = 'PUBLIC_MENU.PAGE_TITLE';
     } else if (name) {
       key = 'PUBLIC_MENU.PAGE_TITLE';
     } else {

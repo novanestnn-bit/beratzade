@@ -76,7 +76,11 @@
           <div class="beratzade-menu-intro-copy">
             <p class="beratzade-menu-eyebrow">{{ 'MENU_EXPERIENCE.EYEBROW' | translate }} <span aria-hidden="true">✳</span></p>
             <h1 id="beratzade-menu-title">
-              @if (activeSubcategory(); as subcategory) {
+              @if (activeBeratzadeGroup(); as group) {
+                {{ group.labelKey | translate }}
+              } @else if (activeBeratzadeSection(); as section) {
+                {{ section.labelKey | translate }}
+              } @else if (activeSubcategory(); as subcategory) {
                 {{ getCategoryLabel(subcategory.name) }}
               } @else if (activeCategory(); as category) {
                 {{ getCategoryLabel(category.name) }}
@@ -84,9 +88,20 @@
                 {{ 'MENU_EXPERIENCE.TITLE' | translate }}
               }
             </h1>
-            <p class="beratzade-menu-description">{{ 'MENU_EXPERIENCE.DESCRIPTION' | translate }}</p>
-            <div class="beratzade-menu-meta"><span>{{ 'MENU_EXPERIENCE.PRODUCT_COUNT' | translate: { count: totalProducts() } }}</span><i aria-hidden="true"></i><span>{{ menu()?.currency || 'TRY' }}</span></div>
-            <a routerLink="/beratzade" class="beratzade-menu-home-link">{{ 'PUBLIC_MENU.BACK_HOME' | translate }} <span aria-hidden="true">↗</span></a>
+            <p class="beratzade-menu-description">{{ (activeBeratzadeSection()?.descriptionKey || 'MENU_EXPERIENCE.DESCRIPTION') | translate }}</p>
+            <div class="beratzade-menu-meta">
+              <span>{{ 'MENU_EXPERIENCE.PRODUCT_COUNT' | translate: { count: activeBeratzadeGroup() ? beratzadeGroupProductCount(activeBeratzadeGroup()!) : activeBeratzadeSection() ? beratzadeSectionProductCount(activeBeratzadeSection()!) : totalProducts() } }}</span>
+              <i aria-hidden="true"></i><span>{{ menu()?.currency || 'TRY' }}</span>
+            </div>
+            @if (isBeratzadeGroupView()) {
+              @if (activeBeratzadeSection(); as section) {
+                <button type="button" class="beratzade-menu-home-link" (click)="backToBeratzadeSection()">← {{ section.labelKey | translate }}</button>
+              }
+            } @else if (isBeratzadeSectionLanding()) {
+              <button type="button" class="beratzade-menu-home-link" (click)="backToBeratzadeLanding()">← {{ 'MENU_EXPERIENCE.MAIN_MENU' | translate }}</button>
+            } @else {
+              <a routerLink="/beratzade" class="beratzade-menu-home-link">{{ 'PUBLIC_MENU.BACK_HOME' | translate }} <span aria-hidden="true">↗</span></a>
+            }
           </div>
           <figure class="menu-editorial" aria-hidden="true"><img [src]="editorialImage()" alt="" fetchpriority="high" decoding="async" /><figcaption>BERATZADE <span>KEBAP & KAHVALTI</span></figcaption></figure>
         </div>
@@ -120,7 +135,7 @@
       @if (!isBeratzadeMenuOnly()) {
         <p class="public-menu-readonly-hint">{{ 'PUBLIC_MENU.READ_ONLY_HINT' | translate }}</p>
       }
-      @if (hasAnyProducts()) {
+      @if (hasAnyProducts() && !(isBeratzadeLanding() || isBeratzadeSectionLanding())) {
         <div class="public-menu-tools" [class.beratzade-menu-tools]="isBeratzadeMenuOnly()">
           <div class="public-menu-search">
             <span class="public-menu-search-icon" aria-hidden="true"></span>
@@ -142,7 +157,17 @@
               >×</button>
             }
           </div>
-          @if (isBeratzadeMenuOnly()) {
+          @if (isBeratzadeGroupView()) {
+            @if (activeBeratzadeSection(); as section) {
+              <nav class="menu-quick-categories" [attr.aria-label]="section.labelKey | translate" data-testid="menu-quick-categories">
+                <button type="button" (click)="backToBeratzadeLanding()">{{ 'MENU_EXPERIENCE.MAIN_MENU' | translate }}</button>
+                <button type="button" (click)="backToBeratzadeSection()">{{ section.labelKey | translate }}</button>
+                @for (group of section.groups; track group.id) {
+                  <button type="button" [class.is-active]="activeBeratzadeGroup()?.id === group.id" [attr.aria-current]="activeBeratzadeGroup()?.id === group.id ? 'page' : null" (click)="openBeratzadeGroup(group)">{{ group.labelKey | translate }}<small>{{ beratzadeGroupProductCount(group) }}</small></button>
+                }
+              </nav>
+            }
+          } @else if (isBeratzadeMenuOnly() && isCategoryRoute()) {
             <nav class="menu-quick-categories" [attr.aria-label]="'PUBLIC_MENU.CATEGORY_NAV' | translate" data-testid="menu-quick-categories">
               <a [routerLink]="menuRouterLink()" [queryParams]="languageQueryParams()" [class.is-active]="!isCategoryRoute()" [attr.aria-current]="!isCategoryRoute() ? 'page' : null">{{ 'MENU_EXPERIENCE.ALL' | translate }}</a>
               @for (category of orderedCategories(); track category.id) {
@@ -202,6 +227,9 @@
       @if (refreshFailed()) {
         <div class="menu-connection-note" role="status"><span>{{ 'MENU_EXPERIENCE.FRESHNESS_WARNING' | translate }}</span><button type="button" (click)="retryMenu()">{{ 'MENU_EXPERIENCE.RETRY' | translate }}</button></div>
       }
+      @if (activeBeratzadeGroup()?.id === 'tost-sandvic') {
+        <p class="beratzade-toast-note">{{ 'MENU_EXPERIENCE.TOAST_NOTE' | translate }}</p>
+      }
       @if (!isBeratzadeMenuOnly()) {
         <p class="public-menu-delivery-cta">
           <a [routerLink]="['/delivery', tenantId()]" class="btn btn-primary">
@@ -210,12 +238,41 @@
         </p>
       }
 
-      @if (menuLoading()) {
+      @if (isBeratzadeLanding()) {
+        <section class="beratzade-main-choices" [attr.aria-label]="'MENU_EXPERIENCE.MENU_SECTIONS' | translate" data-testid="beratzade-main-choices">
+          @for (section of beratzadeSections; track section.id) {
+            <button type="button" class="beratzade-choice-card" (click)="openBeratzadeSection(section)" [attr.data-section]="section.id">
+              <img [src]="section.image" alt="" [attr.fetchpriority]="$first ? 'high' : null" [attr.loading]="$first ? 'eager' : 'lazy'" decoding="async" />
+              <span class="beratzade-choice-shade"></span>
+              <span class="beratzade-choice-copy">
+              <strong>{{ section.labelKey | translate }}</strong>
+                <span>{{ 'MENU_EXPERIENCE.VIEW_MENU' | translate }} <i aria-hidden="true">↗</i></span>
+              </span>
+              <span class="beratzade-choice-count">{{ 'MENU_EXPERIENCE.PRODUCT_COUNT' | translate: { count: beratzadeSectionProductCount(section) } }}</span>
+            </button>
+          }
+        </section>
+      } @else if (isBeratzadeSectionLanding()) {
+        @if (activeBeratzadeSection(); as section) {
+          <section class="beratzade-group-index" [attr.aria-label]="section.labelKey | translate" data-testid="beratzade-group-index">
+            <div class="beratzade-group-heading"><span>{{ 'MENU_EXPERIENCE.CATEGORIES' | translate }}</span><small>{{ 'MENU_EXPERIENCE.SECTION_COUNT' | translate: { count: section.groups.length } }}</small></div>
+            <div class="beratzade-group-grid">
+              @for (group of section.groups; track group.id) {
+                <button type="button" class="beratzade-group-card" (click)="openBeratzadeGroup(group)" [attr.data-group]="group.id">
+                  <span class="beratzade-group-image"><img [src]="group.image" alt="" loading="lazy" decoding="async" /></span>
+                  <span class="beratzade-group-copy"><strong>{{ group.labelKey | translate }}</strong><small>{{ 'MENU_EXPERIENCE.PRODUCT_COUNT' | translate: { count: beratzadeGroupProductCount(group) } }}</small></span>
+                  <span class="beratzade-group-arrow" aria-hidden="true">↗</span>
+                </button>
+              }
+            </div>
+          </section>
+        }
+      } @else if (menuLoading()) {
         <p class="public-menu-status">{{ 'COMMON.LOADING' | translate }}</p>
       } @else if (categories().length === 0) {
         <p class="public-menu-status public-menu-empty">{{ 'PUBLIC_MENU.EMPTY_MENU' | translate }}</p>
       } @else {
-        @if (isBeratzadeMenuOnly() && !isCategoryRoute() && !searchTerm() && orderedCategories().length > 1) {
+        @if (isBeratzadeMenuOnly() && isCategoryRoute() && !searchTerm() && orderedCategories().length > 1) {
           <section class="beratzade-category-index" aria-labelledby="beratzade-category-index-title">
             <h2 id="beratzade-category-index-title">{{ 'PUBLIC_MENU.CATEGORIES' | translate }}</h2>
             <div class="beratzade-category-grid">
@@ -244,7 +301,9 @@
             </div>
           </section>
         }
-        @if (!hasAnyProducts()) {
+        @if (isBeratzadeGroupView() && !visibleCategories().length && !searchTerm().trim()) {
+          <p class="public-menu-status public-menu-empty">{{ 'MENU_EXPERIENCE.EMPTY_GROUP' | translate }}</p>
+        } @else if (!hasAnyProducts()) {
           <p class="public-menu-status public-menu-empty">{{ 'PUBLIC_MENU.EMPTY_MENU' | translate }}</p>
         } @else if (isCategoryRoute() && !activeCategory()) {
           <p class="public-menu-status public-menu-empty public-menu-no-results" role="status">

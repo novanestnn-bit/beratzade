@@ -1,6 +1,17 @@
 import type { PublicTenantMenuCategory, PublicTenantMenuProduct } from '../services/api.service';
 import { orderBeratzadeMenuCategories } from '../shared/public-menu-categories';
-import { categoryForProduct, categoryProducts, matchesMenuSearch, menuProducts, publicImageUrl, publicProductKey } from './public-menu-presentation';
+import {
+  BERATZADE_MENU_SECTIONS,
+  beratzadeProductGroup,
+  beratzadeProductMatchesGroup,
+  beratzadeSectionForProduct,
+  categoryForProduct,
+  categoryProducts,
+  matchesMenuSearch,
+  menuProducts,
+  publicImageUrl,
+  publicProductKey,
+} from './public-menu-presentation';
 
 function product(id: number, source: 'product' | 'tenant_product', name = 'Isolated dish'): PublicTenantMenuProduct {
   return { id, source, name, price_cents: 1500, price_formatted: '15.00', description: null, category: null, subcategory: null, image_url: null, available: true };
@@ -47,5 +58,43 @@ describe('restaurant public menu presentation', () => {
     expect(publicImageUrl('/uploads/89/products/food.webp', '/api')).toBe('/api/uploads/89/products/food.webp');
     expect(publicImageUrl('https://images.invalid/food.webp', '/api')).toBe('https://images.invalid/food.webp');
     for (const value of ['javascript:alert(1)', 'data:text/html,test', '//images.invalid/photo.jpg']) expect(publicImageUrl(value, '/api')).toBe('');
+  });
+
+  it('defines the two menu sections with six breakfast groups and eight grill groups', () => {
+    expect(BERATZADE_MENU_SECTIONS.map(section => section.id)).toEqual(['kahvalti', 'kebap-sulu-yemekler']);
+    expect(BERATZADE_MENU_SECTIONS[0].groups.length).toBe(6);
+    expect(BERATZADE_MENU_SECTIONS[1].groups.length).toBe(8);
+  });
+
+  it('groups current products for display without changing their API values', () => {
+    const toast = { ...product(1, 'product', 'Kaşarlı Tost'), category: 'Kahvaltı' };
+    const grill = { ...product(2, 'tenant_product', 'Adana Kebap Servis'), category: 'Izgara & Kebap Çeşitleri' };
+    const stew = { ...product(3, 'product', 'Günün Yemeği'), category: 'Günün Yemekleri' };
+    const tea = { ...product(4, 'product', 'Küçük Çay'), category: 'İçecekler' };
+    const breakfast = product(5, 'product', 'Serpme Kahvaltı');
+    const egg = product(6, 'product', 'Sade Menemen');
+    const pastry = product(7, 'product', 'Sigara Böreği');
+    const wrap = product(8, 'product', 'Adana Dürüm');
+    const chickenRice = product(9, 'product', 'Tavuklu Pilav');
+    const burger = product(10, 'product', 'Hamburger');
+    const dessert = product(11, 'product', 'Fırın Sütlaç');
+    const snack = product(12, 'product', 'Çıtır Tavuk');
+
+    expect(beratzadeProductGroup(toast)).toBe('tost-sandvic');
+    expect(beratzadeProductGroup(grill)).toBe('izgara-kebap');
+    expect(beratzadeProductGroup(stew)).toBe('gunluk-sulu-yemekler');
+    expect(beratzadeProductGroup(breakfast)).toBe('kahvalti-tabaklari');
+    expect(beratzadeProductGroup(egg)).toBe('menemen-yumurta');
+    expect(beratzadeProductGroup(pastry)).toBe('borek-hamur-isleri');
+    expect(beratzadeProductGroup(wrap)).toBe('durumler');
+    expect(beratzadeProductGroup(chickenRice)).toBe('tavuk-pilav');
+    expect(beratzadeProductGroup(burger)).toBe('hamburger-ozel-tabaklar');
+    expect(beratzadeProductGroup(dessert)).toBe('tatlilar');
+    expect(beratzadeProductGroup(snack)).toBe('atistirmaliklar');
+    expect(beratzadeProductMatchesGroup(tea, 'kahvalti-icecekleri')).toBeTrue();
+    expect(beratzadeProductMatchesGroup(tea, 'yemek-icecekleri')).toBeTrue();
+    expect(beratzadeSectionForProduct(toast)).toBe('kahvalti');
+    expect(toast.price_cents).toBe(1500);
+    expect(toast.name).toBe('Kaşarlı Tost');
   });
 });
