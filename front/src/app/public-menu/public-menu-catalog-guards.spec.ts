@@ -23,7 +23,7 @@ describe('Beratzade catalog safety presentation', () => {
   });
 
   it('hides ID 620 by its semantic name and retains the owner-approved Urfa row', () => {
-    const heading = product(620, 'Heading', 'Gunluk Yemekler');
+    const heading = product(620, 'Heading', 'Gunun Yemekleri');
     heading.name = String.fromCharCode(71, 252, 110, 108, 252, 107, 32, 83, 117, 108, 117, 32, 89, 101, 109, 101, 107, 108, 101, 114);
     const duplicate = product(612, 'Urfa kebap servis', 'Kebaplar ve Izgaralar', 'Et');
     const canonical = product(613, 'Urfa Kebap Servis', 'Kebaplar ve Izgaralar', 'Et');
@@ -31,7 +31,8 @@ describe('Beratzade catalog safety presentation', () => {
       id: 'grill', name: 'Kebaplar ve Izgaralar', products: [heading, duplicate, canonical],
     };
 
-    expect(isNonSellableMenuHeading(heading.name)).toBeTrue();
+    expect(isNonSellableMenuHeading(heading.name, heading.category)).toBeTrue();
+    expect(isNonSellableMenuHeading(heading.name, 'Tavuk Yemekleri')).toBeFalse();
     expect(categoryProducts(category)).toEqual([canonical]);
     expect(menuProducts([category])).toEqual([canonical]);
     expect(filterCustomerMenuProducts([heading, duplicate, canonical])).toEqual([canonical]);

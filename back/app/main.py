@@ -12580,18 +12580,20 @@ def get_menu(
     ).all()
 
     from .menu_product_rules import is_non_sellable_menu_heading
-    tenant_products = [
-        tp for tp in tenant_products
-        if not is_non_sellable_menu_heading(tp.name)
-        and not (
-            tp.product_id
-            and (linked := session.get(models.Product, tp.product_id)) is not None
-            and is_non_sellable_menu_heading(linked.name)
-        )
-    ]
+    customer_visible_tenant_products = []
+    for tp in tenant_products:
+        linked = session.get(models.Product, tp.product_id) if tp.product_id else None
+        catalog = session.get(models.ProductCatalog, tp.catalog_id)
+        category = linked.category if linked and linked.category else (catalog.category if catalog else None)
+        if is_non_sellable_menu_heading(tp.name, category) or (
+            linked and is_non_sellable_menu_heading(linked.name, linked.category or category)
+        ):
+            continue
+        customer_visible_tenant_products.append(tp)
+    tenant_products = customer_visible_tenant_products
     legacy_products = [
         product for product in legacy_products
-        if not is_non_sellable_menu_heading(product.name)
+        if not is_non_sellable_menu_heading(product.name, product.category)
     ]
 
     tenant = session.exec(
@@ -13127,8 +13129,10 @@ def _resolve_menu_cart_product(
                 raise HTTPException(status_code=400, detail=f"Menu item «{tp.name}» has no price.")
             from .menu_product_rules import is_non_sellable_menu_heading
             linked = session.get(models.Product, tp.product_id) if tp.product_id else None
-            if is_non_sellable_menu_heading(tp.name) or (
-                linked and is_non_sellable_menu_heading(linked.name)
+            catalog = session.get(models.ProductCatalog, tp.catalog_id)
+            category = linked.category if linked and linked.category else (catalog.category if catalog else None)
+            if is_non_sellable_menu_heading(tp.name, category) or (
+                linked and is_non_sellable_menu_heading(linked.name, linked.category or category)
             ):
                 raise HTTPException(status_code=400, detail="This menu heading cannot be ordered")
             return tp.name, int(price)
@@ -13144,7 +13148,7 @@ def _resolve_menu_cart_product(
     if not product:
         raise HTTPException(status_code=400, detail=f"Product {product_id} not found")
     from .menu_product_rules import is_non_sellable_menu_heading
-    if is_non_sellable_menu_heading(product.name):
+    if is_non_sellable_menu_heading(product.name, product.category):
         raise HTTPException(status_code=400, detail="This menu heading cannot be ordered")
     return product.name, int(product.price_cents)
 
@@ -13763,7 +13767,9 @@ def _available_menu_order_product(session, tenant_id, product, today):
     from .public_tenant_menu import _is_available_today
     from .menu_product_rules import is_non_sellable_menu_heading
 
-    if is_non_sellable_menu_heading(getattr(product, "name", None)):
+    if is_non_sellable_menu_heading(
+        getattr(product, "name", None), getattr(product, "category", None)
+    ):
         raise HTTPException(status_code=400, detail="This menu heading cannot be ordered")
     if product.tenant_id != tenant_id or not product.is_active or not _is_available_today(product.available_from, product.available_until, today):
         raise HTTPException(status_code=400, detail="Product is not currently available")

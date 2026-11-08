@@ -273,7 +273,7 @@ export class MenuComponent implements OnInit, OnDestroy {
         && Array.isArray(pending.items) && pending.items.length > 0 && pending.items.every((item: { product_id: number; quantity: number }) => Number.isSafeInteger(item.product_id) && item.product_id > 0 && Number.isSafeInteger(item.quantity) && item.quantity >= 1 && item.quantity <= 99);
       const validScope = draft && (draft.tableToken == null || draft.tableToken === this.tableToken) && (draft.sessionId == null || draft.sessionId === this.sessionId);
       if (validScope && Number.isFinite(draft.at) && (Date.now() - draft.at < 8 * 3600000 || validPending) && Array.isArray(draft.cart)) {
-        this.cart.set(draft.cart.filter((item: CartItem) => !isNonSellableMenuHeading(item.product?.name)));
+        this.cart.set(draft.cart.filter((item: CartItem) => !isNonSellableMenuHeading(item.product?.name, item.product?.category)));
         this.orderNotes = draft.orderNotes || '';
         if (validPending) {
           this.pendingSubmission = draft.pendingSubmission;
@@ -786,7 +786,7 @@ export class MenuComponent implements OnInit, OnDestroy {
       notes: line.notes || '',
       customization_answers: line.customization_answers || undefined,
     }));
-    this.cart.set(mapped.filter(item => !isNonSellableMenuHeading(item.product.name)));
+    this.cart.set(mapped.filter(item => !isNonSellableMenuHeading(item.product.name, item.product.category)));
     if (mapped.length > 0 && !this.cartExpanded()) {
       // Keep collapsed summary visible; do not force expand on remote updates
     }
@@ -974,7 +974,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   // CART OPERATIONS
   // ============================================
   addToCart(product: Product, customizationAnswers?: Record<string, string | number | string[]>) {
-    if (this.orderEditingLocked() || isNonSellableMenuHeading(product.name)) return;
+    if (this.orderEditingLocked() || isNonSellableMenuHeading(product.name, product.category)) return;
     const newLine: CartItem = {
       product,
       quantity: 1,

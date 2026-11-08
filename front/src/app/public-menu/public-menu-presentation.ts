@@ -152,7 +152,7 @@ function uniqueMenuProducts(products: PublicTenantMenuProduct[]): PublicTenantMe
   const result: PublicTenantMenuProduct[] = [];
   const indexes = new Map<string, number>();
   for (const product of products) {
-    if (isNonSellableMenuHeading(product.name)) continue;
+    if (isNonSellableMenuHeading(product.name, product.category)) continue;
     const key = publicProductKey(product);
     const existingIndex = indexes.get(key);
     if (existingIndex !== undefined) continue;

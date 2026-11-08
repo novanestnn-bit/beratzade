@@ -263,8 +263,10 @@ def _resolve_product_lines(
         if tp is not None and tp.tenant_id == tenant_id:
             from .menu_product_rules import is_non_sellable_menu_heading
             linked = session.get(models.Product, tp.product_id) if tp.product_id else None
-            if is_non_sellable_menu_heading(tp.name) or (
-                linked and is_non_sellable_menu_heading(linked.name)
+            catalog = session.get(models.ProductCatalog, tp.catalog_id)
+            category = linked.category if linked and linked.category else (catalog.category if catalog else None)
+            if is_non_sellable_menu_heading(tp.name, category) or (
+                linked and is_non_sellable_menu_heading(linked.name, linked.category or category)
             ):
                 return None, {"status": "error", "detail": "non_sellable_menu_heading"}
             product = _product_from_tenant_product(session, tenant_id=tenant_id, tp=tp)
@@ -275,7 +277,7 @@ def _resolve_product_lines(
             if not product or product.tenant_id != tenant_id:
                 return None, {"status": "error", "detail": f"product_not_found:{pid}"}
             from .menu_product_rules import is_non_sellable_menu_heading
-            if is_non_sellable_menu_heading(product.name):
+            if is_non_sellable_menu_heading(product.name, product.category):
                 return None, {"status": "error", "detail": "non_sellable_menu_heading"}
 
         notes = normalize_order_note(row.get("notes"))

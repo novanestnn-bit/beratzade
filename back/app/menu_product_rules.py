@@ -12,6 +12,9 @@ def normalize_menu_product_name(value: str | None) -> str:
     return re.sub(r"[^a-z0-9]+", " ", without_marks.lower().replace("ı", "i")).strip()
 
 
-def is_non_sellable_menu_heading(name: str | None) -> bool:
+def is_non_sellable_menu_heading(name: str | None, category: str | None) -> bool:
     """The approved daily-meals heading must not be exposed or accepted as a dish."""
-    return normalize_menu_product_name(name) == "gunluk sulu yemekler"
+    return (
+        normalize_menu_product_name(name) == "gunluk sulu yemekler"
+        and normalize_menu_product_name(category) == "gunun yemekleri"
+    )

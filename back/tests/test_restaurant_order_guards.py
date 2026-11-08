@@ -52,6 +52,7 @@ class TestRestaurantOrderGuards(PgClientTestCase):
             category='Günün Yemekleri',
         )
         heading.name = ''.join(map(chr, (71, 220, 78, 76, 220, 75, 32, 83, 85, 76, 85, 32, 89, 69, 77, 69, 75, 76, 69, 82)))
+        heading.category = 'Gunun Yemekleri'
         self.session.add(heading)
         self.session.commit()
         self.session.refresh(heading)
@@ -77,6 +78,7 @@ class TestRestaurantOrderGuards(PgClientTestCase):
             category='Günün Yemekleri',
         )
         heading.name = ''.join(map(chr, (71, 252, 110, 108, 252, 107, 32, 83, 117, 108, 117, 32, 89, 101, 109, 101, 107, 108, 101, 114)))
+        heading.category = 'Gunun Yemekleri'
         self.session.add(heading)
         self.session.commit()
         self.session.refresh(heading)

@@ -7,8 +7,12 @@ const normalizeMenuProductName = (value: string): string => value
   .trim();
 
 /** A category heading accidentally stored as a product must never be purchasable. */
-export function isNonSellableMenuHeading(name: string | null | undefined): boolean {
-  return normalizeMenuProductName(name ?? '') === 'gunluk sulu yemekler';
+export function isNonSellableMenuHeading(
+  name: string | null | undefined,
+  category: string | null | undefined,
+): boolean {
+  return normalizeMenuProductName(name ?? '') === 'gunluk sulu yemekler'
+    && normalizeMenuProductName(category ?? '') === 'gunun yemekleri';
 }
 
 export interface CustomerMenuProductLike {
@@ -36,7 +40,7 @@ function isApprovedUrfaDuplicate(a: CustomerMenuProductLike, b: CustomerMenuProd
 export function filterCustomerMenuProducts<T extends CustomerMenuProductLike>(products: T[]): T[] {
   const visible: T[] = [];
   for (const product of products) {
-    if (isNonSellableMenuHeading(product.name)) continue;
+    if (isNonSellableMenuHeading(product.name, product.category)) continue;
     const duplicateIndex = visible.findIndex(candidate => isApprovedUrfaDuplicate(candidate, product));
     if (duplicateIndex < 0) {
       visible.push(product);

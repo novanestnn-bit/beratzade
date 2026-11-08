@@ -274,7 +274,7 @@ def _load_flat_products(
 
                 stock_fields = product_stock_alert_payload(custom_product)
         if is_non_sellable_menu_heading(
-            (custom_product.name if custom_product else tp.name)
+            (custom_product.name if custom_product else tp.name), category
         ):
             continue
         if not description and catalog_item and catalog_item.description:
@@ -325,7 +325,7 @@ def _load_flat_products(
     for lp in legacy_products:
         if lp.id in linked_legacy_product_ids:
             continue
-        if is_non_sellable_menu_heading(lp.name):
+        if is_non_sellable_menu_heading(lp.name, lp.category):
             continue
         name = _translated_name(
             session, tenant_id, "product", lp.id, lp.name or "", lang
@@ -356,7 +356,7 @@ def _load_flat_products(
     # its semantic name so the protection survives ID/source changes.
     products = [
         product for product in products
-        if not is_non_sellable_menu_heading(product.get("name"))
+        if not is_non_sellable_menu_heading(product.get("name"), product.get("category"))
     ]
 
     eligible = promo_svc.eligible_promos(
