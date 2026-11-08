@@ -13,6 +13,7 @@ import { getSubcategoryLabel as resolveSubcategoryLabel } from '../shared/produc
 import { productStockLeft } from '../shared/product-stock.util';
 import { resolvePublicPrimaryColor } from '../shared/public-brand-colors';
 import { pendingRequest } from '../shared/durable-request-key';
+import { filterCustomerMenuProducts, isNonSellableMenuHeading } from '../shared/menu-product-rules';
 
 interface CartItem {
   product: Product;
@@ -238,7 +239,7 @@ export class MenuComponent implements OnInit, OnDestroy {
         this.httpBusy = false;
         this.httpOffline.set(false);
         this.tableIsActive.set(data.table_is_active !== false);
-        this.products.set(data.products);
+        this.products.set(filterCustomerMenuProducts(data.products));
         this.applyFilter(this.selectedCategory(), this.selectedSubcategory());
         this.loadStoredOrders();
         this.api.getPublicServiceRequests(this.tableToken).subscribe({ next: rows => this.serviceStatuses.set(rows), error: () => this.httpOffline.set(true) });
@@ -272,7 +273,7 @@ export class MenuComponent implements OnInit, OnDestroy {
         && Array.isArray(pending.items) && pending.items.length > 0 && pending.items.every((item: { product_id: number; quantity: number }) => Number.isSafeInteger(item.product_id) && item.product_id > 0 && Number.isSafeInteger(item.quantity) && item.quantity >= 1 && item.quantity <= 99);
       const validScope = draft && (draft.tableToken == null || draft.tableToken === this.tableToken) && (draft.sessionId == null || draft.sessionId === this.sessionId);
       if (validScope && Number.isFinite(draft.at) && (Date.now() - draft.at < 8 * 3600000 || validPending) && Array.isArray(draft.cart)) {
-        this.cart.set(draft.cart);
+        this.cart.set(draft.cart.filter((item: CartItem) => !isNonSellableMenuHeading(item.product?.name)));
         this.orderNotes = draft.orderNotes || '';
         if (validPending) {
           this.pendingSubmission = draft.pendingSubmission;
@@ -355,7 +356,7 @@ export class MenuComponent implements OnInit, OnDestroy {
           ...product,
           _source: product._source || 'unknown'
         }));
-        this.products.set(productsWithSource);
+        this.products.set(filterCustomerMenuProducts(productsWithSource));
         this.tenantName.set(data.tenant_name);
         this.tableName.set(data.table_name);
         this.tenantId = data.tenant_id;
@@ -785,7 +786,7 @@ export class MenuComponent implements OnInit, OnDestroy {
       notes: line.notes || '',
       customization_answers: line.customization_answers || undefined,
     }));
-    this.cart.set(mapped);
+    this.cart.set(mapped.filter(item => !isNonSellableMenuHeading(item.product.name)));
     if (mapped.length > 0 && !this.cartExpanded()) {
       // Keep collapsed summary visible; do not force expand on remote updates
     }
@@ -973,7 +974,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   // CART OPERATIONS
   // ============================================
   addToCart(product: Product, customizationAnswers?: Record<string, string | number | string[]>) {
-    if (this.orderEditingLocked()) return;
+    if (this.orderEditingLocked() || isNonSellableMenuHeading(product.name)) return;
     const newLine: CartItem = {
       product,
       quantity: 1,

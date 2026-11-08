@@ -261,6 +261,12 @@ def _resolve_product_lines(
         # Public menu / cart sends TenantProduct.id (same as guest table orders).
         tp = session.get(models.TenantProduct, pid)
         if tp is not None and tp.tenant_id == tenant_id:
+            from .menu_product_rules import is_non_sellable_menu_heading
+            linked = session.get(models.Product, tp.product_id) if tp.product_id else None
+            if is_non_sellable_menu_heading(tp.name) or (
+                linked and is_non_sellable_menu_heading(linked.name)
+            ):
+                return None, {"status": "error", "detail": "non_sellable_menu_heading"}
             product = _product_from_tenant_product(session, tenant_id=tenant_id, tp=tp)
             if product is None:
                 return None, {"status": "error", "detail": f"product_not_found:{pid}"}
@@ -268,6 +274,9 @@ def _resolve_product_lines(
             product = session.get(models.Product, pid)
             if not product or product.tenant_id != tenant_id:
                 return None, {"status": "error", "detail": f"product_not_found:{pid}"}
+            from .menu_product_rules import is_non_sellable_menu_heading
+            if is_non_sellable_menu_heading(product.name):
+                return None, {"status": "error", "detail": "non_sellable_menu_heading"}
 
         notes = normalize_order_note(row.get("notes"))
         resolved.append((product, max(1, qty), notes))

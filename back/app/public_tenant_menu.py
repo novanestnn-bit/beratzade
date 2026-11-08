@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from sqlmodel import Session, select
 
 from . import models
+from .menu_product_rules import is_non_sellable_menu_heading
 from . import promo_service as promo_svc
 from .category_codes import get_public_category_display_label
 from .tenant_currency import normalize_tenant_currency_fields
@@ -272,6 +273,10 @@ def _load_flat_products(
                 from .product_stock import product_stock_alert_payload
 
                 stock_fields = product_stock_alert_payload(custom_product)
+        if is_non_sellable_menu_heading(
+            (custom_product.name if custom_product else tp.name)
+        ):
+            continue
         if not description and catalog_item and catalog_item.description:
             description = catalog_item.description
         if not image_url:
@@ -320,6 +325,8 @@ def _load_flat_products(
     for lp in legacy_products:
         if lp.id in linked_legacy_product_ids:
             continue
+        if is_non_sellable_menu_heading(lp.name):
+            continue
         name = _translated_name(
             session, tenant_id, "product", lp.id, lp.name or "", lang
         )
@@ -344,6 +351,13 @@ def _load_flat_products(
         if include_source:
             row["questions"] = questions_by_product.get(lp.id, [])
         products.append(row)
+
+    # ID 620 is an approved category heading stored as a product row. Filter by
+    # its semantic name so the protection survives ID/source changes.
+    products = [
+        product for product in products
+        if not is_non_sellable_menu_heading(product.get("name"))
+    ]
 
     eligible = promo_svc.eligible_promos(
         session,

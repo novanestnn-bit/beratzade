@@ -1,4 +1,5 @@
 import type { PublicTenantMenuCategory, PublicTenantMenuProduct } from '../services/api.service';
+import { isNonSellableMenuHeading } from '../shared/menu-product-rules';
 
 export type BeratzadeSectionId = 'kahvalti' | 'kebap-sulu-yemekler';
 
@@ -81,12 +82,12 @@ export function beratzadeProductGroup(product: PublicTenantMenuProduct): string 
   if (hasAny(text, ['tost', 'toast', 'sandvic', 'sandwich'])) return 'tost-sandvic';
   if (hasAny(text, ['borek', 'boreg', 'gozleme', 'pankek', 'pancake', 'krep', 'pogaca', 'acma', 'simit', 'hamur', 'pastry'])) return 'borek-hamur-isleri';
   if (hasAny(category, ['corba', 'soup'])) return 'gunluk-corba';
-  if (hasAny(text, ['gunun yemek', 'gunluk yemek', 'ev yemek', 'sulu yemek', 'daily meal', 'main course', 'stew'])) return 'gunluk-sulu-yemekler';
   if (hasAny(text, ['burger', 'hamburger'])) return 'hamburger-ozel-tabaklar';
   if (hasAny(text, ['durum', 'wrap', 'dürüm'])) return 'durumler';
   if (hasAny(text, ['citir', 'snitzel', 'schnitzel', 'peynir cubuk', 'sogan halkasi', 'patates kroket', 'aperatif', 'atistirmalik', 'starter', 'appetizer'])) return 'atistirmaliklar';
-  if (hasAny(text, ['tavuk', 'chicken', 'pilav', 'rice'])) return 'tavuk-pilav';
   if (hasAny(text, ['izgara', 'kebap', 'sis', 'pirzola', 'kofte', 'ciger', 'grill', 'grilled'])) return 'izgara-kebap';
+  if (hasAny(text, ['gunun yemek', 'gunluk yemek', 'ev yemek', 'sulu yemek', 'daily meal', 'stew'])) return 'gunluk-sulu-yemekler';
+  if (hasAny(text, ['tavuk', 'chicken', 'pilav', 'rice'])) return 'tavuk-pilav';
   if (hasAny(category, ['kahvalti', 'breakfast'])) return 'kahvalti-tabaklari';
   if (hasAny(category, ['yan urun', 'side'])) return 'atistirmaliklar';
 
@@ -128,11 +129,50 @@ export function publicProductKey(product: PublicTenantMenuProduct): string {
 
 export function categoryProducts(category: PublicTenantMenuCategory): PublicTenantMenuProduct[] {
   const products = [...category.products, ...(category.subcategories ?? []).flatMap(child => child.products)];
-  return [...new Map(products.map(product => [publicProductKey(product), product])).values()];
+  return uniqueMenuProducts(products);
 }
 
 export function menuProducts(categories: PublicTenantMenuCategory[]): PublicTenantMenuProduct[] {
-  return [...new Map(categories.flatMap(categoryProducts).map(product => [publicProductKey(product), product])).values()];
+  return uniqueMenuProducts(categories.flatMap(categoryProducts));
+}
+
+const normalizeDuplicateField = (value: string | null | undefined): string =>
+  normalizeMenuText(value ?? '');
+
+function isApprovedUrfaDuplicate(a: PublicTenantMenuProduct, b: PublicTenantMenuProduct): boolean {
+  return normalizeDuplicateField(a.name) === 'urfa kebap servis'
+    && normalizeDuplicateField(b.name) === 'urfa kebap servis'
+    && normalizeDuplicateField(a.category) === normalizeDuplicateField(b.category)
+    && normalizeDuplicateField(a.subcategory) === normalizeDuplicateField(b.subcategory)
+    && a.price_cents === b.price_cents
+    && normalizeDuplicateField(a.description) === normalizeDuplicateField(b.description);
+}
+
+function uniqueMenuProducts(products: PublicTenantMenuProduct[]): PublicTenantMenuProduct[] {
+  const result: PublicTenantMenuProduct[] = [];
+  const indexes = new Map<string, number>();
+  for (const product of products) {
+    if (isNonSellableMenuHeading(product.name)) continue;
+    const key = publicProductKey(product);
+    const existingIndex = indexes.get(key);
+    if (existingIndex !== undefined) continue;
+
+    const duplicateIndex = result.findIndex(candidate => isApprovedUrfaDuplicate(candidate, product));
+    if (duplicateIndex >= 0) {
+      // Prefer the business-approved row when it is present; exact canonical
+      // spelling is the fallback for a future catalog that has different IDs.
+      const existing = result[duplicateIndex];
+      const productIsCanonical = product.id === 613 || product.name.trim() === 'Urfa Kebap Servis';
+      const existingIsCanonical = existing.id === 613 || existing.name.trim() === 'Urfa Kebap Servis';
+      if (productIsCanonical && !existingIsCanonical) {
+        result[duplicateIndex] = product;
+      }
+      continue;
+    }
+    indexes.set(key, result.length);
+    result.push(product);
+  }
+  return result;
 }
 
 export function categoryForProduct(

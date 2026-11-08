@@ -44,6 +44,53 @@ class TestRestaurantOrderGuards(PgClientTestCase):
         self.assertEqual(self.submit().status_code,400)
         self.assertEqual(self.session.exec(select(models.Order).where(models.Order.tenant_id==self.tenant.id)).all(),[])
 
+    def test_category_heading_is_hidden_from_qr_and_public_menu_and_cannot_be_ordered(self):
+        heading = models.Product(
+            tenant_id=self.tenant.id,
+            name='GÜNLÜK SULU YEMEKLER',
+            price_cents=100,
+            category='Günün Yemekleri',
+        )
+        heading.name = ''.join(map(chr, (71, 220, 78, 76, 220, 75, 32, 83, 85, 76, 85, 32, 89, 69, 77, 69, 75, 76, 69, 82)))
+        self.session.add(heading)
+        self.session.commit()
+        self.session.refresh(heading)
+
+        public = self.client.get(f'/public/tenants/{self.tenant.id}/menu').json()
+        public_names = [item['name'] for category in public['categories'] for item in category['products']]
+        qr = self.client.get(f'/menu/{self.table.token}').json()
+        self.assertEqual(qr['table_name'], self.table.name)
+        self.assertNotIn(heading.name, public_names)
+        self.assertNotIn(heading.name, [item['name'] for item in qr['products']])
+        self.assertEqual(self.submit(heading.id).status_code, 400)
+
+        from fastapi import HTTPException
+        from app.main import _resolve_menu_cart_product
+        with self.assertRaises(HTTPException):
+            _resolve_menu_cart_product(self.session, self.tenant.id, heading.id, 'product')
+
+    def test_offline_order_line_resolver_rejects_category_heading_without_writing(self):
+        heading = models.Product(
+            tenant_id=self.tenant.id,
+            name='Günlük Sulu Yemekler',
+            price_cents=100,
+            category='Günün Yemekleri',
+        )
+        heading.name = ''.join(map(chr, (71, 252, 110, 108, 252, 107, 32, 83, 117, 108, 117, 32, 89, 101, 109, 101, 107, 108, 101, 114)))
+        self.session.add(heading)
+        self.session.commit()
+        self.session.refresh(heading)
+
+        from app.delivery_order_service import _resolve_product_lines
+        lines, error = _resolve_product_lines(
+            self.session,
+            tenant_id=self.tenant.id,
+            lines=[{'product_id': heading.id, 'quantity': 1}],
+        )
+        self.assertIsNone(lines)
+        self.assertEqual(error, {'status': 'error', 'detail': 'non_sellable_menu_heading'})
+        self.assertEqual(self.session.exec(select(models.Order).where(models.Order.tenant_id == self.tenant.id)).all(), [])
+
     def test_hidden_catalog_selection_cannot_be_reintroduced_through_legacy_mirror(self):
         tp=self.link_catalog(active=False)
         qr=self.client.get(f'/menu/{self.table.token}')
