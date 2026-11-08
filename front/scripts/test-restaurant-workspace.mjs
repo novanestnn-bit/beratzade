@@ -33,7 +33,7 @@ const until = async (check, label, milliseconds = 10000) => {
 async function page() {
   const context = await browser.createBrowserContext();
   const result = await context.newPage();
-  const state = { settingsWrites: [], exportQueries: [], cashPosts: [], cashReads: 0, deleteCount: 0, failDeleteId: null, failDeleteOnce: false, holdNextCash: false, heldCash: null, abortNextCash: false, dialogDecision: 'accept', dialogs: 0 };
+  const state = { settingsWrites: [], exportQueries: [], cashRegisterRequests: [], deleteCount: 0, failDeleteId: null, failDeleteOnce: false, dialogDecision: 'accept', dialogs: 0 };
   states.set(result, state);
   result.on('pageerror', error => runtimeErrors.push(error.name));
   result.on('dialog', async dialog => {
@@ -52,25 +52,12 @@ async function page() {
     }
     if (method === 'PUT' && url.pathname === '/api/tenant/settings') state.settingsWrites.push(JSON.parse(request.postData() || '{}'));
     if (method === 'GET' && url.pathname === '/api/reports/export') state.exportQueries.push(Object.fromEntries(url.searchParams));
-    if (method === 'GET' && url.pathname === '/api/cash-register/current') state.cashReads++;
+    if (url.pathname.startsWith('/api/cash-register/')) state.cashRegisterRequests.push(method + ' ' + url.pathname);
     if (method === 'DELETE' && url.pathname === '/api/users/' + state.failDeleteId) {
       state.deleteCount++;
       if (state.failDeleteOnce) {
         state.failDeleteOnce = false;
         await request.respond({ status: 500, contentType: 'application/json', body: JSON.stringify({ detail: 'Isolated retryable failure' }) });
-        return;
-      }
-    }
-    if (method === 'POST' && /^\/api\/cash-register\/(open|close)$/.test(url.pathname)) {
-      state.cashPosts.push(url.pathname);
-      if (state.abortNextCash) {
-        state.abortNextCash = false;
-        await request.abort('failed');
-        return;
-      }
-      if (state.holdNextCash) {
-        state.holdNextCash = false;
-        state.heldCash = request;
         return;
       }
     }
@@ -109,36 +96,6 @@ async function login(page, role) {
   await page.type('#password', fixture[role].password);
   await page.click('form button[type=submit]');
   await page.waitForFunction(() => !['/login', '/admin/login', '/staff/login'].includes(location.pathname));
-}
-
-async function cashState(page, state) {
-  await page.waitForFunction(expected => document.querySelector('[data-testid="cash-register-status"]')?.getAttribute('data-state') === expected, { timeout: 20000 }, state);
-}
-
-async function cashAction(page, action, amount, doubleClick = false) {
-  await page.waitForSelector('[data-testid="cash-register"]');
-  if (!(await page.$('[data-testid="cash-register-amount"]'))) await page.click('[data-testid="cash-register-toggle"]');
-  await page.waitForSelector('[data-testid="cash-register-amount"]');
-  await input(page, '[data-testid="cash-register-amount"]', amount);
-  const state = states.get(page), count = state.cashPosts.length;
-  state.holdNextCash = doubleClick;
-  const response = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/cash-register/' + action);
-  await page.evaluate(doubleClick => {
-    const button = document.querySelector('[data-testid="cash-register-submit"]');
-    button.click();
-    if (doubleClick) button.click();
-  }, doubleClick);
-  if (doubleClick) {
-    await until(() => !!state.heldCash, 'Cash submission did not start');
-    await page.waitForFunction(() => document.querySelector('[data-testid="cash-register-submit"]')?.disabled === true);
-    assert.equal(state.cashPosts.length, count + 1, 'Double click must send one cash operation');
-    const held = state.heldCash;
-    state.heldCash = null;
-    await held.continue();
-  }
-  assert.equal((await response).status(), 200, 'Cash operation ' + action);
-  await cashState(page, action === 'open' ? 'open' : 'closed');
-  assert.equal(state.cashPosts.length, count + 1);
 }
 
 try {
@@ -262,51 +219,25 @@ try {
   await api(manager, '/tenant/settings', 'PUT', { name: baseline.name, phone: baseline.phone ?? null });
   passed.push('Settings save only changed fields, protect unsaved navigation and preserve another manager’s concurrent changes');
 
-  phase = 'cash-owner-waiter';
-  await visit(owner, '/staff/pos');
-  await owner.waitForSelector('[data-testid="cash-register-status"]');
-  const initial = await api(owner, '/cash-register/current');
-  if (initial) await cashAction(owner, 'close', (initial.expected_cash_cents / 100).toFixed(2));
+  phase = 'cash-register-hidden';
   for (const person of [owner, waiter]) {
     await visit(person, '/staff/pos');
-    await cashState(person, 'closed');
-    await cashAction(person, 'open', '123.45', true);
-    const opened = await api(person, '/cash-register/current');
-    assert.equal(opened.status, 'open');
-    assert.equal(opened.opening_cash_cents, 12345);
-    await cashAction(person, 'close', '123.45', true);
-    assert.equal(await api(person, '/cash-register/current'), null);
+    assert.equal(await person.$('[data-testid="cash-register"]'), null, 'POS must not show register controls');
+    assert.equal(await person.$('[data-testid="pos-completed-payments"]'), null, 'POS must not show turnover history');
+    assert.deepEqual(states.get(person).cashRegisterRequests, [], 'POS should not call cash register endpoints');
   }
-  passed.push('Owner and waiter open/close the actual isolated cash register through UI; repeated clicks submit exactly once');
+  passed.push('Owner and waiter POS screens hide cash register/turnover and do not poll or submit register actions');
 
-  phase = 'cash-uncertain-response';
+  phase = 'cash-register-absent-after-reload';
   const uncertain = await page();
   await login(uncertain, 'waiter');
   await visit(uncertain, '/staff/pos');
-  await cashState(uncertain, 'closed');
-  await uncertain.click('[data-testid="cash-register-toggle"]');
-  await uncertain.waitForSelector('[data-testid="cash-register-amount"]');
-  await input(uncertain, '[data-testid="cash-register-amount"]', '50.00');
   const uncertainState = states.get(uncertain);
-  uncertainState.abortNextCash = true;
-  await uncertain.click('[data-testid="cash-register-submit"]');
-  await uncertain.waitForSelector('[data-testid="cash-register-uncertain"]');
-  await new Promise(resolve => setTimeout(resolve, 2500));
-  assert.equal(uncertainState.cashPosts.length, 1, 'An ambiguous cash failure must not trigger automatic POST retry');
-  assert.equal(await uncertain.$eval('[data-testid="cash-register-submit"]', element => element.disabled), true);
-  assert.equal(await api(uncertain, '/cash-register/current'), null);
   await uncertain.reload({ waitUntil: 'networkidle2' });
-  await uncertain.waitForSelector('[data-testid="cash-register-uncertain"]');
-  assert.equal(uncertainState.cashPosts.length, 1);
-  assert.equal(await uncertain.$eval('[data-testid="cash-register-toggle"]', element => element.disabled), true);
-  await uncertain.waitForFunction(() => document.querySelector('[data-testid="cash-register-refresh"]')?.disabled === false);
-  const readsBefore = uncertainState.cashReads;
-  const reconciled = uncertain.waitForResponse(response => response.request().method() === 'GET' && new URL(response.url()).pathname === '/api/cash-register/current');
-  await uncertain.click('[data-testid="cash-register-refresh"]');
-  assert.equal((await reconciled).status(), 200);
-  assert.ok(uncertainState.cashReads > readsBefore);
-  assert.equal(uncertainState.cashPosts.length, 1);
-  passed.push('A lost cash response locks repeat submission across reload and manual reconciliation performs GET only');
+  assert.equal(await uncertain.$('[data-testid="cash-register"]'), null);
+  assert.equal(await uncertain.$('[data-testid="pos-completed-payments"]'), null);
+  assert.deepEqual(uncertainState.cashRegisterRequests, []);
+  passed.push('Cash register controls and turnover remain absent after reloading POS');
 
   assert.deepEqual(blockedWrites, []);
   assert.deepEqual(runtimeErrors, []);

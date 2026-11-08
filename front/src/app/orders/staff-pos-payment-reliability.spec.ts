@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { TranslateModule } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 import { ApiService } from '../services/api.service';
@@ -73,4 +73,40 @@ describe('POS uncertain payment recovery', () => {
     expect((pos as any).paymentKey).toBe('');
     pos.setMode('table');expect(pos.mode()).toBe('table');
   });
+
+  it('records cash for the remaining amount, prints the completed counter sale, then resets it', fakeAsync(() => {
+    const pos = create();
+    pos.setMode('quick_sale');
+    pos.payableOrder.set({
+      id: 502,
+      tableId: null,
+      tableName: 'Hızlı Satış',
+      amountDue: 2500,
+      amountPaid: 0,
+      amountRemaining: 2500,
+      items: [{ product_name: 'Test ürün', quantity: 1, price_cents: 2500 }],
+      payments: [],
+    });
+    pos.setPaymentMethod('cash');
+    api.recordOrderPayment.and.returnValue(of({
+      status: 'paid',
+      amount_due_cents: 2500,
+      amount_paid_cents: 2500,
+      amount_remaining_cents: 0,
+      payments: [{ id: 1, payment_method: 'cash', amount_cents: 2500, voided_at: null }],
+    }));
+    spyOn(window, 'print');
+
+    pos.collectPayment();
+
+    expect(api.recordOrderPayment).toHaveBeenCalledWith(502, jasmine.objectContaining({
+      amount_cents: 2500,
+      payment_method: 'cash',
+    }));
+    expect(pos.payableOrder()?.amountRemaining).toBe(0);
+    expect(window.print).not.toHaveBeenCalled();
+    tick(100);
+    expect(window.print).toHaveBeenCalledTimes(1);
+    expect(pos.payableOrder()).toBeNull();
+  }));
 });

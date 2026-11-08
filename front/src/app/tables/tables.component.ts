@@ -15,6 +15,7 @@ import { ApiErrorMessageService } from '../services/api-error-message.service';
 import { LanguageService } from '../services/language.service';
 import { findNonOverlappingDefaultPosition } from './table-floor-layout.util';
 import { formatActivatedAtTime, formatElapsedActiveDuration } from './table-active-duration.util';
+import { compareTableNames } from '../shared/table-name-sort';
 import { forkJoin } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -1491,7 +1492,7 @@ export class TablesComponent implements OnInit {
 
   /** Sorted member names for a joined group (matches backend display). */
   private groupLabelFromMembers(members: Table[]): string {
-    const names = members.map(m => m.name ?? '').filter(Boolean).sort((a, b) => a.localeCompare(b));
+    const names = members.map(m => m.name ?? '').filter(Boolean).sort((a, b) => compareTableNames(a, b));
     return names.join(' + ');
   }
 
@@ -1533,7 +1534,7 @@ export class TablesComponent implements OnInit {
       }
     }
     for (const [, arr] of byGroup) {
-      arr.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+      arr.sort((a, b) => compareTableNames(a.name, b.name));
     }
 
     const seenGroup = new Set<number>();
@@ -1563,10 +1564,11 @@ export class TablesComponent implements OnInit {
     return rows.sort((a, b) => {
       const floorA = this.getFloorName(a.kind === 'group' ? a.floorId : a.table.floor_id);
       const floorB = this.getFloorName(b.kind === 'group' ? b.floorId : b.table.floor_id);
-      if (floorA !== floorB) return floorA.localeCompare(floorB);
+      const floorOrder = compareTableNames(floorA, floorB);
+      if (floorOrder !== 0) return floorOrder;
       const nameA = a.kind === 'group' ? a.label : (a.table.name ?? '');
       const nameB = b.kind === 'group' ? b.label : (b.table.name ?? '');
-      return nameA.localeCompare(nameB);
+      return compareTableNames(nameA, nameB);
     });
   }
 
@@ -1586,7 +1588,7 @@ export class TablesComponent implements OnInit {
       }
     }
     for (const [, arr] of byGroup) {
-      arr.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+      arr.sort((a, b) => compareTableNames(a.name, b.name));
     }
     const seen = new Set<number>();
     const blocks: TablesTileBlock[] = [];
@@ -1608,7 +1610,7 @@ export class TablesComponent implements OnInit {
     return blocks.sort((a, b) => {
       const nameA = a.kind === 'group' ? a.label : (a.table.name ?? '');
       const nameB = b.kind === 'group' ? b.label : (b.table.name ?? '');
-      return nameA.localeCompare(nameB);
+      return compareTableNames(nameA, nameB);
     });
   }
 

@@ -180,10 +180,13 @@ try {
   phase = 'payment';
   await api(kitchen, '/orders/' + orderId + '/payments', 'POST', { amount_cents: 1, payment_method: 'cash', idempotency_key: randomUUID() }, 403);
   await api(guest, '/orders/' + orderId + '/payments', 'POST', { amount_cents: 1, payment_method: 'cash', idempotency_key: randomUUID() }, 401);
-  if (!await api(staff, '/cash-register/current')) await api(staff, '/cash-register/open', 'POST', { opening_cash_cents: 0 });
+  await visit(staff, '/staff/pos');
+  assert.equal(await staff.$('[data-testid="cash-register"]'), null, 'POS must not show register open/close controls');
+  assert.equal(await staff.$('[data-testid="pos-completed-payments"]'), null, 'POS must not show turnover history');
   const key = randomUUID();
   const partial = await api(staff, '/orders/' + orderId + '/payments', 'POST', { amount_cents: 10000, payment_method: 'cash', idempotency_key: key });
   assert.equal(partial.amount_remaining_cents, 20000);
+  assert.equal(partial.payments[0].cash_register_session_id, null);
   const retry = await api(staff, '/orders/' + orderId + '/payments', 'POST', { amount_cents: 10000, payment_method: 'cash', idempotency_key: key });
   assert.equal(retry.payments.length, 1);
   await visit(staff, '/staff/pos');

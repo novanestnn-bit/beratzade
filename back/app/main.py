@@ -15542,11 +15542,6 @@ def post_order_payment(
             previous = session.exec(select(models.OrderPayment).where(models.OrderPayment.tenant_id == current_user.tenant_id, models.OrderPayment.idempotency_key == body.idempotency_key)).first()
         if previous:
             cash_session_id = previous.cash_register_session_id
-        else:
-            cash_session = session.exec(select(models.CashRegisterSession).where(models.CashRegisterSession.tenant_id == current_user.tenant_id, models.CashRegisterSession.status == "open").with_for_update()).first()
-            if not cash_session:
-                raise HTTPException(status_code=409, detail="Open a cash register session before recording cash payments")
-            cash_session_id = cash_session.id
     payment, recon = order_pay_svc.record_payment(
         session,
         order=order,

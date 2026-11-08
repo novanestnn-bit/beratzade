@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { ApiService, CurrentTableOrder, CurrentTableOrderItem, Floor, MenuResponse, Product, Table } from '../services/api.service';
+import { compareTableNames } from '../shared/table-name-sort';
 
 interface StaffOrderLine {
   product: Product;
@@ -349,7 +350,7 @@ export class StaffOrderEntryComponent {
   readonly sortedTables = computed(() =>
     [...this.tables()]
       .filter(table => this.selectedFloorId() == null || table.floor_id === this.selectedFloorId())
-      .sort((a, b) => (a.floor_id ?? 0) - (b.floor_id ?? 0) || a.name.localeCompare(b.name, 'tr')),
+      .sort((a, b) => (a.floor_id ?? 0) - (b.floor_id ?? 0) || compareTableNames(a.name, b.name)),
   );
   readonly categoryNames = computed(() =>
     [...new Set((this.menu()?.products ?? []).map((product) => product.category?.trim() || 'Diğer'))].sort((a, b) => a.localeCompare(b, 'tr')),

@@ -111,13 +111,6 @@ class TestStaffPosSales(PgClientTestCase):
         self.assertEqual(created.status_code, 200, created.text)
         order_id = created.json()["id"]
         self.assertEqual(created.json()["order_channel"], "takeaway")
-        opened = self.client.post(
-            "/cash-register/open",
-            headers=self.headers,
-            json={"opening_cash_cents": 5000},
-        )
-        self.assertEqual(opened.status_code, 200, opened.text)
-
         partial = self.client.post(
             f"/orders/{order_id}/payments",
             headers=self.headers,
@@ -143,7 +136,7 @@ class TestStaffPosSales(PgClientTestCase):
         self.assertEqual(final.status_code, 200, final.text)
         self.assertEqual(final.json()["amount_remaining_cents"], 0)
         self.assertEqual(len(final.json()["payments"]), 2)
-        self.assertEqual(final.json()["payments"][0]["cash_register_session_id"], opened.json()["id"])
+        self.assertIsNone(final.json()["payments"][0]["cash_register_session_id"])
 
         listed = self.client.get("/orders", headers=self.headers)
         row = next(item for item in listed.json() if item["id"] == order_id)
@@ -181,7 +174,7 @@ class TestStaffPosSales(PgClientTestCase):
         self.assertEqual(paid.status_code, 200, paid.text)
         register = self.client.get("/cash-register/current", headers=self.headers)
         self.assertEqual(register.status_code, 200, register.text)
-        self.assertEqual(register.json()["expected_cash_cents"], 7225)
+        self.assertEqual(register.json()["expected_cash_cents"], 6500)
 
         closed = self.client.post(
             "/cash-register/close",
@@ -189,17 +182,31 @@ class TestStaffPosSales(PgClientTestCase):
             json={"counted_cash_cents": 7200},
         )
         self.assertEqual(closed.status_code, 200, closed.text)
-        self.assertEqual(closed.json()["expected_cash_cents"], 7225)
-        self.assertEqual(closed.json()["variance_cents"], -25)
+        self.assertEqual(closed.json()["expected_cash_cents"], 6500)
+        self.assertEqual(closed.json()["variance_cents"], 700)
         self.assertEqual(self.client.get("/cash-register/current", headers=self.headers).json(), None)
 
         another = self._create_sale(uuid4().hex, quantity=1)
-        rejected_cash = self.client.post(
+        cash_without_register = self.client.post(
             f"/orders/{another.json()['id']}/payments",
             headers=self.headers,
             json={"amount_cents": 725, "payment_method": "cash", "idempotency_key": uuid4().hex},
         )
-        self.assertEqual(rejected_cash.status_code, 409, rejected_cash.text)
+        self.assertEqual(cash_without_register.status_code, 200, cash_without_register.text)
+        self.assertEqual(cash_without_register.json()["status"], "paid")
+        self.assertIsNone(cash_without_register.json()["payments"][0]["cash_register_session_id"])
+
+    def test_cash_payment_is_recorded_without_opening_a_register(self) -> None:
+        created = self._create_sale(uuid4().hex, quantity=1)
+        payment = self.client.post(
+            f"/orders/{created.json()['id']}/payments",
+            headers=self.headers,
+            json={"amount_cents": 725, "payment_method": "cash", "idempotency_key": uuid4().hex},
+        )
+        self.assertEqual(payment.status_code, 200, payment.text)
+        self.assertEqual(payment.json()["status"], "paid")
+        self.assertEqual(payment.json()["amount_paid_cents"], 725)
+        self.assertIsNone(payment.json()["payments"][0]["cash_register_session_id"])
 
     def test_unavailable_products_are_rejected_and_staff_cannot_write_products(self) -> None:
         self.product.is_active = False

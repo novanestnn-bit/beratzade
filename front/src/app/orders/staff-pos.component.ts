@@ -1,5 +1,4 @@
 import { ServiceRequestsComponent } from '../shared/service-requests.component';
-import { CashRegisterComponent } from '../shared/cash-register.component';
 import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -9,6 +8,7 @@ import { ApiService, CurrentTableOrder, Order, OrderCreate, OrderPaymentLeg, Pro
 import { SidebarComponent } from '../shared/sidebar.component';
 import { environment } from '../../environments/environment';
 import { pendingRequest } from '../shared/durable-request-key';
+import { compareTableNames } from '../shared/table-name-sort';
 
 type SaleMode = 'table' | 'quick_sale' | 'takeaway';
 type PaymentMethod = 'cash' | 'terminal' | 'meal_card';
@@ -39,19 +39,10 @@ interface PayableOrder {
   payments: OrderPaymentLeg[];
 }
 
-interface CompletedPaymentEntry {
-  id: number;
-  orderId: number;
-  tableName: string;
-  paymentMethod: string;
-  amountCents: number;
-  paidAt: string | null;
-}
-
 @Component({
   selector: 'app-staff-pos',
   standalone: true,
-  imports: [ServiceRequestsComponent, CashRegisterComponent, CommonModule, FormsModule, RouterLink, SidebarComponent, TranslateModule],
+  imports: [ServiceRequestsComponent, CommonModule, FormsModule, RouterLink, SidebarComponent, TranslateModule],
   template: `
     <app-sidebar>
       <app-service-requests />
@@ -66,8 +57,6 @@ interface CompletedPaymentEntry {
             <button type="button" class="icon-action" (click)="refresh()" aria-label="Yenile" title="Yenile">↻</button>
           </div>
         </header>
-
-        <app-cash-register [currency]="currency()" />
 
         <nav class="sale-modes" aria-label="Satış türü">
           <button type="button" [class.active]="mode() === 'table'" (click)="setMode('table')" data-testid="pos-mode-table">Masada satış</button>
@@ -233,19 +222,18 @@ interface CompletedPaymentEntry {
                       <button type="button" [class.active]="paymentMethod === 'meal_card'" (click)="setPaymentMethod('meal_card')">Yemek kartı</button>
                     </div>
                     @if (paymentMethod === 'cash') {
-<label class="amount-field">Alınan nakit<input type="number" min="0" step="0.01" [ngModel]="cashReceived" (ngModelChange)="setCashReceived($event)" data-testid="pos-cash-received" /></label>
-                      <p class="change-line">Para üstü <strong>{{ price(cashChange()) }}</strong></p>
+                      <p class="payment-hint">Nakit ödeme kalan tutar üzerinden doğrudan kaydedilir.</p>
                     } @else {
                       <label class="amount-field">Tahsil edilecek tutar<input type="number" min="0.01" step="0.01" [ngModel]="paymentAmount" (ngModelChange)="setPaymentAmount($event)" /></label>
                     }
                     <button type="button" class="primary-button pay-button" (click)="collectPayment()" [disabled]="processingPayment() || paymentAmountCents() < 1 || (!paymentUncertain() && paymentAmountCents() > payable.amountRemaining)" data-testid="pos-collect-payment">
-                      {{ processingPayment() ? 'Kaydediliyor…' : 'Tahsilatı kaydet' }}
+                      {{ processingPayment() ? 'Kaydediliyor…' : paymentMethod === 'cash' ? 'Nakit ödemeyi kaydet' : 'Tahsilatı kaydet' }}
                     </button>
                     <p class="payment-hint">Ödeme seçimi POS veya yemek kartı cihazını çalıştırmaz; seçilen yöntemi tahsilat kaydına işler.</p>
                   </section>
                 } @else {
                   <section class="paid-summary" role="status" data-testid="pos-payment-complete">
-                    <strong>Hesap tamamen ödendi. Masa boşaltıldı.</strong>
+                    <strong>{{ mode() === 'table' ? 'Hesap tamamen ödendi. Masa boşaltıldı.' : 'Satış tamamlandı.' }}</strong>
                     <button type="button" class="secondary-button" (click)="printReceipt()">Hesap özetini yazdır</button>
                   </section>
                 }
@@ -269,19 +257,6 @@ interface CompletedPaymentEntry {
                 </button>
               }
               </nav>
-<section class="completed-payments" data-testid="pos-completed-payments" aria-label="Tamamlanan ödemeler">
-                <div class="subsection-title"><strong>Tamamlanan ödemeler</strong><span>{{ completedPayments().length }}</span></div>
-                @if (completedPayments().length === 0) {
-                  <p class="empty-payments">Henüz tamamlanan ödeme yok.</p>
-                } @else {
-                  @for (payment of completedPayments(); track payment.id) {
-                    <div class="completed-payment-row">
-                      <span><strong>#{{ payment.orderId }}</strong> · {{ payment.tableName }}<small>{{ paymentMethodLabel(payment.paymentMethod) }} · {{ payment.paidAt ? (payment.paidAt | date:'dd.MM HH:mm') : 'Saat bilgisi yok' }}</small></span>
-                      <b>{{ price(payment.amountCents) }}</b>
-                    </div>
-                  }
-                }
-              </section>
             </aside>
 
             <section class="product-panel">
@@ -403,13 +378,6 @@ interface CompletedPaymentEntry {
     .change-line strong { color:#552622; }
     .pay-button { margin-top:.55rem; }
     .payment-hint { margin:.45rem 0 0; color:#897c72; font-size:.62rem; line-height:1.4; }
-    .completed-payments { margin-top:1rem; padding-top:.75rem; border-top:1px solid #eadfd5; }
-    .completed-payment-row { display:flex; justify-content:space-between; gap:.55rem; padding:.45rem 0; border-bottom:1px solid #f0e8e0; color:#5d5046; font-size:.68rem; }
-    .completed-payment-row span { min-width:0; }
-    .completed-payment-row span strong { color:#552622; }
-    .completed-payment-row small { display:block; margin-top:.15rem; color:#897b70; font-size:.62rem; }
-    .completed-payment-row>b { flex:none; color:#392d26; }
-    .empty-payments { color:#897b70; font-size:.68rem; }
     .paid-summary { display:grid; gap:.6rem; margin-top:.8rem; padding:.75rem; border:1px solid #acd8b0; border-radius:.6rem; background:#f0f9ef; color:#236c36; font-size:.76rem; }
     .category-panel { grid-area:categories; position:sticky; top:.8rem; max-height:calc(100vh - 1.6rem); overflow:auto; padding:.75rem; transition:transform .2s ease, opacity .2s ease, padding .2s ease; }
     .left-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:.4rem; }
@@ -488,7 +456,6 @@ export class StaffPosComponent implements OnDestroy {
   readonly currentOrderLoading = signal(false);
   readonly processingPayment = signal(false);
   readonly paymentOptionsOpen = signal(false);
-  readonly completedPayments = signal<CompletedPaymentEntry[]>([]);
   readonly leftPanelCollapsed = signal(false);
   readonly error = signal('');
   readonly success = signal('');
@@ -498,7 +465,6 @@ export class StaffPosComponent implements OnDestroy {
   customerPhone = '';
   paymentMethod: PaymentMethod = 'cash';
   paymentAmount = '0.00';
-  cashReceived = '0.00';
   private paymentKeyFingerprint = '';
   private paymentKey = '';
   private collectAfterOrderLoad = false;
@@ -560,7 +526,7 @@ export class StaffPosComponent implements OnDestroy {
     if (this.destroyed) return false;
     try {
       const user = this.api.getCurrentUser();
-      localStorage.setItem(this.draftKey(), JSON.stringify({ at: Date.now(), tenantId: user?.tenant_id, userId: user?.id, mode: this.mode(), tableId: this.selectedTable()?.id ?? this.restoredTableId, cart: this.cart(), notes: this.orderNotesValue, customerName: this.customerName, customerPhone: this.customerPhone, paymentOrderId: this.paymentKey || this.mode() !== 'table' ? (this.payableOrder()?.id ?? this.restoredPaymentOrderId) : null, paymentKey: this.paymentKey, paymentFingerprint: this.paymentKeyFingerprint, paymentMethod: this.paymentMethod, paymentAmount: this.paymentAmount, cashReceived: this.cashReceived, paymentUncertain: this.paymentUncertain(), pendingSubmission: this.pendingSubmission }));
+      localStorage.setItem(this.draftKey(), JSON.stringify({ at: Date.now(), tenantId: user?.tenant_id, userId: user?.id, mode: this.mode(), tableId: this.selectedTable()?.id ?? this.restoredTableId, cart: this.cart(), notes: this.orderNotesValue, customerName: this.customerName, customerPhone: this.customerPhone, paymentOrderId: this.paymentKey || this.mode() !== 'table' ? (this.payableOrder()?.id ?? this.restoredPaymentOrderId) : null, paymentKey: this.paymentKey, paymentFingerprint: this.paymentKeyFingerprint, paymentMethod: this.paymentMethod, paymentAmount: this.paymentAmount, paymentUncertain: this.paymentUncertain(), pendingSubmission: this.pendingSubmission }));
       return true;
     } catch { this.error.set(this.translate.instant('SERVICE_REQUESTS.DRAFT_STORAGE_UNAVAILABLE')); return false; }
   }
@@ -596,7 +562,6 @@ export class StaffPosComponent implements OnDestroy {
       this.paymentKeyFingerprint = validPayment ? draft.paymentFingerprint : '';
       this.paymentMethod = draft.paymentMethod || 'cash';
       this.paymentAmount = draft.paymentAmount || '0.00';
-      this.cashReceived = draft.cashReceived || '0.00';
       this.paymentUncertain.set(validPayment);
       if (validOrder) {
         this.pendingSubmission = draft.pendingSubmission;
@@ -615,7 +580,7 @@ export class StaffPosComponent implements OnDestroy {
     }, 10000);
     this.api.getTables().subscribe({
       next: (tables) => {
-        this.tables.set([...tables].sort((a, b) => a.name.localeCompare(b.name, 'tr')));
+        this.tables.set([...tables].sort((a, b) => compareTableNames(a.name, b.name)));
         this.tablesLoading.set(false);
         if (this.restoredPaymentOrderId) this.loadOrderRecord(this.restoredPaymentOrderId);
         if (this.restoredTableId) {
@@ -631,7 +596,7 @@ export class StaffPosComponent implements OnDestroy {
       },
     });
     this.loadMenu();
-    this.loadCompletedPayments();
+    this.loadOrders();
   }
 
   tableOpenTotalLabel(table: Table): string | null {
@@ -705,7 +670,7 @@ export class StaffPosComponent implements OnDestroy {
     this.tablesLoading.set(true);
     this.api.getTables().subscribe({
       next: (tables) => {
-        this.tables.set([...tables].sort((a, b) => a.name.localeCompare(b.name, 'tr')));
+        this.tables.set([...tables].sort((a, b) => compareTableNames(a.name, b.name)));
         this.tablesLoading.set(false);
         this.syncOffline.set(false);
       },
@@ -717,7 +682,7 @@ export class StaffPosComponent implements OnDestroy {
     });
     if (this.tableToken()) this.refreshTableOrder();
     this.loadMenu();
-    this.loadCompletedPayments();
+    this.loadOrders();
     const order = this.payableOrder();
     if (order) this.loadOrderRecord(order.id);
     else if (this.restoredPaymentOrderId) this.loadOrderRecord(this.restoredPaymentOrderId);
@@ -961,16 +926,6 @@ export class StaffPosComponent implements OnDestroy {
     this.resetPaymentKey();
     const remaining = this.payableOrder()?.amountRemaining ?? 0;
     this.paymentAmount = (remaining / 100).toFixed(2);
-    if (method === 'cash') this.cashReceived = (remaining / 100).toFixed(2);
-  }
-
-  setCashReceived(value: string | number): void {
-    if (this.paymentUncertain() || this.processingPayment() || this.orderEditingLocked()) return;
-    this.cashReceived = String(value ?? '');
-    const received = this.parseMoney(this.cashReceived);
-    const remaining = this.payableOrder()?.amountRemaining ?? 0;
-    this.paymentAmount = (Math.min(received, remaining) / 100).toFixed(2);
-    this.resetPaymentKey();
   }
 
   setPaymentAmount(value: string | number): void {
@@ -981,10 +936,6 @@ export class StaffPosComponent implements OnDestroy {
 
   paymentAmountCents(): number {
     return this.parseMoney(this.paymentAmount);
-  }
-
-  cashChange(): number {
-    return Math.max(0, this.parseMoney(this.cashReceived) - this.paymentAmountCents());
   }
 
   collectPayment(): void {
@@ -1010,36 +961,32 @@ export class StaffPosComponent implements OnDestroy {
           amountRemaining: response.amount_remaining_cents,
           payments: response.payments.filter((payment) => !payment.voided_at),
         } : current);
-        this.loadCompletedPayments();
+        this.loadOrders();
         const saleIsSettled = response.amount_remaining_cents === 0 || response.status === 'paid';
+        const printCashReceipt = saleIsSettled && this.paymentMethod === 'cash';
         if (saleIsSettled && this.mode() !== 'table') {
           this.success.set(`Satış #${order.id} tamamlandı. Yeni satışa başlayabilirsiniz.`);
           this.paymentAmount = '0.00';
-          this.cashReceived = '0.00';
-          this.cart.set([]);
-          this.orderNotesValue = '';
-          this.paymentOptionsOpen.set(false);
-          this.payableOrder.set(null);
-          this.currentOrder.set(null);
-          this.collectAfterOrderLoad = false;
-          this.restoredPaymentOrderId = null;
-          this.recoveringCounterSale.set(false);
-          this.customerName = '';
-          this.customerPhone = '';
-          this.persistDraft();
+          if (printCashReceipt) {
+            window.setTimeout(() => {
+              try { window.print(); }
+              finally { this.resetCompletedCounterSale(); }
+            }, 100);
+          } else {
+            this.resetCompletedCounterSale();
+          }
           return;
         }
         if (saleIsSettled) {
           this.success.set(`Sipariş #${order.id} tamamen ödendi. Masa boşaltıldı.`);
           this.paymentAmount = '0.00';
-          this.cashReceived = '0.00';
         } else {
           this.success.set(`Tahsilat kaydedildi. Kalan tutar ${this.price(response.amount_remaining_cents)}.`);
           this.paymentAmount = (response.amount_remaining_cents / 100).toFixed(2);
-          if (this.paymentMethod === 'cash') this.cashReceived = this.paymentAmount;
         }
+        if (printCashReceipt) window.setTimeout(() => window.print(), 100);
         this.loadOrderRecord(order.id);
-        this.api.getTables().subscribe({ next: (tables) => this.tables.set([...tables].sort((a, b) => a.name.localeCompare(b.name, 'tr'))) });
+        this.api.getTables().subscribe({ next: (tables) => this.tables.set([...tables].sort((a, b) => compareTableNames(a.name, b.name))) });
       },
       error: (err) => {
         this.processingPayment.set(false);
@@ -1052,6 +999,20 @@ export class StaffPosComponent implements OnDestroy {
 
   printReceipt(): void {
     window.print();
+  }
+
+  private resetCompletedCounterSale(): void {
+    this.cart.set([]);
+    this.orderNotesValue = '';
+    this.paymentOptionsOpen.set(false);
+    this.payableOrder.set(null);
+    this.currentOrder.set(null);
+    this.collectAfterOrderLoad = false;
+    this.restoredPaymentOrderId = null;
+    this.recoveringCounterSale.set(false);
+    this.customerName = '';
+    this.customerPhone = '';
+    this.persistDraft();
   }
 
   price(cents: number): string {
@@ -1147,7 +1108,6 @@ export class StaffPosComponent implements OnDestroy {
       next: (orders: Order[]) => {
         if (!current()) return;
         this.tableOrders.set(orders);
-        this.setCompletedPayments(orders);
         const order = orders.find((item) => item.id === orderId);
         if (!order) {
           if (fallbackDue != null) {
@@ -1181,7 +1141,6 @@ export class StaffPosComponent implements OnDestroy {
         }
         if (!this.paymentKey && (previous?.id !== order.id || previous.amountRemaining !== remaining)) {
           this.paymentAmount = (remaining / 100).toFixed(2);
-          if (this.paymentMethod === 'cash') this.cashReceived = this.paymentAmount;
         }
         this.persistDraft();
         afterLoad?.();
@@ -1196,27 +1155,10 @@ export class StaffPosComponent implements OnDestroy {
     });
   }
 
-  private loadCompletedPayments(): void {
+  private loadOrders(): void {
     this.api.getOrders().subscribe({ next: (orders) => {
       this.tableOrders.set(orders);
-      this.setCompletedPayments(orders);
     } });
-  }
-
-  private setCompletedPayments(orders: Order[]): void {
-    const entries = orders.flatMap((order) => (order.payments ?? [])
-      .filter((payment) => !payment.voided_at)
-      .map((payment) => ({
-        id: payment.id,
-        orderId: order.id,
-        tableName: order.table_name,
-        paymentMethod: payment.payment_method,
-        amountCents: payment.amount_cents,
-        paidAt: payment.paid_at ?? null,
-      } satisfies CompletedPaymentEntry))
-    );
-    entries.sort((left, right) => (right.paidAt ?? '').localeCompare(left.paidAt ?? ''));
-    this.completedPayments.set(entries.slice(0, 20));
   }
 
   private currentPaymentKey(orderId: number, amount: number): string {
