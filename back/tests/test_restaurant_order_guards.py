@@ -70,6 +70,23 @@ class TestRestaurantOrderGuards(PgClientTestCase):
         with self.assertRaises(HTTPException):
             _resolve_menu_cart_product(self.session, self.tenant.id, heading.id, 'product')
 
+        from unittest.mock import patch
+        cart_table = models.Table(tenant_id=self.tenant.id, name='Test Table', is_active=True)
+        self.session.add(cart_table)
+        self.session.commit()
+        self.session.refresh(cart_table)
+        with patch('app.main.get_redis', return_value=object()):
+            cart_response = self.client.post(
+                f'/menu/{cart_table.token}/cart/items',
+                json={
+                    'session_id': 'test-session-620',
+                    'product_id': heading.id,
+                    'quantity': 1,
+                    'source': 'product',
+                },
+            )
+        self.assertEqual(cart_response.status_code, 400)
+
     def test_offline_order_line_resolver_rejects_category_heading_without_writing(self):
         heading = models.Product(
             tenant_id=self.tenant.id,
