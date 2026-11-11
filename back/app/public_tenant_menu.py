@@ -521,6 +521,17 @@ def group_products_into_category_tree(
     return tree
 
 
+def beratzade_menu_category_names() -> list[str]:
+    """Canonical menu groups shared by Admin, staff POS and QR surfaces."""
+    return [
+        "Börekler & Hamur İşleri", "Tost Çeşitleri", "Beratzade Sandviç Menüsü",
+        "Menemen Çeşitleri", "Omlet & Sahanda Yumurta", "Kahvaltı Tabağı",
+        "Serpme Kahvaltı", "Izgara & Kebap Çeşitleri", "Pilav", "Dürüm Çeşitleri",
+        "Aperatifler & Ara Sıcaklar", "Hamburger", "Günlük Sulu Yemekler",
+        "Tatlılar", "İçecek Çeşitleri", "Çorba Çeşitleri",
+    ]
+
+
 def build_public_tenant_menu(
     session: Session,
     tenant_id: int,
@@ -555,6 +566,11 @@ def build_public_tenant_menu(
     )
     categories = group_products_into_categories(products, lang)
     custom_categories = normalize_custom_subcategories(tenant.custom_subcategories)
+    from .menu_product_rules import is_beratzade_tenant_name
+
+    if is_beratzade_tenant_name(tenant.name):
+        for name in beratzade_menu_category_names():
+            custom_categories.setdefault(name, [])
     category_tree = group_products_into_category_tree(products, custom_categories)
     existing_ids = {category["id"] for category in categories}
     for name in custom_categories:

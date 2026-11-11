@@ -1,5 +1,6 @@
 import type { PublicTenantMenuCategory, PublicTenantMenuProduct } from '../services/api.service';
 import { orderBeratzadeMenuCategories } from '../shared/public-menu-categories';
+import { groupBeratzadeProductsForStaff, orderBeratzadeCategoryNames } from '../shared/public-menu-categories';
 import {
   BERATZADE_MENU_SECTIONS,
   beratzadeProductGroup,
@@ -122,5 +123,21 @@ describe('restaurant public menu presentation', () => {
       expect(beratzadeProductGroup(item)).withContext(category).toBe(group);
       expect(beratzadeSectionForProduct(item)).withContext(category).toBe(section);
     }
+  });
+
+  it('shares the same ordered 16 groups and product identity with the staff POS menu', () => {
+    const items = [
+      { ...product(1, 'product', 'Kaşarlı Tost'), category: 'Tost Çeşitleri' },
+      { ...product(2, 'tenant_product', 'Kaşarlı Menemen'), category: 'Menemen Çeşitleri' },
+      { ...product(3, 'product', 'Tavuklu Pilav'), category: 'Pilav' },
+    ];
+    const staffGroups = groupBeratzadeProductsForStaff(items);
+
+    expect(staffGroups.map(group => group.name)).toEqual(BERATZADE_MENU_SECTIONS.flatMap(section => section.groups.map(group => group.label)));
+    expect(staffGroups.reduce((count, group) => count + group.products.length, 0)).toBe(items.length);
+    expect(staffGroups.find(group => group.id === 'tost-cesitleri')?.products[0].source).toBe('product');
+    expect(staffGroups.find(group => group.id === 'menemen-cesitleri')?.products[0].source).toBe('tenant_product');
+    expect(orderBeratzadeCategoryNames(['Pilav', 'Tost Çeşitleri'], true)).toEqual(['Tost Çeşitleri', 'Pilav']);
+    expect(orderBeratzadeCategoryNames(['Sides', 'Main Course'], false)).toEqual(['Sides', 'Main Course']);
   });
 });

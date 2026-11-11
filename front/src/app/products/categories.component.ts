@@ -4,6 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService, Product } from '../services/api.service';
 import { forkJoin } from 'rxjs';
+import { isBeratzadeMenuTenant } from '../shared/beratzade-menu';
+import { orderBeratzadeCategoryNames } from '../shared/public-menu-categories';
+import { BERATZADE_MENU_SECTIONS } from '../public-menu/public-menu-presentation';
 
 @Component({
   selector: 'app-categories',
@@ -340,6 +343,7 @@ export class CategoriesComponent implements OnInit {
 
   products = signal<Product[]>([]);
   categoriesMap = signal<Record<string, string[]>>({});
+  isBeratzadeTenant = signal(false);
   selectedCategory = signal<string | null>(null);
   loading = signal(false);
   error = signal('');
@@ -351,7 +355,7 @@ export class CategoriesComponent implements OnInit {
   editingSubcategory = signal<string | null>(null);
   editName = '';
 
-  mainCategories = computed(() => Object.keys(this.categoriesMap()).sort());
+  mainCategories = computed(() => orderBeratzadeCategoryNames(Object.keys(this.categoriesMap()).sort(), this.isBeratzadeTenant()));
   currentSubcategories = computed(() => {
     const cat = this.selectedCategory();
     if (!cat) return [];
@@ -367,10 +371,12 @@ export class CategoriesComponent implements OnInit {
     forkJoin({
       products: this.api.getProducts(),
       categories: this.api.getCatalogCategories(),
+      settings: this.api.getTenantSettings(),
     }).subscribe({
-      next: ({ products, categories }) => {
+      next: ({ products, categories, settings }) => {
         this.products.set(products);
-        this.categoriesMap.set(categories);
+        this.isBeratzadeTenant.set(isBeratzadeMenuTenant(settings.name, settings.public_slug));
+        this.categoriesMap.set(this.menuAwareCategories(categories));
         this.loading.set(false);
       },
       error: () => {
@@ -381,8 +387,14 @@ export class CategoriesComponent implements OnInit {
   }
 
   private applyCategoriesMap(map: Record<string, string[]>) {
-    this.categoriesMap.set(map);
+    this.categoriesMap.set(this.menuAwareCategories(map));
     this.categoriesChanged.emit();
+  }
+
+  private menuAwareCategories(categories: Record<string, string[]>): Record<string, string[]> {
+    if (!this.isBeratzadeTenant()) return categories;
+    const canonicalNames = BERATZADE_MENU_SECTIONS.flatMap(section => section.groups.map(group => group.label));
+    return Object.fromEntries(canonicalNames.map(name => [name, categories[name] ?? []]));
   }
 
   private apiErrorMessage(err: { error?: { detail?: string } }, fallbackKey: string): string {

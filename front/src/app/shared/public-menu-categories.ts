@@ -1,5 +1,6 @@
 import type { PublicTenantMenuCategory } from '../services/api.service';
 import { publicMenuCategorySlug } from './public-menu-path';
+import { BERATZADE_MENU_SECTIONS, beratzadeProductGroup } from '../public-menu/public-menu-presentation';
 
 const preferredSubcategoryOrder: Record<string, string[]> = {
   kahvalti: ['firin-urunleri', 'sandvicler', 'menemenler', 'yumurta-cesitleri'],
@@ -42,6 +43,37 @@ export function orderBeratzadeMenuCategories(
       return leftRank - rightRank || left.index - right.index;
     })
     .map(({ category }) => category);
+}
+
+/** Use the same virtual menu groups in staff POS and customer QR without rewriting Product rows. */
+export function groupBeratzadeProductsForStaff<T extends {
+  id: number;
+  source?: string;
+  name: string;
+  category?: string | null;
+  subcategory?: string | null;
+  price_cents: number;
+  price_formatted?: string;
+  description?: string | null;
+  image_url?: string | null;
+  available?: boolean;
+}>(products: T[]): Array<{ id: string; name: string; products: T[] }> {
+  const groups = BERATZADE_MENU_SECTIONS.flatMap(section => section.groups);
+  return groups.map(group => ({
+    id: group.id,
+    name: group.label,
+    products: products.filter(product => beratzadeProductGroup(product as PublicTenantMenuCategory['products'][number]) === group.id),
+  }));
+}
+
+export function orderBeratzadeCategoryNames(names: string[], enabled: boolean): string[] {
+  if (!enabled) return names;
+  const canonical = BERATZADE_MENU_SECTIONS.flatMap(section => section.groups.map(group => group.label));
+  const rank = new Map(canonical.map((name, index) => [name, index]));
+  return [...names].sort((left, right) =>
+    (rank.get(left) ?? canonical.length) - (rank.get(right) ?? canonical.length)
+      || left.localeCompare(right, 'tr'),
+  );
 }
 
 export function orderBeratzadeSubcategories(

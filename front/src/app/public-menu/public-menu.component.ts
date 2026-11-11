@@ -32,6 +32,7 @@ import {
   orderBeratzadeSubcategories,
 } from '../shared/public-menu-categories';
 import { publicMenuCategorySlug, publicMenuTenantRef } from '../shared/public-menu-path';
+import { isBeratzadeMenuTenant } from '../shared/beratzade-menu';
 import { publicBookRouterLink } from '../shared/public-book-path';
 import { LanguageService } from '../services/language.service';
 import { LegalLinksComponent } from '../shared/legal-links.component';
@@ -131,9 +132,7 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
   isBeratzadeMenuOnly = computed(() => {
     const tenant = this.tenant();
     if (!tenant) return false;
-    const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('tr-TR');
-    const name = normalize(tenant.name.replace(/&/g, ' ve ').replace(/\s+/g, ' ').trim());
-    return name === 'beratzade kebap ve kahvalti salonu' || name === 'beratzade kebap kahvalti salonu' || normalize(tenant.public_slug ?? '').startsWith('beratzade-');
+    return isBeratzadeMenuTenant(tenant.name, tenant.public_slug);
   });
 
   constructor() {

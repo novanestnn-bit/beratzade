@@ -9,6 +9,9 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { intlLocaleFromTranslate } from '../shared/intl-locale';
 import { currencySymbolFromIsoCode } from '../shared/currency-symbol';
 import { getSubcategoryLabel as resolveSubcategoryLabel } from '../shared/product-subcategory-label.util';
+import { BERATZADE_MENU_SECTIONS } from '../public-menu/public-menu-presentation';
+import { isBeratzadeMenuTenant } from '../shared/beratzade-menu';
+import { orderBeratzadeCategoryNames } from '../shared/public-menu-categories';
 import { MAX_IMAGE_UPLOAD_BYTES, MAX_IMAGE_UPLOAD_MB } from '../shared/image-upload-limits';
 import { CategoriesComponent } from './categories.component';
 import { PricingHelperComponent } from './pricing-helper.component';
@@ -738,6 +741,7 @@ export class ProductsComponent implements OnInit {
   selectedSubcategory = signal<string | null>(null);
   availableCategories = signal<string[]>([]);
   availableSubcategoriesForFilter = signal<string[]>([]);
+  isBeratzadeTenant = signal(false);
 
   /** Menu customization questions for the product being edited (existing products only). */
   productQuestions = signal<ProductQuestionStaff[]>([]);
@@ -769,7 +773,6 @@ export class ProductsComponent implements OnInit {
 
   ngOnInit() {
     this.loadTenantSettingsThenProducts();
-    this.loadCategories();
     // Load all taxes (not only "valid today") so dropdowns aren't empty due to validity-period edge cases.
     this.api.getTaxes(false).subscribe({ next: (list) => this.productTaxes.set(list), error: () => this.productTaxes.set([]) });
     this.api.getKitchenStations().subscribe({
@@ -782,7 +785,7 @@ export class ProductsComponent implements OnInit {
   loadCategories() {
     this.api.getCatalogCategories().subscribe({
       next: (cats) => {
-        this.categories.set(cats);
+        this.categories.set(this.menuAwareCategories(cats));
         this.onCategoryChange();
         if (this.selectedCategory()) {
           this.updateAvailableSubcategories(this.selectedCategory());
@@ -794,12 +797,18 @@ export class ProductsComponent implements OnInit {
     });
   }
 
+  private menuAwareCategories(categories: Record<string, string[]>): Record<string, string[]> {
+    if (!this.isBeratzadeTenant()) return categories;
+    const canonicalNames = BERATZADE_MENU_SECTIONS.flatMap(section => section.groups.map(group => group.label));
+    return Object.fromEntries(canonicalNames.map(name => [name, categories[name] ?? []]));
+  }
+
   onCategoriesChanged() {
     this.loadCategories();
   }
 
   getCategoryKeys(): string[] {
-    return Object.keys(this.categories());
+    return orderBeratzadeCategoryNames(Object.keys(this.categories()), this.isBeratzadeTenant());
   }
 
   /** Translation key for known categories; falls back to raw value for custom categories. */
@@ -912,6 +921,7 @@ export class ProductsComponent implements OnInit {
   loadTenantSettingsThenProducts() {
     this.api.getTenantSettings().subscribe({
       next: (settings) => {
+        this.isBeratzadeTenant.set(isBeratzadeMenuTenant(settings.name, settings.public_slug));
         const code = settings.currency_code || null;
         this.currencyCode.set(code);
         if (code) {
@@ -919,11 +929,13 @@ export class ProductsComponent implements OnInit {
         } else {
           this.currency.set(settings.currency || '€');
         }
+        this.loadCategories();
         this.loadProducts();
       },
       error: (err) => {
         console.error('Failed to load tenant settings:', err);
         this.currency.set('€');
+        this.loadCategories();
         this.loadProducts();
       },
     });

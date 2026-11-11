@@ -89,6 +89,22 @@ export function beratzadeProductGroup(product: PublicTenantMenuProduct): string 
     'corba cesitleri': 'corba-cesitleri',
   };
   if (explicitGroups[categoryName]) return explicitGroups[categoryName];
+  const normalizedCategory = categoryName.replace(/\s+/g, ' ').trim();
+  const legacyCategoryGroups: Record<string, string> = {
+    kahvalti: hasAny(name, ['serpme']) ? 'serpme-kahvalti'
+      : hasAny(name, ['kahvalti tabagi']) ? 'kahvalti-tabagi'
+        : hasAny(name, ['menemen']) ? 'menemen-cesitleri'
+          : hasAny(name, ['omlet', 'sahanda', 'yumurta']) ? 'omlet-sahanda'
+            : hasAny(name, ['tost']) ? 'tost-cesitleri'
+              : hasAny(name, ['sandvic']) ? 'sandvic-menusu' : 'borek-hamur-isleri',
+    'kebaplar ve izgaralar': hasAny(name, ['durum']) ? 'durum-cesitleri'
+      : hasAny(name, ['pilav']) ? 'pilav' : 'izgara-kebap',
+    'gunun yemekleri': 'gunluk-sulu-yemekler',
+    'gunun corbalari': 'corba-cesitleri',
+    'icecekler': 'icecek-cesitleri',
+    'yan urunler': 'aperatifler-ara-sicaklar',
+  };
+  if (legacyCategoryGroups[normalizedCategory]) return legacyCategoryGroups[normalizedCategory];
 
   if (hasAny(text, ['icecek', 'beverage', 'drink', 'cay', 'kahve', 'nescafe', 'oralet', 'portakal suyu', 'maden suyu', 'ayran', 'cola']) || name === 'su' || name === 'water') {
     return 'icecek-cesitleri';

@@ -10,6 +10,8 @@ import { environment } from '../../environments/environment';
 import { pendingRequest } from '../shared/durable-request-key';
 import { compareTableNames } from '../shared/table-name-sort';
 import { customizationPriceDeltaCents } from '../shared/product-customization-pricing';
+import { groupBeratzadeProductsForStaff } from '../shared/public-menu-categories';
+import { isBeratzadeMenuTenant } from '../shared/beratzade-menu';
 
 type SaleMode = 'table' | 'quick_sale' | 'takeaway';
 type PaymentMethod = 'cash' | 'terminal' | 'meal_card';
@@ -465,6 +467,7 @@ export class StaffPosComponent implements OnDestroy {
   readonly error = signal('');
   readonly success = signal('');
   readonly currency = signal('TRY');
+  readonly isBeratzadeTenant = signal(false);
   orderNotesValue = '';
   customerName = '';
   customerPhone = '';
@@ -603,7 +606,13 @@ export class StaffPosComponent implements OnDestroy {
         this.syncOffline.set(true);
       },
     });
-    this.loadMenu();
+    this.api.getTenantSettings().subscribe({
+      next: settings => {
+        this.isBeratzadeTenant.set(isBeratzadeMenuTenant(settings.name, settings.public_slug));
+        this.loadMenu();
+      },
+      error: () => this.loadMenu(),
+    });
     this.loadOrders();
   }
 
@@ -1093,7 +1102,7 @@ export class StaffPosComponent implements OnDestroy {
       next: (menu) => {
         if (request !== this.menuRequest || mode !== this.mode()) return;
         this.currency.set(menu.currency || 'TRY');
-        const categories = (menu.category_tree ?? []).map((category) => ({
+        const categoryTree = (menu.category_tree ?? []).map((category) => ({
           id: category.id,
           name: category.name,
           subcategories: (category.subcategories ?? []).map((subcategory) => ({
@@ -1103,7 +1112,15 @@ export class StaffPosComponent implements OnDestroy {
           })),
           products: category.products,
         }));
-        this.categories.set(categories.filter((category) => this.categoryProductCount(category) > 0));
+        const categories = this.isBeratzadeTenant()
+          ? groupBeratzadeProductsForStaff(categoryTree.flatMap(category => [
+              ...category.products,
+              ...category.subcategories.flatMap(subcategory => subcategory.products),
+            ])).map(category => ({ ...category, subcategories: [] }))
+          : categoryTree;
+        this.categories.set(this.isBeratzadeTenant()
+          ? categories
+          : categories.filter(category => this.categoryProductCount(category) > 0));
         const currentProducts = new Map(categories.flatMap(category => [...category.products, ...category.subcategories.flatMap(subcategory => subcategory.products)]).map(product => [this.lineKey(product), product]));
         this.cart.update(lines => lines.map(line => ({ ...line, product: currentProducts.get(this.lineKey(line.product)) ?? line.product })));
         if (this.selectedCategory() !== 'all' && !this.categories().some((category) => category.id === this.selectedCategory())) {
