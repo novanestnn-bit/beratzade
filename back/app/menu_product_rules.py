@@ -18,3 +18,33 @@ def is_non_sellable_menu_heading(name: str | None, category: str | None) -> bool
         normalize_menu_product_name(name) == "gunluk sulu yemekler"
         and normalize_menu_product_name(category) == "gunun yemekleri"
     )
+
+
+_BERATZADE_TENANT_NAMES = {
+    "beratzade kebap kahvalti salonu",
+    "beratzade kebap ve kahvalti salonu",
+}
+_BERATZADE_GENERIC_DEMO_NAMES = {
+    "enchiladas",
+    "chile relleno",
+    "tacos de carne asada",
+    "mole poblano",
+    "pozole",
+    "coca cola",
+    "tecate roja",
+    "tecate light",
+    "water",
+    "coffee",
+}
+
+
+def is_beratzade_tenant_name(value: str | None) -> bool:
+    return normalize_menu_product_name(value) in _BERATZADE_TENANT_NAMES
+
+
+def is_beratzade_demo_product(name: str | None, tenant_name: str | None) -> bool:
+    """Keep explicitly labeled and generic seed fixtures out of Beratzade menus."""
+    if not is_beratzade_tenant_name(tenant_name):
+        return False
+    normalized = normalize_menu_product_name(name)
+    return normalized.startswith("demo ") or normalized in _BERATZADE_GENERIC_DEMO_NAMES

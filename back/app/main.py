@@ -14159,6 +14159,17 @@ def create_order(
             product_name=product_name,
         )
 
+        raw_answers = item.customization_answers if hasattr(item, "customization_answers") else None
+        item_answers, cust_summary = validate_and_normalize_customization_answers(
+            session, table.tenant_id, effective_product_id, raw_answers
+        )
+        if item_answers:
+            from .product_customization import customization_price_delta_cents
+
+            price_cents += customization_price_delta_cents(
+                session, table.tenant_id, effective_product_id, item_answers
+            )
+
         # Apply eligible line promo (#322) — discount tax-inclusive list price, recompute tax
         product_category = None
         eff_product = session.get(models.Product, effective_product_id)
@@ -14189,10 +14200,6 @@ def create_order(
 
         # Check if this product already exists in the order with same customization (only active, non-removed items)
         # Match by effective_product_id and same customization_answers so we merge only when preferences match
-        raw_answers = item.customization_answers if hasattr(item, "customization_answers") else None
-        item_answers, cust_summary = validate_and_normalize_customization_answers(
-            session, table.tenant_id, effective_product_id, raw_answers
-        )
         raw_lm = getattr(item, "line_modifiers", None)
         norm_modifiers, lm_summary = validate_and_normalize_line_modifiers(raw_lm)
         existing_items = session.exec(

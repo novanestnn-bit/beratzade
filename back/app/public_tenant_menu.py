@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 from sqlmodel import Session, select
 
 from . import models
-from .menu_product_rules import is_non_sellable_menu_heading
+from .menu_product_rules import is_beratzade_demo_product, is_non_sellable_menu_heading
 from . import promo_service as promo_svc
 from .category_codes import get_public_category_display_label
 from .tenant_currency import normalize_tenant_currency_fields
@@ -273,6 +273,11 @@ def _load_flat_products(
                 from .product_stock import product_stock_alert_payload
 
                 stock_fields = product_stock_alert_payload(custom_product)
+        if is_beratzade_demo_product(
+            custom_product.name if custom_product else tp.name,
+            tenant.name if tenant else None,
+        ):
+            continue
         if is_non_sellable_menu_heading(
             (custom_product.name if custom_product else tp.name), category
         ):
@@ -324,6 +329,8 @@ def _load_flat_products(
 
     for lp in legacy_products:
         if lp.id in linked_legacy_product_ids:
+            continue
+        if is_beratzade_demo_product(lp.name, tenant.name if tenant else None):
             continue
         if is_non_sellable_menu_heading(lp.name, lp.category):
             continue

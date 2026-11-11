@@ -27,12 +27,13 @@ export const BERATZADE_MENU_SECTIONS: BeratzadeMenuSection[] = [
     descriptionKey: 'MENU_EXPERIENCE.SECTION_BREAKFAST_DESCRIPTION',
     image: '/menu-categories/kahvalti.webp',
     groups: [
-      { id: 'kahvalti-tabaklari', label: 'Kahvaltı Tabakları', labelKey: 'MENU_EXPERIENCE.GROUP_BREAKFAST_PLATES', image: '/menu-categories/kahvalti.webp' },
-      { id: 'menemen-yumurta', label: 'Menemen & Yumurta', labelKey: 'MENU_EXPERIENCE.GROUP_EGGS', image: '/menu-categories/kahvalti.webp' },
-      { id: 'tost-sandvic', label: 'Tost & Sandviç', labelKey: 'MENU_EXPERIENCE.GROUP_TOAST', image: '/menu-categories/kahvalti.webp' },
-      { id: 'borek-hamur-isleri', label: 'Börek & Hamur İşleri', labelKey: 'MENU_EXPERIENCE.GROUP_PASTRIES', image: '/menu-categories/kahvalti.webp' },
-      { id: 'gunluk-corba', label: 'Günlük Çorbalar', labelKey: 'MENU_EXPERIENCE.GROUP_SOUPS', image: '/menu-categories/gunun-corbalari.webp' },
-      { id: 'kahvalti-icecekleri', label: 'İçecekler', labelKey: 'MENU_EXPERIENCE.GROUP_DRINKS', image: '/menu-categories/icecekler.webp' },
+      { id: 'borek-hamur-isleri', label: 'Börekler & Hamur İşleri', labelKey: '', image: '/menu-categories/kahvalti.webp' },
+      { id: 'tost-cesitleri', label: 'Tost Çeşitleri', labelKey: '', image: '/menu-categories/kahvalti.webp' },
+      { id: 'sandvic-menusu', label: 'Beratzade Sandviç Menüsü', labelKey: '', image: '/menu-categories/kahvalti.webp' },
+      { id: 'menemen-cesitleri', label: 'Menemen Çeşitleri', labelKey: '', image: '/menu-categories/kahvalti.webp' },
+      { id: 'omlet-sahanda', label: 'Omlet & Sahanda Yumurta', labelKey: '', image: '/menu-categories/kahvalti.webp' },
+      { id: 'kahvalti-tabagi', label: 'Kahvaltı Tabağı', labelKey: '', image: '/menu-categories/kahvalti.webp' },
+      { id: 'serpme-kahvalti', label: 'Serpme Kahvaltı', labelKey: '', image: '/menu-categories/kahvalti.webp' },
     ],
   },
   {
@@ -42,14 +43,15 @@ export const BERATZADE_MENU_SECTIONS: BeratzadeMenuSection[] = [
     descriptionKey: 'MENU_EXPERIENCE.SECTION_GRILL_DESCRIPTION',
     image: '/menu-categories/kebaplar-ve-izgaralar.webp',
     groups: [
-      { id: 'izgara-kebap', label: 'Izgara & Kebap Çeşitleri', labelKey: 'MENU_EXPERIENCE.GROUP_GRILL', image: '/menu-categories/kebaplar-ve-izgaralar.webp' },
-      { id: 'durumler', label: 'Dürümler', labelKey: 'MENU_EXPERIENCE.GROUP_WRAPS', image: '/menu-categories/kebaplar-ve-izgaralar.webp' },
-      { id: 'gunluk-sulu-yemekler', label: 'Günlük Sulu Yemekler', labelKey: 'MENU_EXPERIENCE.GROUP_DAILY_MEALS', image: '/menu-categories/ev-yemekleri.webp' },
-      { id: 'tavuk-pilav', label: 'Tavuk & Pilav Çeşitleri', labelKey: 'MENU_EXPERIENCE.GROUP_CHICKEN_RICE', image: '/menu-categories/kebaplar-ve-izgaralar.webp' },
-      { id: 'hamburger-ozel-tabaklar', label: 'Hamburger & Özel Tabaklar', labelKey: 'MENU_EXPERIENCE.GROUP_BURGERS', image: '/menu-categories/kebaplar-ve-izgaralar.webp' },
-      { id: 'atistirmaliklar', label: 'Atıştırmalıklar', labelKey: 'MENU_EXPERIENCE.GROUP_SNACKS', image: '/menu-categories/mezeler-ve-salatalar.webp' },
-      { id: 'tatlilar', label: 'Tatlılar', labelKey: 'MENU_EXPERIENCE.GROUP_DESSERTS', image: '/menu-categories/tatlilar.webp' },
-      { id: 'yemek-icecekleri', label: 'İçecekler', labelKey: 'MENU_EXPERIENCE.GROUP_DRINKS', image: '/menu-categories/icecekler.webp' },
+      { id: 'izgara-kebap', label: 'Izgara & Kebap Çeşitleri', labelKey: '', image: '/menu-categories/kebaplar-ve-izgaralar.webp' },
+      { id: 'pilav', label: 'Pilav', labelKey: '', image: '/menu-categories/kebaplar-ve-izgaralar.webp' },
+      { id: 'durum-cesitleri', label: 'Dürüm Çeşitleri', labelKey: '', image: '/menu-categories/kebaplar-ve-izgaralar.webp' },
+      { id: 'aperatifler-ara-sicaklar', label: 'Aperatifler & Ara Sıcaklar', labelKey: '', image: '/menu-categories/mezeler-ve-salatalar.webp' },
+      { id: 'hamburger', label: 'Hamburger', labelKey: '', image: '/menu-categories/kebaplar-ve-izgaralar.webp' },
+      { id: 'gunluk-sulu-yemekler', label: 'Günlük Sulu Yemekler', labelKey: '', image: '/menu-categories/ev-yemekleri.webp' },
+      { id: 'tatlilar', label: 'Tatlılar', labelKey: '', image: '/menu-categories/tatlilar.webp' },
+      { id: 'icecek-cesitleri', label: 'İçecek Çeşitleri', labelKey: '', image: '/menu-categories/icecekler.webp' },
+      { id: 'corba-cesitleri', label: 'Çorba Çeşitleri', labelKey: '', image: '/menu-categories/gunun-corbalari.webp' },
     ],
   },
 ];
@@ -64,49 +66,75 @@ const hasAny = (value: string, needles: string[]): boolean =>
 /** Virtual grouping for the public display only; product data remains exactly as returned by the API. */
 export function beratzadeProductGroup(product: PublicTenantMenuProduct): string {
   const name = normalizeMenuText(product.name);
+  const categoryName = normalizeMenuText(product.category ?? '');
   const category = normalizeMenuText(`${product.category ?? ''} ${product.subcategory ?? ''}`);
   const text = `${name} ${category}`;
 
+  const explicitGroups: Record<string, string> = {
+    'borekler hamur isleri': 'borek-hamur-isleri',
+    'tost cesitleri': 'tost-cesitleri',
+    'beratzade sandvic menusu': 'sandvic-menusu',
+    'menemen cesitleri': 'menemen-cesitleri',
+    'omlet sahanda yumurta': 'omlet-sahanda',
+    'kahvalti tabagi': 'kahvalti-tabagi',
+    'serpme kahvalti': 'serpme-kahvalti',
+    'izgara kebap cesitleri': 'izgara-kebap',
+    pilav: 'pilav',
+    'durum cesitleri': 'durum-cesitleri',
+    'aperatifler ara sicaklar': 'aperatifler-ara-sicaklar',
+    hamburger: 'hamburger',
+    'gunluk sulu yemekler': 'gunluk-sulu-yemekler',
+    tatlilar: 'tatlilar',
+    'icecek cesitleri': 'icecek-cesitleri',
+    'corba cesitleri': 'corba-cesitleri',
+  };
+  if (explicitGroups[categoryName]) return explicitGroups[categoryName];
+
   if (hasAny(text, ['icecek', 'beverage', 'drink', 'cay', 'kahve', 'nescafe', 'oralet', 'portakal suyu', 'maden suyu', 'ayran', 'cola']) || name === 'su' || name === 'water') {
-    return category.includes('kahvalti') ? 'kahvalti-icecekleri' : 'yemek-icecekleri';
+    return 'icecek-cesitleri';
   }
-  if (hasAny(text, ['corba', 'soup'])) return 'gunluk-corba';
+  if (hasAny(text, ['corba', 'soup'])) return 'corba-cesitleri';
   if (hasAny(text, ['tatli', 'dessert', 'sutlac', 'kunefe'])) return 'tatlilar';
+  if (hasAny(text, ['serpme'])) return 'serpme-kahvalti';
+  if (hasAny(text, ['kahvalti tabagi', 'breakfast plate'])) return 'kahvalti-tabagi';
+  if (hasAny(text, ['omlet', 'omelet', 'sahanda'])) return 'omlet-sahanda';
+  if (hasAny(text, ['menemen'])) return 'menemen-cesitleri';
   if (hasAny(text, ['kahvalti', 'breakfast'])) {
-    if (hasAny(text, ['menemen', 'omlet', 'yumurta', 'egg'])) return 'menemen-yumurta';
-    if (hasAny(text, ['tost', 'toast', 'sandvic', 'sandwich'])) return 'tost-sandvic';
+    if (hasAny(text, ['menemen'])) return 'menemen-cesitleri';
+    if (hasAny(text, ['omlet', 'omelet', 'yumurta', 'egg'])) return 'omlet-sahanda';
+    if (hasAny(text, ['tost', 'toast'])) return 'tost-cesitleri';
+    if (hasAny(text, ['sandvic', 'sandwich'])) return 'sandvic-menusu';
     if (hasAny(text, ['borek', 'boreg', 'gozleme', 'pankek', 'pancake', 'krep', 'pogaca', 'acma', 'simit', 'hamur', 'pastry'])) return 'borek-hamur-isleri';
-    return 'kahvalti-tabaklari';
+    return 'kahvalti-tabagi';
   }
-  if (hasAny(text, ['menemen', 'omlet', 'yumurta', 'egg', 'kahvalti tabagi', 'serpme'])) return 'menemen-yumurta';
-  if (hasAny(text, ['tost', 'toast', 'sandvic', 'sandwich'])) return 'tost-sandvic';
+  if (hasAny(text, ['menemen'])) return 'menemen-cesitleri';
+  if (hasAny(text, ['omlet', 'omelet', 'sahanda', 'yumurta', 'egg'])) return 'omlet-sahanda';
+  if (hasAny(text, ['tost', 'toast'])) return 'tost-cesitleri';
+  if (hasAny(text, ['sandvic', 'sandwich'])) return 'sandvic-menusu';
   if (hasAny(text, ['borek', 'boreg', 'gozleme', 'pankek', 'pancake', 'krep', 'pogaca', 'acma', 'simit', 'hamur', 'pastry'])) return 'borek-hamur-isleri';
-  if (hasAny(category, ['corba', 'soup'])) return 'gunluk-corba';
-  if (hasAny(text, ['burger', 'hamburger'])) return 'hamburger-ozel-tabaklar';
-  if (hasAny(text, ['durum', 'wrap', 'dürüm'])) return 'durumler';
-  if (hasAny(text, ['citir', 'snitzel', 'schnitzel', 'peynir cubuk', 'sogan halkasi', 'patates kroket', 'aperatif', 'atistirmalik', 'starter', 'appetizer'])) return 'atistirmaliklar';
+  if (hasAny(category, ['corba', 'soup'])) return 'corba-cesitleri';
+  if (hasAny(text, ['burger', 'hamburger'])) return 'hamburger';
+  if (hasAny(text, ['durum', 'wrap', 'dürüm'])) return 'durum-cesitleri';
+  if (hasAny(text, ['citir', 'snitzel', 'schnitzel', 'peynir cubuk', 'sogan halkasi', 'patates kroket', 'aperatif', 'atistirmalik', 'starter', 'appetizer'])) return 'aperatifler-ara-sicaklar';
   if (hasAny(text, ['izgara', 'kebap', 'sis', 'pirzola', 'kofte', 'ciger', 'grill', 'grilled'])) return 'izgara-kebap';
   if (hasAny(text, ['gunun yemek', 'gunluk yemek', 'ev yemek', 'sulu yemek', 'daily meal', 'stew'])) return 'gunluk-sulu-yemekler';
-  if (hasAny(text, ['tavuk', 'chicken', 'pilav', 'rice'])) return 'tavuk-pilav';
-  if (hasAny(category, ['kahvalti', 'breakfast'])) return 'kahvalti-tabaklari';
-  if (hasAny(category, ['yan urun', 'side'])) return 'atistirmaliklar';
+  if (hasAny(text, ['pilav', 'rice'])) return 'pilav';
+  if (hasAny(category, ['kahvalti', 'breakfast'])) return 'kahvalti-tabagi';
+  if (hasAny(category, ['yan urun', 'side'])) return 'aperatifler-ara-sicaklar';
 
   // Keep any existing but unrecognized API item visible without changing its data.
-  return 'hamburger-ozel-tabaklar';
+  return 'hamburger';
 }
 
 export function beratzadeSectionForProduct(product: PublicTenantMenuProduct): BeratzadeSectionId {
   const group = beratzadeProductGroup(product);
-  return ['kahvalti-tabaklari', 'menemen-yumurta', 'tost-sandvic', 'borek-hamur-isleri', 'gunluk-corba', 'kahvalti-icecekleri'].includes(group)
-    ? 'kahvalti'
-    : 'kebap-sulu-yemekler';
+  return ['kahvalti-tabagi', 'serpme-kahvalti', 'menemen-cesitleri', 'omlet-sahanda', 'tost-cesitleri', 'sandvic-menusu', 'borek-hamur-isleri'].includes(group) ? 'kahvalti' : 'kebap-sulu-yemekler';
 }
 
 export function beratzadeProductMatchesGroup(product: PublicTenantMenuProduct, groupId: string): boolean {
   const actualGroup = beratzadeProductGroup(product);
   if (actualGroup === groupId) return true;
-  const isDrinkGroup = groupId === 'kahvalti-icecekleri' || groupId === 'yemek-icecekleri';
-  return isDrinkGroup && (actualGroup === 'kahvalti-icecekleri' || actualGroup === 'yemek-icecekleri');
+  return groupId === 'icecek-cesitleri' && actualGroup === 'icecek-cesitleri';
 }
 
 /** Turkish accents, word order and category names should not prevent finding a dish. */

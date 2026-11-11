@@ -9,6 +9,7 @@ import { SidebarComponent } from '../shared/sidebar.component';
 import { environment } from '../../environments/environment';
 import { pendingRequest } from '../shared/durable-request-key';
 import { compareTableNames } from '../shared/table-name-sort';
+import { customizationPriceDeltaCents } from '../shared/product-customization-pricing';
 
 type SaleMode = 'table' | 'quick_sale' | 'takeaway';
 type PaymentMethod = 'cash' | 'terminal' | 'meal_card';
@@ -158,13 +159,17 @@ interface PayableOrder {
                         <div class="cart-line-title"><strong>{{ line.product.name }}</strong><button type="button" class="remove-line" (click)="removeLine(line.product)" aria-label="Ürünü taslaktan kaldır">×</button></div>
                         <div class="cart-line-bottom">
                           <div class="qty-control"><button type="button" (click)="changeQuantity(line.product, -1)" [attr.aria-label]="line.product.name + ' azalt'">−</button><span>{{ line.quantity }}</span><button type="button" (click)="changeQuantity(line.product, 1)" [attr.aria-label]="line.product.name + ' artır'">+</button></div>
-                          <strong>{{ price(line.product.price_cents * line.quantity) }}</strong>
+                          <strong>{{ price(draftLineTotal(line)) }}</strong>
                         </div>
                         <input class="line-note" [ngModel]="line.notes" (ngModelChange)="setLineNote(line.product, $event)" maxlength="500" [placeholder]="'Ürün notu (isteğe bağlı)'" />
                         @for (question of line.product.questions ?? []; track question.id) {
-                          <label class="customization-field">
+                          <div class="customization-field">
                             <span>{{ question.label }}@if (question.required) { <b>*</b> }</span>
-                            @if (question.type === 'choice' && question.multi) {
+                            @if (isPerPersonQuestion(question)) {
+                              @for (slot of personSelectionSlots(line, question); track slot) {
+                                <label class="customization-field"><span>Kişi {{ slot + 1 }}</span><select [value]="personSelectionAnswer(line, question, slot)" (change)="setPersonSelectionAnswer(line.product, question, slot, $any($event.target).value)"><option value="">Seçiniz</option>@for (option of questionOptions(question); track option) { <option [value]="option">{{ option }}</option> }</select></label>
+                              }
+                            } @else if (question.type === 'choice' && question.multi) {
                               <span class="customization-options">
                                 @for (option of questionOptions(question); track option) {
                                   <label><input type="checkbox" [checked]="hasAnswer(line, question, option)" (change)="toggleAnswer(line.product, question, option, $any($event.target).checked)" />{{ option }}</label>
@@ -180,7 +185,7 @@ interface PayableOrder {
                             } @else {
                               <input type="text" maxlength="500" [ngModel]="line.answers[question.id] ?? ''" (ngModelChange)="setAnswer(line.product, question, $event)" />
                             }
-                          </label>
+                          </div>
                         }
                       </article>
                     }
@@ -473,7 +478,10 @@ export class StaffPosComponent implements OnDestroy {
   readonly counterSaleAwaitingPayment = computed(() => this.mode() !== 'table' && (this.recoveringCounterSale() || (this.payableOrder()?.amountRemaining ?? 0) > 0));
 
   readonly cartCount = computed(() => this.cart().reduce((sum, line) => sum + line.quantity, 0));
-  readonly draftTotal = computed(() => this.cart().reduce((sum, line) => sum + line.product.price_cents * line.quantity, 0));
+  readonly draftTotal = computed(() => this.cart().reduce((sum, line) => sum + this.draftLineTotal(line), 0));
+  draftLineTotal(line: CartLine): number {
+    return (line.product.price_cents + customizationPriceDeltaCents(line.product.questions, line.answers)) * line.quantity;
+  }
   readonly allProductCount = computed(() => this.categories().reduce((sum, category) => sum + this.categoryProductCount(category), 0));
   categoryProductCount(category: PosCategory): number {
     return new Set([...category.products, ...category.subcategories.flatMap(subcategory => subcategory.products)].map(product => this.lineKey(product))).size;
@@ -826,11 +834,47 @@ export class StaffPosComponent implements OnDestroy {
     return value !== undefined && value !== null && value !== '';
   }
 
+  private hasRequiredQuestionAnswer(line: CartLine, question: ProductQuestion): boolean {
+    if (!this.isPerPersonQuestion(question)) return this.hasRequiredAnswer(line.answers[question.id]);
+    const values = line.answers[question.id];
+    const slots = this.personSelectionSlots(line, question);
+    return Array.isArray(values) && values.length === slots.length && values.every(value => typeof value === 'string' && !!value.trim());
+  }
+
+  isPerPersonQuestion(question: ProductQuestion): boolean {
+    return !!question.options && !Array.isArray(question.options) && 'per_person' in question.options && question.options.per_person === true;
+  }
+
+  personSelectionSlots(line: CartLine, question: ProductQuestion): number[] {
+    const countLabel = question.options && !Array.isArray(question.options) && 'selection_count_question_label' in question.options
+      ? question.options.selection_count_question_label
+      : undefined;
+    const countQuestion = line.product.questions?.find(item => item.label === countLabel);
+    const count = countQuestion ? Number(line.answers[countQuestion.id]) : 0;
+    return Number.isInteger(count) && count >= 2 && count <= 8 ? Array.from({ length: count }, (_, index) => index) : [];
+  }
+
+  personSelectionAnswer(line: CartLine, question: ProductQuestion, slot: number): string {
+    const value = line.answers[question.id];
+    return Array.isArray(value) ? String(value[slot] ?? '') : '';
+  }
+
+  setPersonSelectionAnswer(product: StaffPosMenuProduct, question: ProductQuestion, slot: number, value: string): void {
+    if (this.orderEditingLocked() || this.processingPayment()) return;
+    this.cart.update(lines => lines.map(line => {
+      if (this.lineKey(line.product) !== this.lineKey(product)) return line;
+      const prior = line.answers[question.id];
+      const selected = Array.isArray(prior) ? [...prior] : [];
+      selected[slot] = value;
+      return { ...line, answers: { ...line.answers, [question.id]: selected } };
+    }));
+  }
+
   submitOrder(): void {
     const lines = this.cart();
     if (this.submitting() || this.processingPayment() || (!this.pendingSubmission && (!lines.length || this.counterSaleAwaitingPayment()))) return;
     const missing = !this.pendingSubmission && lines.find((line) => (line.product.questions ?? []).some((question) =>
-      question.required && !this.hasRequiredAnswer(line.answers[question.id]),
+      question.required && !this.hasRequiredQuestionAnswer(line, question),
     ));
     if (missing) {
       this.collectAfterOrderLoad = false;

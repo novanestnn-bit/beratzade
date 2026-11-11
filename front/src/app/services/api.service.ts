@@ -1251,7 +1251,21 @@ export interface ProductQuestion {
   id: number;
   type: 'choice' | 'scale' | 'text';
   label: string;
-  options?: string[] | { min: number; max: number } | { choices: string[]; multi?: boolean } | null;
+  options?: string[] | { min: number; max: number } | {
+    choices: string[];
+    multi?: boolean;
+    pricing?: {
+      type: 'item_count';
+      included?: number;
+      second_item_delta_cents?: number;
+      additional_item_delta_cents?: number;
+      choice_surcharges_cents?: Record<string, number>;
+      per_person?: boolean;
+      min_choices?: number;
+      max_choices?: number;
+      selection_count_question_label?: string;
+    };
+  } | null;
   /** True when choice options use multi-select ({ choices, multi: true }) */
   multi?: boolean;
   required?: boolean;
@@ -1268,7 +1282,7 @@ export type ProductQuestionStaff = Omit<ProductQuestion, 'sort_order' | 'require
 export interface ProductQuestionCreatePayload {
   type: 'choice' | 'scale' | 'text';
   label: string;
-  options?: string[] | { min: number; max: number } | { choices: string[]; multi?: boolean } | null;
+  options?: ProductQuestion['options'];
   sort_order?: number;
   required?: boolean;
 }

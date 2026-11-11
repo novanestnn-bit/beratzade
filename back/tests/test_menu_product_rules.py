@@ -1,4 +1,4 @@
-from app.menu_product_rules import is_non_sellable_menu_heading
+from app.menu_product_rules import is_beratzade_demo_product, is_non_sellable_menu_heading
 from app import models
 from app.delivery_order_service import _resolve_product_lines
 from unittest.mock import Mock
@@ -32,3 +32,12 @@ def test_order_line_resolver_rejects_heading_without_database_access():
 
     assert lines is None
     assert error == {"status": "error", "detail": "non_sellable_menu_heading"}
+
+
+def test_demo_products_are_suppressed_only_for_beratzade_menus():
+    beratzade = "Beratzade Kebap & Kahvaltı Salonu"
+    assert is_beratzade_demo_product("DEMO — Menemen", beratzade)
+    assert is_beratzade_demo_product("Enchiladas", beratzade)
+    assert is_beratzade_demo_product("Tecate Roja", beratzade)
+    assert not is_beratzade_demo_product("Enchiladas", "Demo Restaurant")
+    assert not is_beratzade_demo_product("Normal Sandviç", beratzade)

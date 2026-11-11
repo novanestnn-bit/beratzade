@@ -171,13 +171,16 @@ def validate_and_normalize_customization_answers(
                         detail=f'Question "{q.label}" expects a list of choices',
                     )
                 picked = [str(x).strip() for x in val if str(x).strip()]
-                # de-dupe preserving order
-                seen: set[str] = set()
-                unique: list[str] = []
-                for p in picked:
-                    if p not in seen:
-                        seen.add(p)
-                        unique.append(p)
+                # Per-person selections may legitimately repeat the same dish.
+                if isinstance(q.options, dict) and q.options.get("per_person"):
+                    unique = picked
+                else:
+                    seen: set[str] = set()
+                    unique = []
+                    for p in picked:
+                        if p not in seen:
+                            seen.add(p)
+                            unique.append(p)
                 bad = [p for p in unique if p not in allowed_set]
                 if bad:
                     raise HTTPException(
@@ -191,7 +194,30 @@ def validate_and_normalize_customization_answers(
                     )
                 if not unique:
                     continue
-                unique.sort()
+                if isinstance(q.options, dict):
+                    min_choices = q.options.get("min_choices")
+                    max_choices = q.options.get("max_choices")
+                    selection_count_label = q.options.get("selection_count_question_label")
+                    if selection_count_label:
+                        count_question = next((item for item in questions if item.label == selection_count_label), None)
+                        raw_count = answers.get(str(count_question.id)) if count_question and count_question.id else None
+                        try:
+                            expected_count = int(raw_count)
+                        except (TypeError, ValueError):
+                            raise HTTPException(
+                                status_code=422,
+                                detail=f'Missing answer for question "{selection_count_label}"',
+                            ) from None
+                        min_choices = max_choices = expected_count
+                    try:
+                        if min_choices is not None and len(unique) < int(min_choices):
+                            raise HTTPException(status_code=422, detail=f'Choose at least {int(min_choices)} options for "{q.label}"')
+                        if max_choices is not None and len(unique) > int(max_choices):
+                            raise HTTPException(status_code=422, detail=f'Choose no more than {int(max_choices)} options for "{q.label}"')
+                    except (TypeError, ValueError):
+                        pass
+                if not (isinstance(q.options, dict) and q.options.get("per_person")):
+                    unique.sort()
                 normalized[qid] = unique
                 summary_parts.append(f"{q.label}: {', '.join(unique)}")
             else:
@@ -215,6 +241,49 @@ def validate_and_normalize_customization_answers(
     if len(summary) > 1024:
         summary = summary[:1021] + "..."
     return normalized, summary
+
+
+def customization_price_delta_cents(
+    session: Session,
+    tenant_id: int,
+    product_id: int,
+    normalized_answers: dict[str, Any] | None,
+) -> int:
+    """Calculate server-owned option surcharges from validated ProductQuestion answers."""
+    if not normalized_answers:
+        return 0
+    questions = session.exec(
+        select(models.ProductQuestion).where(
+            models.ProductQuestion.tenant_id == tenant_id,
+            models.ProductQuestion.product_id == product_id,
+        )
+    ).all()
+    delta = 0
+    for question in questions:
+        if not isinstance(question.options, dict):
+            continue
+        pricing = question.options.get("pricing")
+        if not isinstance(pricing, dict) or pricing.get("type") != "item_count":
+            continue
+        picked = normalized_answers.get(str(question.id))
+        choices = picked if isinstance(picked, list) else ([picked] if picked else [])
+        try:
+            included = max(0, int(pricing.get("included", 1)))
+            second_delta = max(0, int(pricing.get("second_item_delta_cents", 0)))
+            additional_delta = max(0, int(pricing.get("additional_item_delta_cents", 0)))
+        except (TypeError, ValueError):
+            continue
+        extra_count = max(0, len(choices) - included)
+        if extra_count:
+            delta += second_delta + max(0, extra_count - 1) * additional_delta
+        surcharges = pricing.get("choice_surcharges_cents")
+        if isinstance(surcharges, dict):
+            for choice in choices:
+                try:
+                    delta += max(0, int(surcharges.get(choice, 0)))
+                except (TypeError, ValueError):
+                    continue
+    return delta
 
 
 def customization_dicts_equal(a: dict[str, Any] | None, b: dict[str, Any] | None) -> bool:

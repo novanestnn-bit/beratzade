@@ -305,6 +305,12 @@ def _add_order_items(
         tax_id = effective_tax.id if effective_tax else None
         tax_rate = effective_tax.rate_percent if effective_tax else 0
         list_price = product.price_cents or 0
+        if customization_answers:
+            from .product_customization import customization_price_delta_cents
+
+            list_price += customization_price_delta_cents(
+                session, tenant_id, int(product.id), customization_answers
+            )
         applied = promo_svc.resolve_line_price(
             session,
             tenant_id=tenant_id,

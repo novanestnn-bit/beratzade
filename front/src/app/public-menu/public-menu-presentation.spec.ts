@@ -60,10 +60,10 @@ describe('restaurant public menu presentation', () => {
     for (const value of ['javascript:alert(1)', 'data:text/html,test', '//images.invalid/photo.jpg']) expect(publicImageUrl(value, '/api')).toBe('');
   });
 
-  it('defines the two menu sections with six breakfast groups and eight grill groups', () => {
+  it('defines the two menu sections with seven breakfast groups and nine grill groups', () => {
     expect(BERATZADE_MENU_SECTIONS.map(section => section.id)).toEqual(['kahvalti', 'kebap-sulu-yemekler']);
-    expect(BERATZADE_MENU_SECTIONS[0].groups.length).toBe(6);
-    expect(BERATZADE_MENU_SECTIONS[1].groups.length).toBe(8);
+    expect(BERATZADE_MENU_SECTIONS[0].groups.length).toBe(7);
+    expect(BERATZADE_MENU_SECTIONS[1].groups.length).toBe(9);
   });
 
   it('groups current products for display without changing their API values', () => {
@@ -80,21 +80,47 @@ describe('restaurant public menu presentation', () => {
     const dessert = product(11, 'product', 'Fırın Sütlaç');
     const snack = product(12, 'product', 'Çıtır Tavuk');
 
-    expect(beratzadeProductGroup(toast)).toBe('tost-sandvic');
+    expect(beratzadeProductGroup(toast)).toBe('tost-cesitleri');
     expect(beratzadeProductGroup(grill)).toBe('izgara-kebap');
     expect(beratzadeProductGroup(stew)).toBe('gunluk-sulu-yemekler');
-    expect(beratzadeProductGroup(breakfast)).toBe('kahvalti-tabaklari');
-    expect(beratzadeProductGroup(egg)).toBe('menemen-yumurta');
+    expect(beratzadeProductGroup(breakfast)).toBe('serpme-kahvalti');
+    expect(beratzadeProductGroup(egg)).toBe('menemen-cesitleri');
     expect(beratzadeProductGroup(pastry)).toBe('borek-hamur-isleri');
-    expect(beratzadeProductGroup(wrap)).toBe('durumler');
-    expect(beratzadeProductGroup(chickenRice)).toBe('tavuk-pilav');
-    expect(beratzadeProductGroup(burger)).toBe('hamburger-ozel-tabaklar');
+    expect(beratzadeProductGroup(wrap)).toBe('durum-cesitleri');
+    expect(beratzadeProductGroup(chickenRice)).toBe('pilav');
+    expect(beratzadeProductGroup(burger)).toBe('hamburger');
     expect(beratzadeProductGroup(dessert)).toBe('tatlilar');
-    expect(beratzadeProductGroup(snack)).toBe('atistirmaliklar');
-    expect(beratzadeProductMatchesGroup(tea, 'kahvalti-icecekleri')).toBeTrue();
-    expect(beratzadeProductMatchesGroup(tea, 'yemek-icecekleri')).toBeTrue();
+    expect(beratzadeProductGroup(snack)).toBe('aperatifler-ara-sicaklar');
+    expect(beratzadeProductMatchesGroup(tea, 'icecek-cesitleri')).toBeTrue();
     expect(beratzadeSectionForProduct(toast)).toBe('kahvalti');
     expect(toast.price_cents).toBe(1500);
     expect(toast.name).toBe('Kaşarlı Tost');
+  });
+
+  it('maps the full approved menu category set to the two requested QR sections', () => {
+    const cases: Array<[string, string, 'kahvalti' | 'kebap-sulu-yemekler']> = [
+      ['Börekler & Hamur İşleri', 'borek-hamur-isleri', 'kahvalti'],
+      ['Tost Çeşitleri', 'tost-cesitleri', 'kahvalti'],
+      ['Beratzade Sandviç Menüsü', 'sandvic-menusu', 'kahvalti'],
+      ['Menemen Çeşitleri', 'menemen-cesitleri', 'kahvalti'],
+      ['Omlet & Sahanda Yumurta', 'omlet-sahanda', 'kahvalti'],
+      ['Kahvaltı Tabağı', 'kahvalti-tabagi', 'kahvalti'],
+      ['Serpme Kahvaltı', 'serpme-kahvalti', 'kahvalti'],
+      ['Izgara & Kebap Çeşitleri', 'izgara-kebap', 'kebap-sulu-yemekler'],
+      ['Pilav', 'pilav', 'kebap-sulu-yemekler'],
+      ['Dürüm Çeşitleri', 'durum-cesitleri', 'kebap-sulu-yemekler'],
+      ['Aperatifler & Ara Sıcaklar', 'aperatifler-ara-sicaklar', 'kebap-sulu-yemekler'],
+      ['Hamburger', 'hamburger', 'kebap-sulu-yemekler'],
+      ['Günlük Sulu Yemekler', 'gunluk-sulu-yemekler', 'kebap-sulu-yemekler'],
+      ['Tatlılar', 'tatlilar', 'kebap-sulu-yemekler'],
+      ['İçecek Çeşitleri', 'icecek-cesitleri', 'kebap-sulu-yemekler'],
+      ['Çorba Çeşitleri', 'corba-cesitleri', 'kebap-sulu-yemekler'],
+    ];
+
+    for (const [category, group, section] of cases) {
+      const item = { ...product(1, 'product'), category };
+      expect(beratzadeProductGroup(item)).withContext(category).toBe(group);
+      expect(beratzadeSectionForProduct(item)).withContext(category).toBe(section);
+    }
   });
 });

@@ -14,6 +14,7 @@ import { productStockLeft } from '../shared/product-stock.util';
 import { resolvePublicPrimaryColor } from '../shared/public-brand-colors';
 import { pendingRequest } from '../shared/durable-request-key';
 import { filterCustomerMenuProducts, isNonSellableMenuHeading } from '../shared/menu-product-rules';
+import { customizationPriceDeltaCents } from '../shared/product-customization-pricing';
 
 interface CartItem {
   product: Product;
@@ -1071,6 +1072,34 @@ export class MenuComponent implements OnInit, OnDestroy {
     return q.type === 'choice' && !!q.multi;
   }
 
+  isPerPersonQuestion(q: ProductQuestion): boolean {
+    return !!q.options && !Array.isArray(q.options) && 'per_person' in q.options && q.options.per_person === true;
+  }
+
+  personSelectionSlots(q: ProductQuestion): number[] {
+    const countLabel = q.options && !Array.isArray(q.options) && 'selection_count_question_label' in q.options
+      ? q.options.selection_count_question_label
+      : undefined;
+    const product = this.productToAddWithQuestions();
+    const countQuestion = product?.questions?.find(question => question.label === countLabel);
+    const count = countQuestion ? Number(this.customizationAnswersForm()[countQuestion.id]) : 0;
+    return Number.isInteger(count) && count >= 2 && count <= 8 ? Array.from({ length: count }, (_, index) => index) : [];
+  }
+
+  personSelectionAnswer(q: ProductQuestion, slot: number): string {
+    const answer = this.customizationAnswersForm()[q.id];
+    return Array.isArray(answer) ? String(answer[slot] ?? '') : '';
+  }
+
+  setPersonSelectionAnswer(q: ProductQuestion, slot: number, value: string): void {
+    this.customizationAnswersForm.update(previous => {
+      const prior = previous[q.id];
+      const values = Array.isArray(prior) ? [...prior] : [];
+      values[slot] = value;
+      return { ...previous, [q.id]: values };
+    });
+  }
+
   isChoiceSingleSelect(q: ProductQuestion): boolean {
     return q.type === 'choice' && !q.multi;
   }
@@ -1101,6 +1130,10 @@ export class MenuComponent implements OnInit, OnDestroy {
     const required = product.questions?.filter(q => q.required) ?? [];
     const missing = required.filter(q => {
       const v = answers[q.id];
+      if (this.isPerPersonQuestion(q)) {
+        const slots = this.personSelectionSlots(q);
+        return !Array.isArray(v) || v.length !== slots.length || v.some(value => typeof value !== 'string' || !value.trim());
+      }
       if (q.type === 'choice' && q.multi) {
         return !Array.isArray(v) || v.length === 0;
       }
@@ -1230,7 +1263,23 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   getTotal(): number {
-    return this.cart().reduce((sum, item) => sum + item.product.price_cents * item.quantity, 0);
+    return this.cart().reduce((sum, item) => sum + this.itemUnitPrice(item) * item.quantity, 0);
+  }
+
+  itemUnitPrice(item: CartItem): number {
+    return item.product.price_cents + customizationPriceDeltaCents(
+      item.product.questions,
+      item.customization_answers,
+    );
+  }
+
+  customizationDialogPrice(): number {
+    const product = this.productToAddWithQuestions();
+    if (!product) return 0;
+    return product.price_cents + customizationPriceDeltaCents(
+      product.questions,
+      this.customizationAnswersForm(),
+    );
   }
 
   formatPrice(priceCents: number): string {

@@ -17,12 +17,20 @@ from sqlmodel import Session
 
 from app.db import engine
 from app.seeds.seed_demo_products import DEMO_PRODUCT_NAMES
+from app.menu_product_rules import is_beratzade_tenant_name
 
 DEMO_TENANT_ID = 1
 
 
 def run() -> int:
     with Session(engine) as session:
+        tenant = session.execute(
+            text("SELECT name FROM tenant WHERE id = :tid"),
+            {"tid": DEMO_TENANT_ID},
+        ).first()
+        if tenant and is_beratzade_tenant_name(tenant[0]):
+            print("Demo product check skipped: Beratzade menus intentionally exclude generic demo products.")
+            return 0
         result = session.execute(
             text("SELECT name FROM product WHERE tenant_id = :tid"),
             {"tid": DEMO_TENANT_ID},

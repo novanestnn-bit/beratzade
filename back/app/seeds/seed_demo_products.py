@@ -14,6 +14,7 @@ from sqlmodel import Session
 
 from app.db import engine
 from app.models import Product
+from app.menu_product_rules import is_beratzade_tenant_name
 
 # Default menu: name, price_cents, category, ingredients (optional)
 DEMO_PRODUCTS = [
@@ -71,16 +72,19 @@ def _tenant_missing_demo_names(session, tenant_id: int) -> list[str]:
 
 def run() -> None:
     with Session(engine) as session:
-        result = session.execute(text("SELECT id FROM tenant ORDER BY id"))
-        tenant_ids = [row[0] for row in result.fetchall()]
-        if not tenant_ids:
+        result = session.execute(text("SELECT id, name FROM tenant ORDER BY id"))
+        tenants = result.fetchall()
+        if not tenants:
             print("No tenants found.")
             return
 
         # Repair every tenant: empty and partial menus (create missing DEMO_PRODUCTS
         # names only). Idempotent; never deletes existing products.
         any_created = False
-        for tenant_id in tenant_ids:
+        for tenant_id, tenant_name in tenants:
+            if is_beratzade_tenant_name(tenant_name):
+                print(f"Tenant {tenant_id}: skipped generic demo products for Beratzade.")
+                continue
             missing = _tenant_missing_demo_names(session, tenant_id)
             if not missing:
                 continue
