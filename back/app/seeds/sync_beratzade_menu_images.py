@@ -1,10 +1,12 @@
 """Assign the supplied Beratzade menu photos to the shared Product catalog.
 
-Run in the local backend container only after importing the real Beratzade menu:
+Run in the backend container after importing the real Beratzade menu:
   ALLOW_BERATZADE_IMAGE_SYNC=1 python -m app.seeds.sync_beratzade_menu_images
 
-The task intentionally refuses production and non-local databases. The Product
-image field is shared by the customer QR menu, staff POS and admin catalog.
+The one-shot opt-in is required in every environment. On production, run it
+only from the intended Beratzade service after confirming its existing uploads
+disk is mounted. The Product image field is shared by the customer QR menu,
+staff POS and admin catalog.
 """
 
 from __future__ import annotations
@@ -75,14 +77,10 @@ def normalize_name(value: str) -> str:
 
 
 def validate_environment() -> None:
-    if settings.is_production:
-        raise RuntimeError("Refusing to synchronize Beratzade images in production.")
     if os.environ.get("ALLOW_BERATZADE_IMAGE_SYNC") != "1":
-        raise RuntimeError("Set ALLOW_BERATZADE_IMAGE_SYNC=1 for an explicit local image sync.")
-    if engine.url.host != "db" or engine.url.database != "pos":
-        raise RuntimeError("Refusing image sync: expected the local Docker pos database.")
-    if normalize_name(settings.local_dev_tenant_ref or "") != normalize_name(TENANT_SLUG):
-        raise RuntimeError("LOCAL_DEV_TENANT_REF must identify the Beratzade public slug.")
+        raise RuntimeError("Set ALLOW_BERATZADE_IMAGE_SYNC=1 for an explicit one-shot image sync.")
+    if not settings.is_production and (engine.url.host != "db" or engine.url.database != "pos"):
+        raise RuntimeError("Refusing non-production sync: expected the local Docker pos database.")
 
 
 def sync_images(session: Session, tenant: models.Tenant) -> tuple[int, list[str]]:
