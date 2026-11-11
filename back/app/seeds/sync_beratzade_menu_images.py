@@ -87,6 +87,7 @@ PRODUCT_IMAGES = {
     "Kavurmalı Tost": "kavurmalı tost.png",
     "Sucuklu Tost": "sucuklu kaşarlı tost.png",
     "Avcı Böreği (Adet)": "avcı böreği.png",
+    "Karışık Menemen": "karışık menemen.png",
 }
 
 
