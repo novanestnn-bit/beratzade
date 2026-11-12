@@ -15,6 +15,7 @@
 .public-menu-category-chip.is-active, .beratzade-category-switcher a.is-active { border-color: var(--color-primary); background: var(--color-primary); color: #fff; }
 .public-menu-category { margin-bottom: 2.5rem; scroll-margin-top: 6.5rem; }
 .public-menu-category-title { margin: 0 0 1.15rem; border-bottom: 1px solid var(--color-border); }
+.public-menu-category-description { margin: -.55rem 0 1rem; color: var(--color-text-muted); font-size: .95rem; line-height: 1.55; }
 .public-menu-category-toggle { display: flex; align-items: center; width: 100%; gap: .8rem; padding: .65rem 0 1rem; border: 0; background: transparent; color: var(--color-text); text-align: start; font: 500 1.8rem/1.25 Georgia, serif; cursor: pointer; }
 .public-menu-category-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .public-menu-category-count { display: grid; place-items: center; min-width: 2rem; height: 2rem; padding: .2rem .5rem; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-surface); color: var(--color-text-muted); font: 600 .8rem system-ui, sans-serif; text-align: center; }
@@ -181,6 +182,7 @@
 .is-beratzade .menu-product-detail-hint > span { color: #e9c98a; }
 .is-beratzade .public-menu-category-toggle { color: #e9c98a; }
 .is-beratzade .public-menu-category-count { background: #e9c98a; color: #171915; }
+.is-beratzade .public-menu-category-description { color: #4b4339; }
 .is-beratzade .menu-result-count { color: #c6b995; }
 .is-beratzade .menu-connection-note { border-color: #e9c98a; background: #2b281d; color: #f7e6b5; }
 .is-beratzade .menu-connection-note button { border-color: #e9c98a; background: #171915; color: #e9c98a; }

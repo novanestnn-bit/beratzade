@@ -3,6 +3,9 @@ import pytest
 from app.seeds.seed_beratzade_menu import (
     CATEGORIES,
     MENU,
+    TENANT_ID,
+    _deactivate_known_legacy_rows,
+    _menu_product_id_map,
     normalize_name,
     validate_seed_environment,
 )
@@ -15,6 +18,49 @@ def test_approved_menu_catalog_has_57_priced_items_and_16_categories():
     assert "Günlük Sulu Yemekler" in CATEGORIES
     assert "Çorba Çeşitleri" in CATEGORIES
     assert all("DEMO" not in name.upper() for _, name, _, _ in MENU)
+    assert TENANT_ID == 89
+
+
+def test_existing_product_ids_are_kept_for_approved_duplicate_and_sutlac_alias():
+    product_ids = _menu_product_id_map()
+    assert product_ids[normalize_name("Urfa Kebap Servis")] == 613
+    assert product_ids[normalize_name("Fırın Sütlaç")] == 621
+
+
+def test_known_duplicate_and_headings_are_inactivated_without_deleting_rows():
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    rows = {
+        612: SimpleNamespace(id=612, tenant_id=89, name="Urfa Kebap Servis", is_active=True),
+        604: SimpleNamespace(id=604, tenant_id=89, name="günlük taze çorba", is_active=True),
+        620: SimpleNamespace(id=620, tenant_id=89, name="Günlük Sulu Yemekler", is_active=True),
+    }
+    session = Mock()
+    session.get.side_effect = lambda _model, product_id: rows.get(product_id)
+
+    assert _deactivate_known_legacy_rows(session, 89) == 3
+    assert all(not row.is_active for row in rows.values())
+    assert session.add.call_count == 3
+
+
+def test_legacy_deactivation_does_not_touch_other_tenants_or_mismatched_rows():
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    other_tenant_row = SimpleNamespace(id=612, tenant_id=1, name="Urfa Kebap Servis", is_active=True)
+    session = Mock()
+    session.get.side_effect = lambda _model, product_id: other_tenant_row if product_id == 612 else None
+
+    assert _deactivate_known_legacy_rows(session, 89) == 0
+    assert other_tenant_row.is_active is True
+    session.add.assert_not_called()
+
+    mismatched = SimpleNamespace(id=612, tenant_id=89, name="Another product", is_active=True)
+    session.get.side_effect = lambda _model, product_id: mismatched if product_id == 612 else None
+    with pytest.raises(RuntimeError, match="approved legacy mapping"):
+        _deactivate_known_legacy_rows(session, 89)
+    assert mismatched.is_active is True
 
 
 def test_import_refuses_production_and_requires_local_opt_in():

@@ -1,7 +1,9 @@
 """Idempotently import the approved Beratzade menu into its tenant Product catalog.
 
 This command is deliberately opt-in and refuses production. It never deletes
-products, alters image links or availability, or touches other tenants.
+products, alters image links or scheduled availability, or touches other tenants.
+It activates approved menu products and inactivates only known duplicate or
+non-sellable legacy headings while preserving their rows and order history.
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ from app.tenant_subcategories import add_custom_category
 
 
 TENANT_NAME = "Beratzade Kebap & Kahvaltı Salonu"
+TENANT_ID = 89
 MENU = [
     # Category, name, price in kuruş, description
     ("Börekler & Hamur İşleri", "Sigara Böreği (Adet)", 2500, None),
@@ -49,7 +52,7 @@ MENU = [
     ("Omlet & Sahanda Yumurta", "Karışık Omlet", 35000, None),
     ("Omlet & Sahanda Yumurta", "Sahanda Göz Yumurta", 20000, None),
     ("Kahvaltı Tabağı", "Kahvaltı Tabağı", 45000, "Beyaz peynir, çeçil peyniri, kaşar peyniri, salatalık, domates, zeytin, bal, kaymak, haşlanmış yumurta, salam ve hindi füme."),
-    ("Serpme Kahvaltı", "Serpme Kahvaltı (Minimum 2 Kişilik)", 140000, "Fiyat menü görselindeki toplam fiyattır; kişi sayısıyla çarpılmaz. Kahvaltılıklar, 2 çeşit ara sıcak ve kişi başı 1 menemen veya omlet seçimi dahildir."),
+    ("Serpme Kahvaltı", "Serpme Kahvaltı (Minimum 2 Kişilik)", 140000, "Kahvaltılıklar, 2 çeşit ara sıcak ve kişi başı 1 menemen veya omlet seçimi dahildir."),
     ("Izgara & Kebap Çeşitleri", "Adana Dürüm", 30000, None),
     ("Izgara & Kebap Çeşitleri", "Urfa Dürüm", 30000, None),
     ("Izgara & Kebap Çeşitleri", "Ciğer Dürüm", 28000, None),
@@ -95,6 +98,38 @@ def normalize_name(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", value).strip()
 
 
+def _menu_product_id_map() -> dict[str, int]:
+    """Known menu rows whose established identity takes precedence over name matching."""
+    return {
+        normalize_name("Urfa Kebap Servis"): 613,
+        normalize_name("Fırın Sütlaç"): 621,
+    }
+
+
+def _deactivate_known_legacy_rows(session: Session, tenant_id: int) -> int:
+    """Preserve history while removing the known duplicate and headings from sale."""
+    expected = {
+        612: normalize_name("Urfa Kebap Servis"),
+        604: normalize_name("günlük taze çorba"),
+        620: normalize_name("Günlük Sulu Yemekler"),
+    }
+    changed = 0
+    for product_id, expected_name in expected.items():
+        product = session.get(models.Product, product_id)
+        if product is None or product.tenant_id != tenant_id:
+            continue
+        if normalize_name(product.name) != expected_name:
+            raise RuntimeError(
+                f"Refusing to change tenant {tenant_id} product {product_id}: "
+                "its name does not match the approved legacy mapping."
+            )
+        if product.is_active:
+            product.is_active = False
+            session.add(product)
+            changed += 1
+    return changed
+
+
 def validate_seed_environment(*, production: bool, opt_in: bool, database_host: str | None,
                               database_name: str | None, tenant_ref: str) -> None:
     if production:
@@ -116,11 +151,11 @@ def run() -> None:
         tenant_ref=settings.local_dev_tenant_ref,
     )
     with Session(engine) as session:
-        tenants = session.exec(select(models.Tenant)).all()
-        matches = [t for t in tenants if normalize_name(t.name) == normalize_name(TENANT_NAME)]
-        if len(matches) != 1:
-            raise RuntimeError(f"Expected exactly one Beratzade tenant; found {len(matches)}.")
-        tenant = matches[0]
+        tenant = session.get(models.Tenant, TENANT_ID)
+        if tenant is None or normalize_name(tenant.name) != normalize_name(TENANT_NAME):
+            raise RuntimeError(
+                f"Expected tenant {TENANT_ID} to be the Beratzade restaurant; refusing import."
+            )
         for category in CATEGORIES:
             add_custom_category(session, tenant.id, category)
 
@@ -132,6 +167,7 @@ def run() -> None:
             by_name.setdefault(normalize_name(product.name), []).append(product)
 
         menu_names = {normalize_name(name) for _, name, _, _ in MENU}
+        product_id_map = _menu_product_id_map()
         for menu_product in session.exec(
             select(models.TenantProduct).where(models.TenantProduct.tenant_id == tenant.id)
         ).all():
@@ -151,20 +187,32 @@ def run() -> None:
             if not any(product.id == linked_product.id for product in key_products):
                 key_products.append(linked_product)
 
-        created = updated = skipped_duplicates = 0
+        created = updated = 0
         for category, name, price_cents, description in MENU:
-            matches = by_name.get(normalize_name(name), [])
+            key = normalize_name(name)
+            preferred_id = product_id_map.get(key)
+            if preferred_id is not None:
+                preferred = session.get(models.Product, preferred_id)
+                if preferred is None or preferred.tenant_id != tenant.id:
+                    raise RuntimeError(
+                        f"Expected approved product ID {preferred_id} for {name!r} in tenant {tenant.id}."
+                    )
+                matches = [preferred]
+            else:
+                matches = by_name.get(key, [])
             if len(matches) > 1:
-                skipped_duplicates += 1
-                continue
+                raise RuntimeError(
+                    f"Ambiguous product mapping for {name!r}: "
+                    f"{', '.join(str(product.id) for product in matches)}."
+                )
             if matches:
                 product = matches[0]
-                # Keep the existing identity, image, activity, stock and availability.
+                # Keep identity, images, stock and scheduled availability.
                 product.name = name
                 product.category = category
                 product.price_cents = price_cents
-                if description is not None:
-                    product.description = description
+                product.description = description
+                product.is_active = True
                 session.add(product)
                 updated += 1
             else:
@@ -178,7 +226,7 @@ def run() -> None:
                     is_active=True,
                 )
                 session.add(product)
-                by_name[normalize_name(name)] = [product]
+                by_name[key] = [product]
                 created += 1
 
         session.flush()
@@ -233,7 +281,7 @@ def run() -> None:
         serpme_questions = [
             (
                 "Kişi sayısı",
-                {"choices": ["2", "3", "4", "5", "6", "7", "8"]},
+                {"min": 2, "max": 99},
                 0,
             ),
             (
@@ -272,20 +320,32 @@ def run() -> None:
                 session.add(models.ProductQuestion(
                     tenant_id=tenant.id,
                     product_id=serpme.id,
-                    type=models.ProductQuestionType.choice,
+                    type=(
+                        models.ProductQuestionType.scale
+                        if label == "Kişi sayısı"
+                        else models.ProductQuestionType.choice
+                    ),
                     label=label,
                     options=options,
                     sort_order=sort_order,
                     required=True,
                 ))
             else:
-                question.type = models.ProductQuestionType.choice
+                question.type = (
+                    models.ProductQuestionType.scale
+                    if label == "Kişi sayısı"
+                    else models.ProductQuestionType.choice
+                )
                 question.options = options
                 question.sort_order = sort_order
                 question.required = True
                 session.add(question)
+        deactivated = _deactivate_known_legacy_rows(session, tenant.id)
         session.commit()
-        print(f"Beratzade menu import: tenant={tenant.id}, created={created}, updated={updated}, ambiguous_skipped={skipped_duplicates}, listed_items={len(MENU)}")
+        print(
+            f"Beratzade menu import: tenant={tenant.id}, created={created}, "
+            f"updated={updated}, deactivated_legacy={deactivated}, listed_items={len(MENU)}"
+        )
 
 
 if __name__ == "__main__":

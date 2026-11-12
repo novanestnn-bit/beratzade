@@ -1083,7 +1083,7 @@ export class MenuComponent implements OnInit, OnDestroy {
     const product = this.productToAddWithQuestions();
     const countQuestion = product?.questions?.find(question => question.label === countLabel);
     const count = countQuestion ? Number(this.customizationAnswersForm()[countQuestion.id]) : 0;
-    return Number.isInteger(count) && count >= 2 && count <= 8 ? Array.from({ length: count }, (_, index) => index) : [];
+    return Number.isInteger(count) && count >= 2 && count <= 99 ? Array.from({ length: count }, (_, index) => index) : [];
   }
 
   personSelectionAnswer(q: ProductQuestion, slot: number): string {

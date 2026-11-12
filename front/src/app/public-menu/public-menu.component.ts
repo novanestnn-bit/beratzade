@@ -397,7 +397,12 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
       const products = menuProducts(this.menuCategories())
         .filter(product => beratzadeProductMatchesGroup(product, group.id))
         .filter(product => matchesMenuSearch(product, query, `${section.label} ${group.label}`));
-      return products.length ? [{ id: group.id, name: group.label, products }] : [];
+      const groupMetadata = this.menuCategories().find(category =>
+        beratzadeMenuCategorySlug(category.name) === beratzadeMenuCategorySlug(group.label),
+      );
+      return products.length || groupMetadata?.description
+        ? [{ ...(groupMetadata ?? {}), id: group.id, name: group.label, products } as PublicTenantMenuCategory]
+        : [];
     }
     if (this.isCategoryRoute() && !selected) return [];
     if (this.isCategoryRoute() && this.subcategorySlug() && !this.activeSubcategory()) return [];

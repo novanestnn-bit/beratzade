@@ -532,6 +532,21 @@ def beratzade_menu_category_names() -> list[str]:
     ]
 
 
+def beratzade_menu_category_description(name: str | None) -> str | None:
+    """Approved category-level notes for the two menus whose items change daily."""
+    from .menu_product_rules import normalize_menu_product_name
+
+    normalized = normalize_menu_product_name(name)
+    if normalized == normalize_menu_product_name("Günlük Sulu Yemekler"):
+        return (
+            "Her gün taze hazırlanan 5-6 çeşit sulu yemek. Günün yemekleri günlük olarak "
+            "değişir. Çeşitler ve fiyatlar günlük menüde belirtilir."
+        )
+    if normalized == normalize_menu_product_name("Çorba Çeşitleri"):
+        return "Günün taze çorbaları değişiklik gösterir."
+    return None
+
+
 def build_public_tenant_menu(
     session: Session,
     tenant_id: int,
@@ -572,6 +587,11 @@ def build_public_tenant_menu(
         for name in beratzade_menu_category_names():
             custom_categories.setdefault(name, [])
     category_tree = group_products_into_category_tree(products, custom_categories)
+    if is_beratzade_tenant_name(tenant.name):
+        for category in [*categories, *category_tree]:
+            description = beratzade_menu_category_description(category.get("name"))
+            if description:
+                category["description"] = description
     existing_ids = {category["id"] for category in categories}
     for name in custom_categories:
         if name in STANDARD_CATEGORY_ORDER:

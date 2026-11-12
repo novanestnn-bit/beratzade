@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ApiService, KitchenStation, Product, ProductBulkImportConfirmResult, ProductQuestionStaff, Tax } from '../services/api.service';
+import { ApiService, KitchenStation, Product, ProductBulkImportConfirmResult, ProductQuestion, ProductQuestionStaff, Tax } from '../services/api.service';
 import { PermissionService } from '../services/permission.service';
 import { SidebarComponent } from '../shared/sidebar.component';
 import { CommonModule } from '@angular/common';
@@ -350,6 +350,54 @@ import { ProductBulkImportComponent } from './product-bulk-import.component';
                                  {{ 'PRODUCTS.QUESTION_CHOICE_MULTI' | translate }}
                                </label>
                              </div>
+                             <div class="form-row">
+                               <div class="form-group form-group-sm">
+                                 <label for="q-choice-min">{{ 'PRODUCTS.QUESTION_SELECTION_MIN' | translate }}</label>
+                                 <input id="q-choice-min" type="number" min="0" name="q-choice-min" [(ngModel)]="questionDraft.choiceMinimum" [disabled]="questionSaving()">
+                               </div>
+                               <div class="form-group form-group-sm">
+                                 <label for="q-choice-max">{{ 'PRODUCTS.QUESTION_SELECTION_MAX' | translate }}</label>
+                                 <input id="q-choice-max" type="number" min="0" name="q-choice-max" [(ngModel)]="questionDraft.choiceMaximum" [disabled]="questionSaving()">
+                               </div>
+                             </div>
+                             <div class="form-group checkbox-row">
+                               <label>
+                                 <input type="checkbox" name="q-per-person" [(ngModel)]="questionDraft.choicePerPerson" [disabled]="questionSaving()">
+                                 {{ 'PRODUCTS.QUESTION_PER_PERSON' | translate }}
+                               </label>
+                             </div>
+                             @if (questionDraft.choicePerPerson) {
+                               <div class="form-group">
+                                 <label for="q-count-label">{{ 'PRODUCTS.QUESTION_COUNT_LABEL' | translate }}</label>
+                                 <input id="q-count-label" type="text" name="q-count-label" [(ngModel)]="questionDraft.selectionCountQuestionLabel" [disabled]="questionSaving()">
+                               </div>
+                             }
+                             <div class="form-group checkbox-row">
+                               <label>
+                                 <input type="checkbox" name="q-pricing" [(ngModel)]="questionDraft.pricingEnabled" [disabled]="questionSaving()">
+                                 {{ 'PRODUCTS.QUESTION_PRICE_RULES' | translate }}
+                               </label>
+                             </div>
+                             @if (questionDraft.pricingEnabled) {
+                               <div class="form-row">
+                                 <div class="form-group form-group-sm">
+                                   <label for="q-included">{{ 'PRODUCTS.QUESTION_INCLUDED_CHOICES' | translate }}</label>
+                                   <input id="q-included" type="number" min="0" step="1" name="q-included" [(ngModel)]="questionDraft.pricingIncluded" [disabled]="questionSaving()">
+                                 </div>
+                                 <div class="form-group form-group-sm">
+                                   <label for="q-second-price">{{ 'PRODUCTS.QUESTION_SECOND_CHOICE_PRICE' | translate }}</label>
+                                   <input id="q-second-price" type="number" min="0" step="0.01" name="q-second-price" [(ngModel)]="questionDraft.pricingSecondDelta" [disabled]="questionSaving()">
+                                 </div>
+                                 <div class="form-group form-group-sm">
+                                   <label for="q-additional-price">{{ 'PRODUCTS.QUESTION_ADDITIONAL_CHOICE_PRICE' | translate }}</label>
+                                   <input id="q-additional-price" type="number" min="0" step="0.01" name="q-additional-price" [(ngModel)]="questionDraft.pricingAdditionalDelta" [disabled]="questionSaving()">
+                                 </div>
+                               </div>
+                               <div class="form-group">
+                                 <label for="q-surcharges">{{ 'PRODUCTS.QUESTION_OPTION_SURCHARGES' | translate }}</label>
+                                 <textarea id="q-surcharges" name="q-surcharges" rows="3" [(ngModel)]="questionDraft.choiceSurchargeLines" [disabled]="questionSaving()" [placeholder]="'PRODUCTS.QUESTION_SURCHARGE_HINT' | translate"></textarea>
+                               </div>
+                             }
                            }
                            @if (questionDraft.type === 'scale') {
                              <div class="form-row">
@@ -754,6 +802,16 @@ export class ProductsComponent implements OnInit {
     choiceLines: string;
     /** When true, choice options are stored as { choices, multi: true } (guest picks several). */
     choiceMulti: boolean;
+    choiceMetadata: Record<string, unknown>;
+    choiceMinimum: number | null;
+    choiceMaximum: number | null;
+    choicePerPerson: boolean;
+    selectionCountQuestionLabel: string;
+    pricingEnabled: boolean;
+    pricingIncluded: number;
+    pricingSecondDelta: number;
+    pricingAdditionalDelta: number;
+    choiceSurchargeLines: string;
     scaleMin: number;
     scaleMax: number;
     required: boolean;
@@ -762,6 +820,16 @@ export class ProductsComponent implements OnInit {
     label: '',
     choiceLines: '',
     choiceMulti: false,
+    choiceMetadata: {},
+    choiceMinimum: null,
+    choiceMaximum: null,
+    choicePerPerson: false,
+    selectionCountQuestionLabel: '',
+    pricingEnabled: false,
+    pricingIncluded: 1,
+    pricingSecondDelta: 0,
+    pricingAdditionalDelta: 0,
+    choiceSurchargeLines: '',
     scaleMin: 1,
     scaleMax: 10,
     required: false,
@@ -1179,6 +1247,16 @@ export class ProductsComponent implements OnInit {
       label: '',
       choiceLines: '',
       choiceMulti: false,
+      choiceMetadata: {},
+      choiceMinimum: null,
+      choiceMaximum: null,
+      choicePerPerson: false,
+      selectionCountQuestionLabel: '',
+      pricingEnabled: false,
+      pricingIncluded: 1,
+      pricingSecondDelta: 0,
+      pricingAdditionalDelta: 0,
+      choiceSurchargeLines: '',
       scaleMin: 1,
       scaleMax: 10,
       required: false,
@@ -1215,6 +1293,36 @@ export class ProductsComponent implements OnInit {
     this.questionDraft.type = q.type;
     this.questionDraft.label = q.label;
     this.questionDraft.required = q.required;
+    const rawOptions = q.options && typeof q.options === 'object' && !Array.isArray(q.options)
+      ? q.options as Record<string, unknown>
+      : {};
+    this.questionDraft.choiceMetadata = { ...rawOptions };
+    delete this.questionDraft.choiceMetadata['choices'];
+    delete this.questionDraft.choiceMetadata['multi'];
+    delete this.questionDraft.choiceMetadata['min_choices'];
+    delete this.questionDraft.choiceMetadata['max_choices'];
+    delete this.questionDraft.choiceMetadata['per_person'];
+    delete this.questionDraft.choiceMetadata['selection_count_question_label'];
+    delete this.questionDraft.choiceMetadata['pricing'];
+    this.questionDraft.choiceMinimum = Number.isFinite(Number(rawOptions['min_choices']))
+      ? Number(rawOptions['min_choices']) : null;
+    this.questionDraft.choiceMaximum = Number.isFinite(Number(rawOptions['max_choices']))
+      ? Number(rawOptions['max_choices']) : null;
+    this.questionDraft.choicePerPerson = rawOptions['per_person'] === true;
+    this.questionDraft.selectionCountQuestionLabel = String(rawOptions['selection_count_question_label'] ?? '');
+    const pricing = rawOptions['pricing'] && typeof rawOptions['pricing'] === 'object'
+      ? rawOptions['pricing'] as Record<string, unknown>
+      : null;
+    this.questionDraft.pricingEnabled = pricing?.['type'] === 'item_count';
+    this.questionDraft.pricingIncluded = Number(pricing?.['included'] ?? 1);
+    this.questionDraft.pricingSecondDelta = Number(pricing?.['second_item_delta_cents'] ?? 0) / 100;
+    this.questionDraft.pricingAdditionalDelta = Number(pricing?.['additional_item_delta_cents'] ?? 0) / 100;
+    const surcharges = pricing?.['choice_surcharges_cents'];
+    this.questionDraft.choiceSurchargeLines = surcharges && typeof surcharges === 'object' && !Array.isArray(surcharges)
+      ? Object.entries(surcharges as Record<string, unknown>)
+          .map(([choice, cents]) => `${choice}=${(Number(cents) / 100).toFixed(2)}`)
+          .join('\n')
+      : '';
     if (q.type === 'choice' && Array.isArray(q.options)) {
       this.questionDraft.choiceLines = q.options.join('\n');
       this.questionDraft.choiceMulti = false;
@@ -1256,7 +1364,7 @@ export class ProductsComponent implements OnInit {
       this.error.set(this.translate.instant('PRODUCTS.QUESTION_LABEL_REQUIRED'));
       return;
     }
-    let options: string[] | { min: number; max: number } | { choices: string[]; multi: boolean } | null | undefined;
+    let options: ProductQuestion['options'];
     if (this.questionDraft.type === 'choice') {
       const opts = this.questionDraft.choiceLines
         .split('\n')
@@ -1266,7 +1374,63 @@ export class ProductsComponent implements OnInit {
         this.error.set(this.translate.instant('PRODUCTS.QUESTION_OPTIONS_REQUIRED'));
         return;
       }
-      options = this.questionDraft.choiceMulti ? { choices: opts, multi: true } : opts;
+      const choiceOptions: Record<string, unknown> = {
+        ...this.questionDraft.choiceMetadata,
+        choices: opts,
+      };
+      if (this.questionDraft.choiceMulti) choiceOptions['multi'] = true;
+      else delete choiceOptions['multi'];
+      if (this.questionDraft.choiceMinimum != null && this.questionDraft.choiceMaximum != null
+          && this.questionDraft.choiceMinimum > this.questionDraft.choiceMaximum) {
+        this.error.set(this.translate.instant('PRODUCTS.QUESTION_SELECTION_LIMITS_INVALID'));
+        return;
+      }
+      if (this.questionDraft.choicePerPerson && !this.questionDraft.selectionCountQuestionLabel.trim()) {
+        this.error.set(this.translate.instant('PRODUCTS.QUESTION_COUNT_LABEL_REQUIRED'));
+        return;
+      }
+      if (this.questionDraft.choiceMinimum != null) {
+        choiceOptions['min_choices'] = Math.max(0, Math.floor(this.questionDraft.choiceMinimum));
+      } else delete choiceOptions['min_choices'];
+      if (this.questionDraft.choiceMaximum != null) {
+        choiceOptions['max_choices'] = Math.max(0, Math.floor(this.questionDraft.choiceMaximum));
+      } else delete choiceOptions['max_choices'];
+      if (this.questionDraft.choicePerPerson) choiceOptions['per_person'] = true;
+      else delete choiceOptions['per_person'];
+      const countLabel = this.questionDraft.selectionCountQuestionLabel.trim();
+      if (countLabel) choiceOptions['selection_count_question_label'] = countLabel;
+      else delete choiceOptions['selection_count_question_label'];
+      if (this.questionDraft.pricingEnabled) {
+        const choiceSurcharges: Record<string, number> = {};
+        for (const line of this.questionDraft.choiceSurchargeLines.split('\n').map((value) => value.trim()).filter(Boolean)) {
+          const separator = line.lastIndexOf('=');
+          if (separator <= 0) {
+            this.error.set('Ek ücretleri "Seçenek=TL" biçiminde gir.');
+            return;
+          }
+          const choice = line.slice(0, separator).trim();
+          const amount = Number(line.slice(separator + 1).trim().replace(',', '.'));
+          if (!choice || !Number.isFinite(amount) || amount < 0) {
+            this.error.set('Seçenek adını ve sıfır veya daha büyük bir TL tutarını kontrol et.');
+            return;
+          }
+          choiceSurcharges[choice] = Math.round(amount * 100);
+        }
+        if (!Number.isFinite(this.questionDraft.pricingIncluded) || this.questionDraft.pricingIncluded < 0
+            || !Number.isFinite(this.questionDraft.pricingSecondDelta) || this.questionDraft.pricingSecondDelta < 0
+            || !Number.isFinite(this.questionDraft.pricingAdditionalDelta) || this.questionDraft.pricingAdditionalDelta < 0) {
+          this.error.set('Ek ücret değerlerini sıfır veya daha büyük gir.');
+          return;
+        }
+        choiceOptions['pricing'] = {
+          type: 'item_count',
+          included: Math.floor(this.questionDraft.pricingIncluded),
+          second_item_delta_cents: Math.round(this.questionDraft.pricingSecondDelta * 100),
+          additional_item_delta_cents: Math.round(this.questionDraft.pricingAdditionalDelta * 100),
+          choice_surcharges_cents: choiceSurcharges,
+        };
+      } else delete choiceOptions['pricing'];
+      options = choiceOptions as ProductQuestion['options'];
     } else if (this.questionDraft.type === 'scale') {
       if (this.questionDraft.scaleMin >= this.questionDraft.scaleMax) {
         this.error.set(this.translate.instant('PRODUCTS.QUESTION_SCALE_INVALID'));
@@ -1302,6 +1466,13 @@ export class ProductsComponent implements OnInit {
           },
         });
     } else {
+      const existing = this.productQuestions().find((question) => question.id === mode);
+      if (existing?.type === 'choice' && this.questionDraft.type !== 'choice'
+          && (existing.options && typeof existing.options === 'object' && !Array.isArray(existing.options)
+            && ('pricing' in existing.options || 'per_person' in existing.options))) {
+        this.error.set('Bu seçenekte fiyat veya kişi bazlı kurallar var. Önce seçenek türünü koruyup bu kuralları kaldır.');
+        return;
+      }
       this.api
         .updateProductQuestion(pid, mode, {
           type: this.questionDraft.type,

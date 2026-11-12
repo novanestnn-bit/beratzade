@@ -860,7 +860,7 @@ export class StaffPosComponent implements OnDestroy {
       : undefined;
     const countQuestion = line.product.questions?.find(item => item.label === countLabel);
     const count = countQuestion ? Number(line.answers[countQuestion.id]) : 0;
-    return Number.isInteger(count) && count >= 2 && count <= 8 ? Array.from({ length: count }, (_, index) => index) : [];
+    return Number.isInteger(count) && count >= 2 && count <= 99 ? Array.from({ length: count }, (_, index) => index) : [];
   }
 
   personSelectionAnswer(line: CartLine, question: ProductQuestion, slot: number): string {

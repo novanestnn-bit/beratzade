@@ -636,6 +636,7 @@ export interface PublicTenantMenuProduct {
 export interface PublicTenantMenuCategory {
   id: string;
   name: string;
+  description?: string | null;
   products: PublicTenantMenuProduct[];
   subcategories?: PublicTenantMenuSubcategory[];
 }
@@ -1254,17 +1255,18 @@ export interface ProductQuestion {
   options?: string[] | { min: number; max: number } | {
     choices: string[];
     multi?: boolean;
+    min_choices?: number;
+    max_choices?: number;
+    per_person?: boolean;
+    selection_count_question_label?: string;
     pricing?: {
       type: 'item_count';
       included?: number;
       second_item_delta_cents?: number;
       additional_item_delta_cents?: number;
       choice_surcharges_cents?: Record<string, number>;
-      per_person?: boolean;
-      min_choices?: number;
-      max_choices?: number;
-      selection_count_question_label?: string;
     };
+    [key: string]: unknown;
   } | null;
   /** True when choice options use multi-select ({ choices, multi: true }) */
   multi?: boolean;

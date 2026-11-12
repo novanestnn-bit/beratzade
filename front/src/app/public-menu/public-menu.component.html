@@ -357,6 +357,9 @@
                 <span class="public-menu-category-count">{{ cat.products.length }}</span>
               </button>
             </h2>
+            @if (cat.description?.trim()) {
+              <p class="public-menu-category-description">{{ cat.description }}</p>
+            }
             @if (isCategoryExpanded(cat.id)) {
               <ul
                 class="public-menu-product-list"
