@@ -130,10 +130,25 @@ def _deactivate_known_legacy_rows(session: Session, tenant_id: int) -> int:
     return changed
 
 
-def validate_seed_environment(*, production: bool, opt_in: bool, database_host: str | None,
-                              database_name: str | None, tenant_ref: str) -> None:
+def validate_seed_environment(
+    *,
+    production: bool,
+    opt_in: bool,
+    production_opt_in: bool = False,
+    confirmed_tenant_id: int | None = None,
+    database_host: str | None,
+    database_name: str | None,
+    tenant_ref: str,
+) -> None:
     if production:
-        raise RuntimeError("Refusing to import the Beratzade menu in production.")
+        if not production_opt_in or confirmed_tenant_id != TENANT_ID:
+            raise RuntimeError(
+                "production import requires ALLOW_BERATZADE_MENU_PRODUCTION_IMPORT=1 "
+                "and BERATZADE_MENU_CONFIRM_TENANT_ID=89."
+            )
+        if not database_host or not database_name:
+            raise RuntimeError("Refusing production import without a configured database target.")
+        return
     if not opt_in:
         raise RuntimeError("Set ALLOW_BERATZADE_MENU_IMPORT=1 to explicitly run this local import.")
     if database_host != "db" or database_name != "pos":
@@ -146,6 +161,12 @@ def run() -> None:
     validate_seed_environment(
         production=settings.is_production,
         opt_in=os.environ.get("ALLOW_BERATZADE_MENU_IMPORT") == "1",
+        production_opt_in=os.environ.get("ALLOW_BERATZADE_MENU_PRODUCTION_IMPORT") == "1",
+        confirmed_tenant_id=(
+            int(os.environ["BERATZADE_MENU_CONFIRM_TENANT_ID"])
+            if os.environ.get("BERATZADE_MENU_CONFIRM_TENANT_ID", "").isdigit()
+            else None
+        ),
         database_host=engine.url.host,
         database_name=engine.url.database,
         tenant_ref=settings.local_dev_tenant_ref,

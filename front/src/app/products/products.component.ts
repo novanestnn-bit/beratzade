@@ -854,6 +854,7 @@ export class ProductsComponent implements OnInit {
     this.api.getCatalogCategories().subscribe({
       next: (cats) => {
         this.categories.set(this.menuAwareCategories(cats));
+        this.updateAvailableCategories();
         this.onCategoryChange();
         if (this.selectedCategory()) {
           this.updateAvailableSubcategories(this.selectedCategory());
@@ -1047,13 +1048,13 @@ export class ProductsComponent implements OnInit {
   }
 
   updateAvailableCategories() {
-    const categories = new Set<string>();
+    const categories = new Set<string>(this.isBeratzadeTenant() ? Object.keys(this.categories()) : []);
     this.products().forEach((product: Product) => {
       if (product.category) {
         categories.add(product.category);
       }
     });
-    this.availableCategories.set(Array.from(categories).sort());
+    this.availableCategories.set(orderBeratzadeCategoryNames(Array.from(categories), this.isBeratzadeTenant()));
   }
 
   selectCategory(category: string | null) {

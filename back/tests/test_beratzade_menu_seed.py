@@ -82,6 +82,29 @@ def test_import_refuses_production_and_requires_local_opt_in():
         )
 
 
+def test_production_import_requires_two_explicit_gates_and_tenant_89():
+    with pytest.raises(RuntimeError, match="BERATZADE_MENU_CONFIRM_TENANT_ID"):
+        validate_seed_environment(
+            production=True,
+            opt_in=False,
+            production_opt_in=True,
+            confirmed_tenant_id=1,
+            database_host="database.internal",
+            database_name="beratzade",
+            tenant_ref="",
+        )
+
+    validate_seed_environment(
+        production=True,
+        opt_in=False,
+        production_opt_in=True,
+        confirmed_tenant_id=89,
+        database_host="database.internal",
+        database_name="beratzade",
+        tenant_ref="",
+    )
+
+
 def test_import_refuses_wrong_database_or_tenant():
     with pytest.raises(RuntimeError, match="local Docker pos database"):
         validate_seed_environment(
