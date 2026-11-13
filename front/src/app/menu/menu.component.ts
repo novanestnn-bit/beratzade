@@ -733,6 +733,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   getProductImageUrl(product: Product): string | null {
     if (this.failedProductImages().has(this.menuItemIdentity(product) + ':' + product.image_filename)) return null;
     if (!product.image_filename || !product.tenant_id) return null;
+    if (product.image_filename.startsWith('menu-images/beratzade/')) return `/${product.image_filename}`;
     if (product.image_filename.startsWith('providers/')) {
       return `${environment.apiUrl}/uploads/${product.image_filename}`;
     } else {

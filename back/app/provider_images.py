@@ -49,6 +49,8 @@ def product_stored_image_exists(tenant_id: int, image_filename: str | None) -> b
     fn = image_filename.replace("\\", "/").strip("/")
     if not fn or fn.startswith(".") or ".." in fn.split("/"):
         return False
+    if fn.startswith("menu-images/beratzade/"):
+        return True
     if fn.startswith("providers/"):
         return (UPLOADS_DIR / fn).is_file()
     if "/" in fn:

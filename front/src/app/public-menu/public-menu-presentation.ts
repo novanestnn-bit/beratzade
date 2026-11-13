@@ -233,6 +233,7 @@ export function publicImageUrl(url: string | null | undefined, apiUrl: string): 
   if (!value || value.startsWith('//') || /[\u0000-\u001f]/.test(value)) return '';
   if (/^https?:\/\//i.test(value)) return value;
   if (/^[a-z][a-z\d+.-]*:/i.test(value)) return '';
+  if (value.startsWith('/menu-images/beratzade/')) return value;
   const base = apiUrl.replace(/\/$/, '');
   return value.startsWith('/') ? base + value : `${base}/${value}`;
 }

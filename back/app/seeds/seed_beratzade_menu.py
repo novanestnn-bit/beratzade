@@ -1,9 +1,9 @@
 """Idempotently import the approved Beratzade menu into its tenant Product catalog.
 
 This command is deliberately opt-in and refuses production. It never deletes
-products, alters image links or scheduled availability, or touches other tenants.
-It activates approved menu products and inactivates only known duplicate or
-non-sellable legacy headings while preserving their rows and order history.
+products, alters scheduled availability, or touches other tenants. It activates
+approved menu products, applies their reviewed static photo map, and inactivates
+only known duplicate or non-sellable legacy headings while preserving history.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ from app import models
 from app.db import engine
 from app.settings import settings
 from app.tenant_subcategories import add_custom_category
+from app.seeds.beratzade_menu_images import menu_image_filename
 
 
 TENANT_NAME = "Beratzade Kebap & Kahvaltı Salonu"
@@ -228,11 +229,13 @@ def run() -> None:
                 )
             if matches:
                 product = matches[0]
-                # Keep identity, images, stock and scheduled availability.
+                # Keep identity, stock and scheduled availability; the approved
+                # photo manifest is authoritative for the Beratzade menu assets.
                 product.name = name
                 product.category = category
                 product.price_cents = price_cents
                 product.description = description
+                product.image_filename = menu_image_filename(name)
                 product.is_active = True
                 session.add(product)
                 updated += 1
@@ -243,7 +246,7 @@ def run() -> None:
                     category=category,
                     price_cents=price_cents,
                     description=description,
-                    image_filename=None,
+                    image_filename=menu_image_filename(name),
                     is_active=True,
                 )
                 session.add(product)

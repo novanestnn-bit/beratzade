@@ -1,0 +1,315 @@
+{
+  "tenant": 89,
+  "assets": [
+    {
+      "source_name": "adana dürüm orjinal.png",
+      "asset_name": "adana-durum-orjinal.png",
+      "bytes": 2760915
+    },
+    {
+      "source_name": "adana dürüm.png",
+      "asset_name": "adana-durum.png",
+      "bytes": 2885120
+    },
+    {
+      "source_name": "avcı böreği.png",
+      "asset_name": "avc-boregi.png",
+      "bytes": 2287548
+    },
+    {
+      "source_name": "açma.jpg",
+      "asset_name": "acma.jpg",
+      "bytes": 103388
+    },
+    {
+      "source_name": "Bakır Tabakta Izgara Şiş Ziyafeti.png",
+      "asset_name": "bak-r-tabakta-izgara-sis-ziyafeti.png",
+      "bytes": 3168063
+    },
+    {
+      "source_name": "brger.png",
+      "asset_name": "brger.png",
+      "bytes": 2573324
+    },
+    {
+      "source_name": "büyük çay.png",
+      "asset_name": "buyuk-cay.png",
+      "bytes": 2311259
+    },
+    {
+      "source_name": "ciğer dürüm orjin.png",
+      "asset_name": "ciger-durum-orjin.png",
+      "bytes": 2369203
+    },
+    {
+      "source_name": "ciğer dürüm.png",
+      "asset_name": "ciger-durum.png",
+      "bytes": 2705992
+    },
+    {
+      "source_name": "ciğer servis.png",
+      "asset_name": "ciger-servis.png",
+      "bytes": 2802871
+    },
+    {
+      "source_name": "et dürüm.png",
+      "asset_name": "et-durum.png",
+      "bytes": 2971232
+    },
+    {
+      "source_name": "Fıstıklı Fırın Sütlaç Close-Up.png",
+      "asset_name": "f-st-kl-f-r-n-sutlac-close-up.png",
+      "bytes": 2606154
+    },
+    {
+      "source_name": "Geleneksel Adana Kebabı Tabağı.png",
+      "asset_name": "geleneksel-adana-kebab-tabag.png",
+      "bytes": 3371094
+    },
+    {
+      "source_name": "göz yumurta.png",
+      "asset_name": "goz-yumurta.png",
+      "bytes": 2514227
+    },
+    {
+      "source_name": "gözleme1111.jpg",
+      "asset_name": "gozleme1111.jpg",
+      "bytes": 91646
+    },
+    {
+      "source_name": "hellimli tost.png",
+      "asset_name": "hellimli-tost.png",
+      "bytes": 2743409
+    },
+    {
+      "source_name": "Izgara Köfte Sandviç Ziyafeti.png",
+      "asset_name": "izgara-kofte-sandvic-ziyafeti.png",
+      "bytes": 2942251
+    },
+    {
+      "source_name": "Izgara Tavuk Şiş ve Akdeniz Sofrası.png",
+      "asset_name": "izgara-tavuk-sis-ve-akdeniz-sofras.png",
+      "bytes": 3057879
+    },
+    {
+      "source_name": "Izgarada Türk Köfte Tabağı.png",
+      "asset_name": "izgarada-turk-kofte-tabag.png",
+      "bytes": 3129522
+    },
+    {
+      "source_name": "kahvaltı tabağı.png",
+      "asset_name": "kahvalt-tabag.png",
+      "bytes": 2789938
+    },
+    {
+      "source_name": "karışık menemen.png",
+      "asset_name": "kar-s-k-menemen.png",
+      "bytes": 2846088
+    },
+    {
+      "source_name": "karışık omlet.png",
+      "asset_name": "kar-s-k-omlet.png",
+      "bytes": 2884286
+    },
+    {
+      "source_name": "kavurmalı kaşarlı dürüm.png",
+      "asset_name": "kavurmal-kasarl-durum.png",
+      "bytes": 2595532
+    },
+    {
+      "source_name": "kavurmalı kaşarlı sucuklu tost.png",
+      "asset_name": "kavurmal-kasarl-sucuklu-tost.png",
+      "bytes": 2728289
+    },
+    {
+      "source_name": "kavurmalı omlet.png",
+      "asset_name": "kavurmal-omlet.png",
+      "bytes": 2725982
+    },
+    {
+      "source_name": "kavurmalı tost.png",
+      "asset_name": "kavurmal-tost.png",
+      "bytes": 2947117
+    },
+    {
+      "source_name": "kaşarlı menemen.avif",
+      "asset_name": "kasarl-menemen.avif",
+      "bytes": 37525
+    },
+    {
+      "source_name": "kaşarlı omlet.png",
+      "asset_name": "kasarl-omlet.png",
+      "bytes": 2691300
+    },
+    {
+      "source_name": "kaşarlı sucuklu tost.png",
+      "asset_name": "kasarl-sucuklu-tost.png",
+      "bytes": 177248
+    },
+    {
+      "source_name": "kaşarlı tost.png",
+      "asset_name": "kasarl-tost.png",
+      "bytes": 328731
+    },
+    {
+      "source_name": "krep11111.avif",
+      "asset_name": "krep11111.avif",
+      "bytes": 78699
+    },
+    {
+      "source_name": "küçük çay.png",
+      "asset_name": "kucuk-cay.png",
+      "bytes": 2302942
+    },
+    {
+      "source_name": "kızarmış hellim tabağı.png",
+      "asset_name": "k-zarm-s-hellim-tabag.png",
+      "bytes": 2399830
+    },
+    {
+      "source_name": "muska börek.webp",
+      "asset_name": "muska-borek.webp",
+      "bytes": 153932
+    },
+    {
+      "source_name": "nescafe.png",
+      "asset_name": "nescafe.png",
+      "bytes": 2105517
+    },
+    {
+      "source_name": "oralet çeşitleri.png",
+      "asset_name": "oralet-cesitleri.png",
+      "bytes": 2632371
+    },
+    {
+      "source_name": "pankekbu.jpg",
+      "asset_name": "pankekbu.jpg",
+      "bytes": 183379
+    },
+    {
+      "source_name": "peynir çubukları.png",
+      "asset_name": "peynir-cubuklar.png",
+      "bytes": 2411782
+    },
+    {
+      "source_name": "portakal suyu.jpg",
+      "asset_name": "portakal-suyu.jpg",
+      "bytes": 731718
+    },
+    {
+      "source_name": "poğoca.jpg",
+      "asset_name": "pogoca.jpg",
+      "bytes": 267413
+    },
+    {
+      "source_name": "Rustik Tahtada İştah Açıcı Cheeseburger Menüsü (1).png",
+      "asset_name": "rustik-tahtada-istah-ac-c-cheeseburger-menusu-1.png",
+      "bytes": 2573324
+    },
+    {
+      "source_name": "sade menemen.png",
+      "asset_name": "sade-menemen.png",
+      "bytes": 2605199
+    },
+    {
+      "source_name": "sade omlet.png",
+      "asset_name": "sade-omlet.png",
+      "bytes": 2741887
+    },
+    {
+      "source_name": "sandviç tam.png",
+      "asset_name": "sandvic-tam.png",
+      "bytes": 2631947
+    },
+    {
+      "source_name": "serpme kahvaltı.png",
+      "asset_name": "serpme-kahvalt.png",
+      "bytes": 3346852
+    },
+    {
+      "source_name": "sigara böreği 1111.avif",
+      "asset_name": "sigara-boregi-1111.avif",
+      "bytes": 44545
+    },
+    {
+      "source_name": "simit orjinal.jpg",
+      "asset_name": "simit-orjinal.jpg",
+      "bytes": 105397
+    },
+    {
+      "source_name": "sucuklu kaşarlı menemen.jpg",
+      "asset_name": "sucuklu-kasarl-menemen.jpg",
+      "bytes": 117827
+    },
+    {
+      "source_name": "sucuklu kaşarlı tost.png",
+      "asset_name": "sucuklu-kasarl-tost.png",
+      "bytes": 2890143
+    },
+    {
+      "source_name": "sucuklu omlet.png",
+      "asset_name": "sucuklu-omlet.png",
+      "bytes": 2800404
+    },
+    {
+      "source_name": "sucuklu tost.png",
+      "asset_name": "sucuklu-tost.png",
+      "bytes": 2428290
+    },
+    {
+      "source_name": "tavuk fajita dürüö.png",
+      "asset_name": "tavuk-fajita-duruo.png",
+      "bytes": 2389461
+    },
+    {
+      "source_name": "tavuk pilav.png",
+      "asset_name": "tavuk-pilav.png",
+      "bytes": 2221214
+    },
+    {
+      "source_name": "tavuk pirzola.png",
+      "asset_name": "tavuk-pirzola.png",
+      "bytes": 3140939
+    },
+    {
+      "source_name": "Türk Usulü Izgara Tavuk Kanatları.png",
+      "asset_name": "turk-usulu-izgara-tavuk-kanatlar.png",
+      "bytes": 3121589
+    },
+    {
+      "source_name": "urfa dürüm.png",
+      "asset_name": "urfa-durum.png",
+      "bytes": 2582497
+    },
+    {
+      "source_name": "Urfa Kebabı ile Rustik Sofra.png",
+      "asset_name": "urfa-kebab-ile-rustik-sofra.png",
+      "bytes": 3184543
+    },
+    {
+      "source_name": "viyana usulü tavuk şinitz.png",
+      "asset_name": "viyana-usulu-tavuk-sinitz.png",
+      "bytes": 2874196
+    },
+    {
+      "source_name": "çeyrek sandviç.png",
+      "asset_name": "ceyrek-sandvic.png",
+      "bytes": 2519402
+    },
+    {
+      "source_name": "Çıtır Kroketler ve Patates Tabağı.png",
+      "asset_name": "c-t-r-kroketler-ve-patates-tabag.png",
+      "bytes": 2835963
+    },
+    {
+      "source_name": "Çıtır Soğan Halkaları ve Patates Tabağı.png",
+      "asset_name": "c-t-r-sogan-halkalar-ve-patates-tabag.png",
+      "bytes": 2674239
+    },
+    {
+      "source_name": "çıtır tavuk.png",
+      "asset_name": "c-t-r-tavuk.png",
+      "bytes": 2385017
+    }
+  ]
+}

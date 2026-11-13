@@ -1091,6 +1091,7 @@ export class StaffPosComponent implements OnDestroy {
 
   productImageUrl(product: StaffPosMenuProduct): string | null {
     const url = product.image_url;
+    if (url?.startsWith('/menu-images/beratzade/')) return url;
     return url?.startsWith('/uploads/') ? `${environment.apiUrl.replace(/\/$/, '')}${url}` : url;
   }
 

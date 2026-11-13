@@ -67,6 +67,8 @@ def resolve_product_image_url(tenant_id: int, image_filename: str | None) -> str
     fn = image_filename.replace("\\", "/").strip("/")
     if not fn or fn.startswith(".") or ".." in fn.split("/"):
         return None
+    if fn.startswith("menu-images/beratzade/"):
+        return f"/{fn}"
     if fn.startswith("providers/"):
         path = _UPLOADS_DIR / fn
         if not path.is_file():

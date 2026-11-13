@@ -2660,6 +2660,9 @@ export class ApiService {
 
   getProductImageUrl(product: Product): string | null {
     if (!product.image_filename) return null;
+    if (product.image_filename.startsWith('menu-images/beratzade/')) {
+      return `/${product.image_filename}`;
+    }
     // Provider images have full path like "providers/{token}/products/{filename}"
     if (product.image_filename.startsWith('providers/')) {
       return `${this.apiUrl}/uploads/${product.image_filename}`;
