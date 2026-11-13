@@ -85,14 +85,14 @@ try {
 
   await page.click('.beratzade-choice-card[data-section="kahvalti"]');
   await page.waitForSelector('.beratzade-group-card');
-  assert.equal(await page.$$eval('.beratzade-group-card', cards => cards.length), 6);
+  assert.equal(await page.$$eval('.beratzade-group-card', cards => cards.length), 7);
   assert.match(new URL(page.url()).searchParams.get('section'), /kahvalti/);
 
   await page.click('.beratzade-menu-home-link');
   await page.waitForSelector('.beratzade-choice-card');
   await page.click('.beratzade-choice-card[data-section="kebap-sulu-yemekler"]');
   await page.waitForSelector('.beratzade-group-card');
-  assert.equal(await page.$$eval('.beratzade-group-card', cards => cards.length), 8);
+  assert.equal(await page.$$eval('.beratzade-group-card', cards => cards.length), 9);
 
   await page.click('.beratzade-group-card[data-group="izgara-kebap"]');
   await page.waitForSelector('.public-menu-product[data-product-key="product:3"]');
@@ -122,8 +122,8 @@ try {
     data: 'synthetic browser-only fixture; not an API integration test',
     viewport: '390x844',
     entryCards: 2,
-    breakfastGroups: 6,
-    grillGroups: 8,
+    breakfastGroups: 7,
+    grillGroups: 9,
     emptyCatalog: 'preparing message; no categories or products shown',
     orderWrites: 0,
     runtimeErrors: 0,

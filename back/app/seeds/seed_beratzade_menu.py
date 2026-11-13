@@ -1,6 +1,6 @@
 """Idempotently import the approved Beratzade menu into its tenant Product catalog.
 
-This command is deliberately opt-in and refuses production. It never deletes
+This command requires explicit opt-in and tenant confirmation in production. It never deletes
 products, alters scheduled availability, or touches other tenants. It activates
 approved menu products, applies their reviewed static photo map, and inactivates
 only known duplicate or non-sellable legacy headings while preserving history.
@@ -17,7 +17,6 @@ from sqlmodel import Session, select
 from app import models
 from app.db import engine
 from app.settings import settings
-from app.tenant_subcategories import add_custom_category
 from app.seeds.beratzade_menu_images import menu_image_filename
 
 
@@ -53,7 +52,7 @@ MENU = [
     ("Omlet & Sahanda Yumurta", "Karışık Omlet", 35000, None),
     ("Omlet & Sahanda Yumurta", "Sahanda Göz Yumurta", 20000, None),
     ("Kahvaltı Tabağı", "Kahvaltı Tabağı", 45000, "Beyaz peynir, çeçil peyniri, kaşar peyniri, salatalık, domates, zeytin, bal, kaymak, haşlanmış yumurta, salam ve hindi füme."),
-    ("Serpme Kahvaltı", "Serpme Kahvaltı (Minimum 2 Kişilik)", 140000, "Kahvaltılıklar, 2 çeşit ara sıcak ve kişi başı 1 menemen veya omlet seçimi dahildir."),
+    ("Serpme Kahvaltı", "Serpme Kahvaltı (Minimum 2 Kişilik)", 140000, "Kahvaltılık çeşitleri: Beyaz peynir, çeçil peyniri, kaşar peyniri, rokfor peyniri, tereyağı, bal, çilek reçeli, kayısı reçeli, pastırma, kavurma, zeytin, domates, salatalık ve mevsim yeşillikleri. 2 çeşit sıcak dahildir: Kızarmış Hellim Peyniri ve Sigara Böreği. Kişi başı 1 seçim: Sade, Kaşarlı, Sucuklu veya Karışık Menemen; Sade, Kaşarlı, Sucuklu veya Karışık Omlet."),
     ("Izgara & Kebap Çeşitleri", "Adana Dürüm", 30000, None),
     ("Izgara & Kebap Çeşitleri", "Urfa Dürüm", 30000, None),
     ("Izgara & Kebap Çeşitleri", "Ciğer Dürüm", 28000, None),
@@ -91,6 +90,19 @@ CATEGORIES = [
     "Aperatifler & Ara Sıcaklar", "Hamburger", "Günlük Sulu Yemekler",
     "Tatlılar", "İçecek Çeşitleri", "Çorba Çeşitleri",
 ]
+
+SUBCATEGORIES = {
+    "Beratzade Sandviç Menüsü": ["Normal Sandviç", "Çeyrek Sandviç"],
+    "Izgara & Kebap Çeşitleri": ["Dürümler & Ekmek Arası", "Servisler"],
+}
+
+
+def menu_subcategory(category: str, name: str) -> str | None:
+    if category == "Beratzade Sandviç Menüsü":
+        return name
+    if category == "Izgara & Kebap Çeşitleri":
+        return "Servisler" if name.endswith("Servis") else "Dürümler & Ekmek Arası"
+    return None
 
 
 def normalize_name(value: str) -> str:
@@ -178,8 +190,10 @@ def run() -> None:
             raise RuntimeError(
                 f"Expected tenant {TENANT_ID} to be the Beratzade restaurant; refusing import."
             )
-        for category in CATEGORIES:
-            add_custom_category(session, tenant.id, category)
+        tenant.custom_subcategories = {
+            category: SUBCATEGORIES.get(category, []) for category in CATEGORIES
+        }
+        session.add(tenant)
 
         products = session.exec(
             select(models.Product).where(models.Product.tenant_id == tenant.id)
@@ -233,6 +247,7 @@ def run() -> None:
                 # photo manifest is authoritative for the Beratzade menu assets.
                 product.name = name
                 product.category = category
+                product.subcategory = menu_subcategory(category, name)
                 product.price_cents = price_cents
                 product.description = description
                 product.image_filename = menu_image_filename(name)
@@ -244,6 +259,7 @@ def run() -> None:
                     tenant_id=tenant.id,
                     name=name,
                     category=category,
+                    subcategory=menu_subcategory(category, name),
                     price_cents=price_cents,
                     description=description,
                     image_filename=menu_image_filename(name),

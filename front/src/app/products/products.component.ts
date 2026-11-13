@@ -1050,7 +1050,7 @@ export class ProductsComponent implements OnInit {
   updateAvailableCategories() {
     const categories = new Set<string>(this.isBeratzadeTenant() ? Object.keys(this.categories()) : []);
     this.products().forEach((product: Product) => {
-      if (product.category) {
+      if (product.category && (!this.isBeratzadeTenant() || product.is_active)) {
         categories.add(product.category);
       }
     });

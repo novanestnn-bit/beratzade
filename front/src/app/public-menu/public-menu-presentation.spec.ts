@@ -125,6 +125,17 @@ describe('restaurant public menu presentation', () => {
     }
   });
 
+  it('preserves brochure subcategories in the staff POS menu', () => {
+    const items = [
+      { ...product(1, 'product', 'Adana Dürüm'), category: 'Izgara & Kebap Çeşitleri', subcategory: 'Dürümler & Ekmek Arası' },
+      { ...product(2, 'product', 'Adana Kebap Servis'), category: 'Izgara & Kebap Çeşitleri', subcategory: 'Servisler' },
+    ];
+    const grill = groupBeratzadeProductsForStaff(items).find(group => group.id === 'izgara-kebap')!;
+    expect(grill.products).toEqual([]);
+    expect(grill.subcategories.map(group => group.name)).toEqual(['Dürümler & Ekmek Arası', 'Servisler']);
+    expect(grill.subcategories.flatMap(group => group.products)).toEqual(items);
+  });
+
   it('shares the same ordered 16 groups and product identity with the staff POS menu', () => {
     const items = [
       { ...product(1, 'product', 'Kaşarlı Tost'), category: 'Tost Çeşitleri' },

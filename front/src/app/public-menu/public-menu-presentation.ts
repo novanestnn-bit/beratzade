@@ -71,17 +71,17 @@ export function beratzadeProductGroup(product: PublicTenantMenuProduct): string 
   const text = `${name} ${category}`;
 
   const explicitGroups: Record<string, string> = {
-    'borekler hamur isleri': 'borek-hamur-isleri',
+    'borekler ve hamur isleri': 'borek-hamur-isleri',
     'tost cesitleri': 'tost-cesitleri',
     'beratzade sandvic menusu': 'sandvic-menusu',
     'menemen cesitleri': 'menemen-cesitleri',
-    'omlet sahanda yumurta': 'omlet-sahanda',
+    'omlet ve sahanda yumurta': 'omlet-sahanda',
     'kahvalti tabagi': 'kahvalti-tabagi',
     'serpme kahvalti': 'serpme-kahvalti',
-    'izgara kebap cesitleri': 'izgara-kebap',
+    'izgara ve kebap cesitleri': 'izgara-kebap',
     pilav: 'pilav',
     'durum cesitleri': 'durum-cesitleri',
-    'aperatifler ara sicaklar': 'aperatifler-ara-sicaklar',
+    'aperatifler ve ara sicaklar': 'aperatifler-ara-sicaklar',
     hamburger: 'hamburger',
     'gunluk sulu yemekler': 'gunluk-sulu-yemekler',
     tatlilar: 'tatlilar',

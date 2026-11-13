@@ -1117,7 +1117,7 @@ export class StaffPosComponent implements OnDestroy {
           ? groupBeratzadeProductsForStaff(categoryTree.flatMap(category => [
               ...category.products,
               ...category.subcategories.flatMap(subcategory => subcategory.products),
-            ])).map(category => ({ ...category, subcategories: [] }))
+            ]))
           : categoryTree;
         this.categories.set(this.isBeratzadeTenant()
           ? categories

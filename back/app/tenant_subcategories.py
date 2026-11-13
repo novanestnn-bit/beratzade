@@ -111,6 +111,10 @@ def tenant_categories_for_ui(session: Session, tenant_id: int) -> dict[str, list
     custom = normalize_custom_subcategories(
         tenant.custom_subcategories if tenant else None
     )
+    from .menu_product_rules import is_beratzade_tenant_name
+
+    if tenant and is_beratzade_tenant_name(tenant.name) and custom:
+        return custom
     merged = merge_category_subcategory_maps(
         catalog_subcategories(session),
         {k: set(v) for k, v in custom.items()},

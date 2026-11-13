@@ -7,8 +7,35 @@ from app.seeds.seed_beratzade_menu import (
     _deactivate_known_legacy_rows,
     _menu_product_id_map,
     normalize_name,
+    menu_subcategory,
+    SUBCATEGORIES,
     validate_seed_environment,
 )
+
+
+def test_brochure_subcategories_replace_legacy_meat_and_chicken_groups():
+    assert menu_subcategory("Izgara & Kebap Çeşitleri", "Adana Dürüm") == "Dürümler & Ekmek Arası"
+    assert menu_subcategory("Izgara & Kebap Çeşitleri", "Köfte Ekmek") == "Dürümler & Ekmek Arası"
+    assert menu_subcategory("Izgara & Kebap Çeşitleri", "Tavuk Şiş Servis") == "Servisler"
+    assert menu_subcategory("Beratzade Sandviç Menüsü", "Çeyrek Sandviç") == "Çeyrek Sandviç"
+    assert menu_subcategory("Tost Çeşitleri", "Kaşarlı Tost") is None
+    assert all(category in CATEGORIES for category in SUBCATEGORIES)
+
+
+def test_admin_category_list_uses_the_restaurant_menu_not_global_catalog():
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+    from app.tenant_subcategories import tenant_categories_for_ui
+
+    session = Mock()
+    session.get.return_value = SimpleNamespace(
+        name="Beratzade Kebap & Kahvaltı Salonu",
+        custom_subcategories={category: SUBCATEGORIES.get(category, []) for category in CATEGORIES},
+    )
+    categories = tenant_categories_for_ui(session, TENANT_ID)
+    assert list(categories) == CATEGORIES
+    assert categories["Izgara & Kebap Çeşitleri"] == ["Dürümler & Ekmek Arası", "Servisler"]
+    session.exec.assert_not_called()
 
 
 def test_approved_menu_catalog_has_57_priced_items_and_16_categories():

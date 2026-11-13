@@ -227,7 +227,7 @@
       @if (refreshFailed()) {
         <div class="menu-connection-note" role="status"><span>{{ 'MENU_EXPERIENCE.FRESHNESS_WARNING' | translate }}</span><button type="button" (click)="retryMenu()">{{ 'MENU_EXPERIENCE.RETRY' | translate }}</button></div>
       }
-      @if (activeBeratzadeGroup()?.id === 'tost-sandvic') {
+      @if (activeBeratzadeGroup()?.id === 'tost-cesitleri') {
         <p class="beratzade-toast-note">{{ 'MENU_EXPERIENCE.TOAST_NOTE' | translate }}</p>
       }
       @if (!isBeratzadeMenuOnly()) {

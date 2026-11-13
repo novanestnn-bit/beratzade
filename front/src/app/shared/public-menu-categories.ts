@@ -57,13 +57,22 @@ export function groupBeratzadeProductsForStaff<T extends {
   description?: string | null;
   image_url?: string | null;
   available?: boolean;
-}>(products: T[]): Array<{ id: string; name: string; products: T[] }> {
+}>(products: T[]): Array<{ id: string; name: string; products: T[]; subcategories: Array<{ id: string; name: string; products: T[] }> }> {
   const groups = BERATZADE_MENU_SECTIONS.flatMap(section => section.groups);
-  return groups.map(group => ({
-    id: group.id,
-    name: group.label,
-    products: products.filter(product => beratzadeProductGroup(product as PublicTenantMenuCategory['products'][number]) === group.id),
-  }));
+  return groups.map(group => {
+    const items = products.filter(product => beratzadeProductGroup(product as PublicTenantMenuCategory['products'][number]) === group.id);
+    const names = [...new Set(items.map(product => product.subcategory).filter((name): name is string => !!name))];
+    return {
+      id: group.id,
+      name: group.label,
+      products: items.filter(product => !product.subcategory),
+      subcategories: names.map(name => ({
+        id: publicMenuCategorySlug(name),
+        name,
+        products: items.filter(product => product.subcategory === name),
+      })),
+    };
+  });
 }
 
 export function orderBeratzadeCategoryNames(names: string[], enabled: boolean): string[] {
