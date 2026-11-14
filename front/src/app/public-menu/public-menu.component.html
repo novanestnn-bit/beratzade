@@ -2,9 +2,9 @@
   class="book-page public-menu-page"
   [class.is-beratzade]="isBeratzadeMenuOnly()"
   [class.is-category-view]="isCategoryRoute()"
-  [style.--color-bg]="tenant()?.public_background_color ?? null"
+  [style.--color-bg]="isBeratzadeMenuOnly() ? null : tenant()?.public_background_color ?? null"
   [style.--hero-header-bg]="tenant()?.public_background_color ?? null"
-  [style.--color-primary]="isBeratzadeMenuOnly() ? '#983c2c' : resolvePublicPrimaryColor(tenant()?.public_primary_color)"
+  [style.--color-primary]="isBeratzadeMenuOnly() ? null : resolvePublicPrimaryColor(tenant()?.public_primary_color)"
 >
   @if (isBeratzadeMenuOnly()) {
     <header class="beratzade-menu-header" data-testid="beratzade-menu-header">
