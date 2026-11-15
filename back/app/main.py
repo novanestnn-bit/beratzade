@@ -31,7 +31,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Res
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel as _BaseModel, Field
-from sqlalchemy import event, exists, or_
+from sqlalchemy import event, exists, func, or_
 from sqlalchemy.exc import IntegrityError, InvalidRequestError, OperationalError, StatementError
 from sqlmodel import Session, select
 
@@ -3194,7 +3194,11 @@ def login_for_access_token(
     lang: str = Depends(_get_requested_language),
     session: Session = Depends(get_session),
 ) -> dict:
-    statement = select(models.User).where(models.User.email == form_data.username)
+    try:
+        login_email = normalize_email_address(form_data.username).casefold()
+    except ValueError:
+        login_email = form_data.username.strip().casefold()
+    statement = select(models.User).where(func.lower(models.User.email) == login_email)
     if scope == "provider":
         statement = statement.where(
             models.User.provider_id.is_not(None),
@@ -3213,7 +3217,8 @@ def login_for_access_token(
         )
     elif tenant_id is not None:
         statement = statement.where(models.User.tenant_id == tenant_id)
-    user = session.exec(statement).first()
+    matching_users = session.exec(statement).all()
+    user = matching_users[0] if len(matching_users) == 1 else None
 
     if not user or not security.verify_password(
         form_data.password, user.hashed_password
