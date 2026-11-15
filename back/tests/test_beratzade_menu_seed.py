@@ -38,8 +38,8 @@ def test_admin_category_list_uses_the_restaurant_menu_not_global_catalog():
     session.exec.assert_not_called()
 
 
-def test_approved_menu_catalog_has_57_priced_items_and_16_categories():
-    assert len(MENU) == 57
+def test_approved_menu_catalog_has_69_priced_items_and_16_categories():
+    assert len(MENU) == 69
     assert len(CATEGORIES) == 16
     assert len({normalize_name(row[1]) for row in MENU}) == len(MENU)
     assert "Günlük Sulu Yemekler" in CATEGORIES
@@ -47,6 +47,31 @@ def test_approved_menu_catalog_has_57_priced_items_and_16_categories():
     assert all("DEMO" not in name.upper() for _, name, _, _ in MENU)
     assert TENANT_ID == 89
 
+def test_requested_beverages_have_the_approved_prices():
+    from app.seeds.add_beratzade_beverages import BEVERAGES as BEVERAGE_IMPORT_ROWS
+    drinks = {
+        normalize_name(name): price
+        for category, name, price, _ in MENU
+        if category == "İçecek Çeşitleri"
+    }
+    expected = {
+        "Uludağ Limonata (Şişe 250 ml)": 5000,
+        "Coca-Cola (330 ml)": 8000,
+        "Pepsi (330 ml)": 8000,
+        "Bardak Ayran": 6000,
+        "Küçük Ayran": 4000,
+        "Coca-Cola (1 L)": 10000,
+        "Fanta (1 L)": 10000,
+        "Doğanay Şalgam (Küçük)": 6000,
+        "Ekşi Ayran": 8000,
+        "Acılı Ayran": 8000,
+        "Naneli Ayran": 8000,
+        "Capri-Sun": 3500,
+    }
+    assert all(drinks.get(normalize_name(name)) == price for name, price in expected.items())
+    assert {normalize_name(name): price for name, price in BEVERAGE_IMPORT_ROWS} == {
+        normalize_name(name): price for name, price in expected.items()
+    }
 
 def test_existing_product_ids_are_kept_for_approved_duplicate_and_sutlac_alias():
     product_ids = _menu_product_id_map()

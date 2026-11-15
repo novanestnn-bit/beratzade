@@ -50,7 +50,7 @@ export const BERATZADE_MENU_SECTIONS: BeratzadeMenuSection[] = [
       { id: 'hamburger', label: 'Hamburger', labelKey: '', image: '/menu-images/beratzade/brger.png' },
       { id: 'gunluk-sulu-yemekler', label: 'Günlük Sulu Yemekler', labelKey: '', image: '/menu-images/beratzade/tavuk-pirzola.png' },
       { id: 'tatlilar', label: 'Tatlılar', labelKey: '', image: '/menu-images/beratzade/f-st-kl-f-r-n-sutlac-close-up.png' },
-      { id: 'icecek-cesitleri', label: 'İçecek Çeşitleri', labelKey: '', image: '/menu-images/beratzade/buyuk-cay.png' },
+      { id: 'icecek-cesitleri', label: 'İçecek Çeşitleri', labelKey: '', image: '/menu-categories/icecekler.webp' },
       { id: 'corba-cesitleri', label: 'Çorba Çeşitleri', labelKey: '', image: '/menu-images/beratzade/gunun-corbalari.webp' },
     ],
   },

@@ -65,6 +65,7 @@ describe('restaurant public menu presentation', () => {
     expect(BERATZADE_MENU_SECTIONS.map(section => section.id)).toEqual(['kahvalti', 'kebap-sulu-yemekler']);
     expect(BERATZADE_MENU_SECTIONS[0].groups.length).toBe(7);
     expect(BERATZADE_MENU_SECTIONS[1].groups.length).toBe(9);
+    expect(BERATZADE_MENU_SECTIONS[1].groups.find(group => group.id === 'icecek-cesitleri')?.image).toBe('/menu-categories/icecekler.webp');
     for (const section of BERATZADE_MENU_SECTIONS) {
       expect(new Set(section.groups.map(group => group.image)).size).toBe(section.groups.length);
     }

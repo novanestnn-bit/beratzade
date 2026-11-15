@@ -81,6 +81,18 @@ MENU = [
     ("İçecek Çeşitleri", "Büyük Çay", 4000, None),
     ("İçecek Çeşitleri", "Nescafe", 4000, None),
     ("İçecek Çeşitleri", "Oralet Çeşitleri", 3000, None),
+    ("İçecek Çeşitleri", "Uludağ Limonata (Şişe 250 ml)", 5000, None),
+    ("İçecek Çeşitleri", "Coca-Cola (330 ml)", 8000, None),
+    ("İçecek Çeşitleri", "Pepsi (330 ml)", 8000, None),
+    ("İçecek Çeşitleri", "Bardak Ayran", 6000, None),
+    ("İçecek Çeşitleri", "Küçük Ayran", 4000, None),
+    ("İçecek Çeşitleri", "Coca-Cola (1 L)", 10000, None),
+    ("İçecek Çeşitleri", "Fanta (1 L)", 10000, None),
+    ("İçecek Çeşitleri", "Doğanay Şalgam (Küçük)", 6000, None),
+    ("İçecek Çeşitleri", "Ekşi Ayran", 8000, None),
+    ("İçecek Çeşitleri", "Acılı Ayran", 8000, None),
+    ("İçecek Çeşitleri", "Naneli Ayran", 8000, None),
+    ("İçecek Çeşitleri", "Capri-Sun", 3500, None),
 ]
 
 CATEGORIES = [
