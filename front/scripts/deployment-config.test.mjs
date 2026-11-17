@@ -102,5 +102,5 @@ test('Vercel uses a static Angular build and requires manual Git deployment', ()
   assert.equal(deployment.buildCommand, 'npm run build:vercel');
   assert.equal(deployment.installCommand, 'npm ci --ignore-scripts');
   assert.equal(deployment.git.deploymentEnabled, false);
-  assert.equal(deployment.routes.find((route) => route.src === '/').headers.Location, '/beratzade');
+  assert.equal(deployment.routes.find((route) => route.src === '/').headers.Location, '/public-menu/beratzade-kebap-kahvalti-salonu?lang=tr');
 });

@@ -13,8 +13,8 @@ import { tablesCanvasCanDeactivate } from './tables/tables-canvas-deactivate.gua
 
 export const routes: Routes = [
   // Public routes
-  { path: '', loadComponent: () => import('./landing/landing.component').then(m => m.LandingComponent) },
-  { path: 'beratzade', loadComponent: () => import('./beratzade-home/beratzade-home.component').then(m => m.BeratzadeHomeComponent) },
+  { path: '', redirectTo: 'public-menu/beratzade-kebap-kahvalti-salonu', pathMatch: 'full' },
+  { path: 'beratzade', redirectTo: 'public-menu/beratzade-kebap-kahvalti-salonu', pathMatch: 'full' },
   { path: 'features/:slug', loadComponent: () => import('./features/feature-detail.component').then(m => m.FeatureDetailComponent) },
   { path: 'features', loadComponent: () => import('./features/features.component').then(m => m.FeaturesComponent) },
   { path: 'pricing', loadComponent: () => import('./pricing/pricing-page.component').then(m => m.PricingPageComponent) },

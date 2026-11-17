@@ -11,7 +11,7 @@
       "dest": "https://beratzade.onrender.com/$1",
       "headers": { "Cache-Control": "private, no-store" }
     },
-    { "src": "/", "status": 307, "headers": { "Location": "/beratzade" } },
+    { "src": "/", "status": 307, "headers": { "Location": "/public-menu/beratzade-kebap-kahvalti-salonu?lang=tr" } },
     {
       "src": "/runtime-config.js",
       "headers": { "Cache-Control": "no-store" },
