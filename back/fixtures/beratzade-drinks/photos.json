@@ -1,0 +1,242 @@
+[
+  {
+    "file": "drink-01.jpg",
+    "original": "08050170-8d8a63-1650x1650.jpg",
+    "product": "Uludağ Limonata",
+    "sha256": "8de8c0e8142bfd76a4e9a514b5590f61e5b2d03f568018de579719369f0d7b19"
+  },
+  {
+    "file": "drink-02.webp",
+    "original": "1_org_zoom.webp",
+    "product": null,
+    "sha256": "77e11df9095edb8adea7b93d7158e13a04c6974d2e2fd330e15eedc54035e01b"
+  },
+  {
+    "file": "drink-03.jpg",
+    "original": "08050170-8d8a63.jpg",
+    "product": null,
+    "sha256": "4179c9008bf6cc333bc83e68a4cc577e0d953097ba2629a576d32ee36f7e63b3"
+  },
+  {
+    "file": "drink-04.jpg",
+    "original": "acılı ayran.jpg",
+    "product": null,
+    "sha256": "a0b9c9cae4b00cdc21c9c63eb564e40b0ff1469c1f25c0424f7e0f78bd99aa53"
+  },
+  {
+    "file": "drink-05.jpg",
+    "original": "coco cola zero 330.jpg",
+    "product": "Coca-Cola Zero Kutu 330 ml",
+    "sha256": "ce15ca93e3400333a36654c6ab8866e7d3e2c216602cf6f2e658d6647e682c73"
+  },
+  {
+    "file": "drink-06.jpg",
+    "original": "coco cola kutu.jpg",
+    "product": "Coca-Cola Kutu 330 ml",
+    "sha256": "f80ba3d32124448eb2d85f29d92f3a539cab4dd717d4960a967493f64643c142"
+  },
+  {
+    "file": "drink-07.jpg",
+    "original": "coco cola cam şişe.jpg",
+    "product": "Coca-Cola Cam Şişe 250 ml",
+    "sha256": "fa2e0dcb9081c6b571cc5f33b1b0b3a86c7b43ba70684c50d92f9c1ba9ca2124"
+  },
+  {
+    "file": "drink-08.jpg",
+    "original": "fanta litreli.jpg",
+    "product": "Fanta Portakal Plastik Şişe 1 L",
+    "sha256": "e3b322ac53719f9d33a7742196b68381a05a8fa55d9aa3bb852e78e3eca13f44"
+  },
+  {
+    "file": "drink-09.jpg",
+    "original": "coco cola litrelik.jpg",
+    "product": "Coca-Cola Plastik Şişe 1 L",
+    "sha256": "123dbaaae357f28607aa19d08daf6444adac07855580122609a9f81f88ad5aea"
+  },
+  {
+    "file": "drink-10.jpg",
+    "original": "sek litrelik.jpg",
+    "product": "SEK Ayran 1 L",
+    "sha256": "f784d7e021a2d887b46ff774f1b9d51cf99410aa98cfc2276c79ebe305d23527"
+  },
+  {
+    "file": "drink-11.jpg",
+    "original": "lipton limon.jpg",
+    "product": "Lipton Ice Tea Limon 330 ml",
+    "sha256": "92cf3d2a460d5568576cfcb7c78f942def9e61e2d56f11688d7410f4946e5bf8"
+  },
+  {
+    "file": "drink-12.jpg",
+    "original": "lipton sparkling.jpg",
+    "product": "Lipton Sparkling Ice Tea Limon 330 ml",
+    "sha256": "f61b801180bcdac549b626c20c6a739a329bc98bc95101d5e3b37c7346de475e"
+  },
+  {
+    "file": "drink-13.jpg",
+    "original": "lipton çilek.jpg",
+    "product": "Lipton Ice Tea Kırmızı Meyve 330 ml",
+    "sha256": "10b82236d31b509a10bbcbb0ec3eb303a8f6ea7b21ad3a1c6cbd7684b4c5f0d2"
+  },
+  {
+    "file": "drink-14.jpg",
+    "original": "yedigün kutu.jpg",
+    "product": "Yedigün Portakal Kutu 330 ml",
+    "sha256": "79bf6c44fd84f95326e35eb090bec65bd1a4b69d868e17d223adab2382d6c371"
+  },
+  {
+    "file": "drink-15.jpg",
+    "original": "uludağ limonata.jpg",
+    "product": null,
+    "sha256": "0f05f95c0b17438024ad36561ef9262cfc47e96d89e3e1abbcc99d8758f2e646"
+  },
+  {
+    "file": "drink-16.jpg",
+    "original": "meyöz karışık.jpg",
+    "product": "Meyöz Karışık 1 L",
+    "sha256": "887263957161663ec2f382fdca52dfe78ad0e6385055cb33bef37e77bdb29f5d"
+  },
+  {
+    "file": "drink-17.png",
+    "original": "acili-ayran-270-ml-x-20-adet-132-c8.png",
+    "product": "Acılı Ayran 270 ml",
+    "sha256": "a3e2530e0bb6e64660398fec82eeb20c91f1fdb90ce2655575845b5eb98fc10e"
+  },
+  {
+    "file": "drink-18.jpg",
+    "original": "eksi-ayran-20-adet-eb2645.jpg",
+    "product": "Ekşili Ayran 200–250 ml",
+    "sha256": "487f40ae4b5f6b2983f0f7a02e286e7a4e7467ea68a0efe366e686ff1f415991"
+  },
+  {
+    "file": "drink-19.webp",
+    "original": "ni_de_gazoz_250_ml.webp",
+    "product": "Niğde Gazozu Cam Şişe 250 ml",
+    "sha256": "1b394f965cdcd76942d41ed8e10d8b5c9707171a60f276c7a0d670bbf7d79da0"
+  },
+  {
+    "file": "drink-20.jpg",
+    "original": "sırma limonlu.jpg",
+    "product": "Sırma Limonlu Soda",
+    "sha256": "fd5cb693f574b2239ebb5e4b392758834162e9cc35b5e5c5885c9a6c252f13f6"
+  },
+  {
+    "file": "drink-21.jpg",
+    "original": "sırma elmalı soda.jpg",
+    "product": "Sırma Elmalı Soda",
+    "sha256": "05d2cf0630308e8b57dc09b5aa85e3250800b8b1c91f73d062da57329cb6a07e"
+  },
+  {
+    "file": "drink-22.png",
+    "original": "sade.png",
+    "product": "Beypazarı Sade Maden Suyu",
+    "sha256": "a29ee27b9c24a9f91a051950fc51e25bab82889ac472a95d56bbaa30abb2f7ff"
+  },
+  {
+    "file": "drink-23.jpg",
+    "original": "su 500.jpg",
+    "product": "Su 500 ml",
+    "sha256": "e09a36cef65c0e30b2e0261e14086de97a7cfcbea508d8cfbab86cf81082c429"
+  },
+  {
+    "file": "drink-24.jpg",
+    "original": "büyük ayran.jpg",
+    "product": "Sütaş Ayran 200 ml",
+    "sha256": "128df67e7f633769f95133b41f166377aaf4970038c295e98612ef9ce333f096"
+  },
+  {
+    "file": "drink-25.jpg",
+    "original": "küçük ayran.jpg",
+    "product": "Sütaş Ayran 170 ml",
+    "sha256": "5334d58d95df1f0e4d09c51e7a06021880a82493161b67fdeb2b5e7242a3309e"
+  },
+  {
+    "file": "drink-26.jpg",
+    "original": "caprisun multivitami.jpg",
+    "product": "Capri-Sun Multivitamin 200 ml",
+    "sha256": "f2ae827aaba202168ca37bcfe98ca39dac27281941b89bbb1275193f7acccb17"
+  },
+  {
+    "file": "drink-27.jpeg",
+    "original": "caprisun dragon.jpeg",
+    "product": "Capri-Sun Mystic Dragon 200 ml",
+    "sha256": "c6c5e7e32246f09fb59691341d843dd3a9ca1905637d68520b19fae554d6b16a"
+  },
+  {
+    "file": "drink-28.jpg",
+    "original": "doğanay şalgam acılı.jpg",
+    "product": "Doğanay Şalgam 300 ml",
+    "sha256": "a3217600f8d8bd3c95e0450f8b111d2ebfaf86b779f7c68f1f627791791a926d"
+  },
+  {
+    "file": "drink-29.png",
+    "original": "dimes-seftali-nektari-250mlsleekteneke_1-600x553.png",
+    "product": "Dimes Şeftali 250 ml",
+    "sha256": "6cf76e3dd7f866534e9d23faf9f25345a89344abadefabbc2f7221c9bd257b08"
+  },
+  {
+    "file": "drink-30.png",
+    "original": "dimes-visne-icecegi-250mlsleekteneke_1-600x553.png",
+    "product": "Dimes Vişne 250 ml",
+    "sha256": "450d11d3e97bc1c958aa4484c62a68e1d8d2ee3c170b5974d5100c920d221576"
+  },
+  {
+    "file": "drink-31.jpg",
+    "original": "pepsi.jpg",
+    "product": "Pepsi Slim Kutu 330 ml",
+    "sha256": "8104d99258c56c6054f4f6a2ea84671d76ba1a29e6c982c7f9052f5e68fc9490"
+  },
+  {
+    "file": "drink-32.jpg",
+    "original": "fanta.jpg",
+    "product": "Fanta / Meyveli Gazoz Kutu 330 ml",
+    "sha256": "a6f31213eb347dbd54536bce96b7ead6ebeda4c0a3a5c2ac9859f32ef5b2674b"
+  },
+  {
+    "file": "drink-33.jpg",
+    "original": "yedigün.jpg",
+    "product": "Yedigün Portakal Kutu 250 ml",
+    "sha256": "567db487e085744955d44caa4da93237a652a9443a716154a83ce9cd4cda2908"
+  },
+  {
+    "file": "drink-34.jpg",
+    "original": "sprite.jpg",
+    "product": "Sprite Kutu 330 ml",
+    "sha256": "86d82fc2a03de226d187df3d33cdce9fc40f2a1a8043c780efa36f0f04ed14f0"
+  },
+  {
+    "file": "drink-35.webp",
+    "original": "coca-cola_cocacola-pet-1l_full01.webp",
+    "product": null,
+    "sha256": "28d0e0e091c252d011ec795e73a91451fd4ef016c73659a74fc433c4be7e506b"
+  },
+  {
+    "file": "nigde.png",
+    "original": "Nigde Gazozu 200ml - Halal Market U.S. - Your Online Halal Market in USA (https://halalmarketus.com/product/nigde-gazozu-200ml/?srsltid=AfmBOorsL9Xes07g41d7AkjKxDAId4_RaK3MAfuP1xv1kqAibO24jk6J)",
+    "product": "Niğde Gazozu Cam Şişe 200 ml",
+    "sha256": "502f22315d431657ccfb4eec5cb4c4f1439608b9376ebaebcd62eefd1d62e598"
+  },
+  {
+    "file": "lipton-peach.png",
+    "original": "Lipton Ice Tea Şeftali 330 ML (https://www.carmar.com.tr/urun/lipton-ice-tea-seftali-330-ml-11100486)",
+    "product": "Lipton Ice Tea Şeftali 330 ml",
+    "sha256": "3b9d7386aa043933a671bb8c0752ebfbb094abf3a833bf0c637d847e08d52f52"
+  },
+  {
+    "file": "dimes-mixed.jpg",
+    "original": "Dimes Karışık Meyve Nektarı 200 Ml (https://www.migros.com.tr/hemen/dimes-karisik-meyve-nektari-200-ml-p-7ae82c?srsltid=AfmBOoo_l7dHGtWvIZT8SBNLIOGmXppMYKK7gJ0gdBKpQVb6jvI00cqv)",
+    "product": "Dimes Karışık / Portakal 200 ml",
+    "sha256": "cebb048fe618d57456c3ac70dcbdb133dd6ffa2cd591a3f73d8098b15410ec79"
+  },
+  {
+    "file": "meyoz-mixed.jpg",
+    "original": "Meyöz Meyve Suyu 200 ml Karışık (https://www.toptantr.com/981-meyoz-meyve-suyu-200-ml-karisik)",
+    "product": "Meyöz Karışık 200 ml",
+    "sha256": "282c94b7545c5e803d7ecc3424b8cb368d0b46770cdebbe38c1781c51d985ba9"
+  },
+  {
+    "file": "meyoz-peach.jpg",
+    "original": "Meyöz Meyve Suyu 200 ml Şeftali (https://www.toptantr.com/981-meyoz-meyve-suyu-200-ml-seftali)",
+    "product": "Meyöz Şeftali (Karışık Meyve) 200 ml",
+    "sha256": "02672625767930ed32c58aadccf0aaff977a62743f0ad442305b5ffd23b6e3fc"
+  }
+]
