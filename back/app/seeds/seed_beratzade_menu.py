@@ -81,18 +81,45 @@ MENU = [
     ("İçecek Çeşitleri", "Büyük Çay", 4000, None),
     ("İçecek Çeşitleri", "Nescafe", 4000, None),
     ("İçecek Çeşitleri", "Oralet Çeşitleri", 3000, None),
-    ("İçecek Çeşitleri", "Uludağ Limonata (Şişe 250 ml)", 5000, None),
-    ("İçecek Çeşitleri", "Coca-Cola (330 ml)", 8000, None),
-    ("İçecek Çeşitleri", "Pepsi (330 ml)", 8000, None),
-    ("İçecek Çeşitleri", "Bardak Ayran", 6000, None),
-    ("İçecek Çeşitleri", "Küçük Ayran", 4000, None),
-    ("İçecek Çeşitleri", "Coca-Cola (1 L)", 10000, None),
-    ("İçecek Çeşitleri", "Fanta (1 L)", 10000, None),
-    ("İçecek Çeşitleri", "Doğanay Şalgam (Küçük)", 6000, None),
-    ("İçecek Çeşitleri", "Ekşi Ayran", 8000, None),
-    ("İçecek Çeşitleri", "Acılı Ayran", 8000, None),
-    ("İçecek Çeşitleri", "Naneli Ayran", 8000, None),
-    ("İçecek Çeşitleri", "Capri-Sun", 3500, None),
+    ("İçecek Çeşitleri", "Pepsi Slim Kutu 330 ml", 8000, None),
+    ("İçecek Çeşitleri", "Coca-Cola Kutu 330 ml", 8000, None),
+    ("İçecek Çeşitleri", "Coca-Cola Zero Kutu 330 ml", 8000, None),
+    ("İçecek Çeşitleri", "Coca-Cola Cam Şişe 250 ml", 8000, None),
+    ("İçecek Çeşitleri", "Coca-Cola Plastik Şişe 1 L", 10000, None),
+    ("İçecek Çeşitleri", "Fanta Portakal Plastik Şişe 1 L", 10000, None),
+    ("İçecek Çeşitleri", "Sprite Kutu 330 ml", 8000, None),
+    ("İçecek Çeşitleri", "Yedigün Portakal Kutu 250 ml", 8000, None),
+    ("İçecek Çeşitleri", "Fanta / Meyveli Gazoz Kutu 330 ml", 8000, None),
+    ("İçecek Çeşitleri", "Sırma Gazoz Cam Şişe 200 ml", 5000, None),
+    ("İçecek Çeşitleri", "Lipton Ice Tea Limon 330 ml", 7000, None),
+    ("İçecek Çeşitleri", "Lipton Ice Tea Şeftali 330 ml", 7000, None),
+    ("İçecek Çeşitleri", "Lipton Ice Tea Kırmızı Meyve 330 ml", 7000, None),
+    ("İçecek Çeşitleri", "Lipton Sparkling Ice Tea Limon 330 ml", 7000, None),
+    ("İçecek Çeşitleri", "Dimes Şeftali 250 ml", 7000, None),
+    ("İçecek Çeşitleri", "Dimes Vişne 250 ml", 7000, None),
+    ("İçecek Çeşitleri", "Dimes Karışık / Portakal 200 ml", 7000, None),
+    ("İçecek Çeşitleri", "Meyöz Karışık 200 ml", 3000, None),
+    ("İçecek Çeşitleri", "Meyöz Şeftali (Karışık Meyve) 200 ml", 3000, None),
+    ("İçecek Çeşitleri", "Capri-Sun Multivitamin 200 ml", 3500, None),
+    ("İçecek Çeşitleri", "Capri-Sun Mystic Dragon 200 ml", 3500, None),
+    ("İçecek Çeşitleri", "Doğanay Şalgam 300 ml", 7000, None),
+    ("İçecek Çeşitleri", "Sütaş Ayran 170 ml", 4000, None),
+    ("İçecek Çeşitleri", "Sütaş Ayran 200 ml", 5000, None),
+    ("İçecek Çeşitleri", "Naneli Ayran 200 ml", 8000, None),
+    ("İçecek Çeşitleri", "Ekşili Ayran 200–250 ml", 8000, None),
+    ("İçecek Çeşitleri", "Acılı Ayran 200 ml", 8000, None),
+    ("İçecek Çeşitleri", "Su 500 ml", 2500, None),
+    ("İçecek Çeşitleri", "Bardak Su 200 ml", 1000, None),
+    ("İçecek Çeşitleri", "Uludağ Limonata Şişe 250 ml", 0, None),
+    ("İçecek Çeşitleri", "SEK Ayran 1 L", 0, None),
+    ("İçecek Çeşitleri", "Sırma Limonlu Soda", 0, None),
+    ("İçecek Çeşitleri", "Sırma Elmalı Soda", 0, None),
+    ("İçecek Çeşitleri", "Beypazarı Sade Maden Suyu", 0, None),
+    ("İçecek Çeşitleri", "Meyöz Karışık 1 L", 0, None),
+    ("İçecek Çeşitleri", "Niğde Gazozu Cam Şişe 250 ml", 0, None),
+    ("İçecek Çeşitleri", "Acılı Ayran 270 ml", 0, None),
+    ("İçecek Çeşitleri", "Yedigün Portakal Kutu 330 ml", 0, None),
+    ("İçecek Çeşitleri", "Niğde Gazozu Cam Şişe 200 ml", 5000, None),
 ]
 
 CATEGORIES = [
@@ -106,10 +133,17 @@ CATEGORIES = [
 SUBCATEGORIES = {
     "Beratzade Sandviç Menüsü": ["Normal Sandviç", "Çeyrek Sandviç"],
     "Izgara & Kebap Çeşitleri": ["Dürümler & Ekmek Arası", "Servisler"],
+    "İçecek Çeşitleri": ["Soğuk İçecekler", "Sıcak İçecekler"],
 }
 
 
 def menu_subcategory(category: str, name: str) -> str | None:
+    if category == "İçecek Çeşitleri":
+        return "Sıcak İçecekler" if normalize_name(name) in {
+            normalize_name("Türk Kahvesi"), normalize_name("Çay"),
+            normalize_name("Küçük Çay"), normalize_name("Büyük Çay"),
+            normalize_name("Nescafe"), normalize_name("Oralet Çeşitleri"),
+        } else "Soğuk İçecekler"
     if category == "Beratzade Sandviç Menüsü":
         return name
     if category == "Izgara & Kebap Çeşitleri":
@@ -263,7 +297,7 @@ def run() -> None:
                 product.price_cents = price_cents
                 product.description = description
                 product.image_filename = menu_image_filename(name)
-                product.is_active = True
+                product.is_active = price_cents > 0
                 session.add(product)
                 updated += 1
             else:
@@ -280,6 +314,23 @@ def run() -> None:
                 session.add(product)
                 by_name[key] = [product]
                 created += 1
+
+        by_name = {}
+        for product in session.exec(
+            select(models.Product).where(models.Product.tenant_id == tenant.id)
+        ).all():
+            by_name.setdefault(normalize_name(product.name), product)
+        for category, name, price_cents, _ in MENU:
+            product = by_name.get(normalize_name(name))
+            if product is None or category != "İçecek Çeşitleri":
+                continue
+            filename = menu_image_filename(name)
+            if filename:
+                product.image_filename = filename
+            product.subcategory = menu_subcategory(category, name)
+            if price_cents == 0:
+                product.is_active = False
+            session.add(product)
 
         session.flush()
         fillings = [

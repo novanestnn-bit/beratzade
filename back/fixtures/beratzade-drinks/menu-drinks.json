@@ -1,0 +1,342 @@
+﻿[
+    {
+        "id":  "pepsi",
+        "name":  "Pepsi Slim Kutu 330 ml",
+        "packaging":  "Slim kutu",
+        "size":  "330 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "cola-can",
+        "name":  "Coca-Cola Kutu 330 ml",
+        "packaging":  "Kutu",
+        "size":  "330 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "cola-zero",
+        "name":  "Coca-Cola Zero Kutu 330 ml",
+        "packaging":  "Kutu",
+        "size":  "330 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "cola-glass",
+        "name":  "Coca-Cola Cam Şişe 250 ml",
+        "packaging":  "Cam şişe",
+        "size":  "250 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "cola-liter",
+        "name":  "Coca-Cola Plastik Şişe 1 L",
+        "packaging":  "Plastik şişe",
+        "size":  "1 L",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "fanta-liter",
+        "name":  "Fanta Portakal Plastik Şişe 1 L",
+        "packaging":  "Plastik şişe",
+        "size":  "1 L",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "sprite",
+        "name":  "Sprite Kutu 330 ml",
+        "packaging":  "Kutu",
+        "size":  "330 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "yedigun",
+        "name":  "Yedigün Portakal Kutu 250 ml",
+        "packaging":  "Kutu",
+        "size":  "250 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "unknown-fanta",
+        "name":  "Fanta / Meyveli Gazoz Kutu 330 ml",
+        "packaging":  "Kutu (sarı-turuncu)",
+        "size":  "330 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "sirma",
+        "name":  "Sırma Gazoz Cam Şişe 200 ml",
+        "packaging":  "Cam şişe",
+        "size":  "200 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "nigde",
+        "name":  "Niğde Gazozu Cam Şişe 200 ml",
+        "packaging":  "Cam şişe",
+        "size":  "200 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "unknown-gazoz",
+        "name":  "Acılı Ayran 200 ml",
+        "packaging":  "Cam şişe",
+        "size":  "200 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "lipton-lemon",
+        "name":  "Lipton Ice Tea Limon 330 ml",
+        "packaging":  "Kutu",
+        "size":  "330 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "lipton-peach",
+        "name":  "Lipton Ice Tea Şeftali 330 ml",
+        "packaging":  "Kutu",
+        "size":  "330 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "lipton-red",
+        "name":  "Lipton Ice Tea Kırmızı Meyve 330 ml",
+        "packaging":  "Kutu (pembe)",
+        "size":  "330 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "lipton-sparkling",
+        "name":  "Lipton Sparkling Ice Tea Limon 330 ml",
+        "packaging":  "Kutu",
+        "size":  "330 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "dimes-peach",
+        "name":  "Dimes Şeftali 250 ml",
+        "packaging":  "Kutu",
+        "size":  "250 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "dimes-cherry",
+        "name":  "Dimes Vişne 250 ml",
+        "packaging":  "Kutu",
+        "size":  "250 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "dimes-mixed",
+        "name":  "Dimes Karışık / Portakal 200 ml",
+        "packaging":  "Kartonet (tetra)",
+        "size":  "200 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "meyoz-mixed",
+        "name":  "Meyöz Karışık 200 ml",
+        "packaging":  "Kartonet",
+        "size":  "200 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "meyoz-peach",
+        "name":  "Meyöz Şeftali (Karışık Meyve) 200 ml",
+        "packaging":  "Kartonet",
+        "size":  "200 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "capri-multi",
+        "name":  "Capri-Sun Multivitamin 200 ml",
+        "packaging":  "Poşet",
+        "size":  "200 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "capri-dragon",
+        "name":  "Capri-Sun Mystic Dragon 200 ml",
+        "packaging":  "Poşet",
+        "size":  "200 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "doganay",
+        "name":  "Doğanay Şalgam 300 ml",
+        "packaging":  "Plastik şişe",
+        "size":  "300 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "sutas-170",
+        "name":  "Sütaş Ayran 170 ml",
+        "packaging":  "Bardak (mavi-beyaz)",
+        "size":  "170 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "sutas-200",
+        "name":  "Sütaş Ayran 200 ml",
+        "packaging":  "Büyük bardak",
+        "size":  "200 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "sutas-milk",
+        "name":  null,
+        "packaging":  "Büyük plastik şişe",
+        "size":  "1 L",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "mint-ayran",
+        "name":  "Naneli Ayran 200 ml",
+        "packaging":  "Küçük şişe",
+        "size":  "200 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "white-milk",
+        "name":  "Ekşili Ayran 200–250 ml",
+        "packaging":  "Küçük cam şişe",
+        "size":  "200–250 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "green-milk",
+        "name":  "Acılı Ayran 200 ml",
+        "packaging":  "Küçük cam şişe",
+        "size":  "200–250 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "abant",
+        "name":  "Su 500 ml",
+        "packaging":  "Plastik şişe",
+        "size":  "500 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "cobanpinar",
+        "name":  null,
+        "packaging":  "Plastik şişe",
+        "size":  "500 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "purelen",
+        "name":  null,
+        "packaging":  "Plastik şişe",
+        "size":  "330 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    },
+    {
+        "id":  "cup-water",
+        "name":  "Bardak Su 200 ml",
+        "packaging":  "Kapaklı bardak",
+        "size":  "200 ml",
+        "category":  "İçecek Çeşitleri",
+        "subcategory":  "Soğuk İçecekler",
+        "price_cents":  null,
+        "certainty":  "Tahmini"
+    }
+]

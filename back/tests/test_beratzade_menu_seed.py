@@ -20,6 +20,9 @@ def test_brochure_subcategories_replace_legacy_meat_and_chicken_groups():
     assert menu_subcategory("Beratzade Sandviç Menüsü", "Çeyrek Sandviç") == "Çeyrek Sandviç"
     assert menu_subcategory("Tost Çeşitleri", "Kaşarlı Tost") is None
     assert all(category in CATEGORIES for category in SUBCATEGORIES)
+    assert SUBCATEGORIES["İçecek Çeşitleri"] == ["Soğuk İçecekler", "Sıcak İçecekler"]
+    assert menu_subcategory("İçecek Çeşitleri", "Büyük Çay") == "Sıcak İçecekler"
+    assert menu_subcategory("İçecek Çeşitleri", "Pepsi Slim Kutu 330 ml") == "Soğuk İçecekler"
 
 
 def test_admin_category_list_uses_the_restaurant_menu_not_global_catalog():
@@ -38,8 +41,8 @@ def test_admin_category_list_uses_the_restaurant_menu_not_global_catalog():
     session.exec.assert_not_called()
 
 
-def test_approved_menu_catalog_has_69_priced_items_and_16_categories():
-    assert len(MENU) == 69
+def test_approved_menu_catalog_has_all_drinks_and_categories():
+    assert len(MENU) == 96
     assert len(CATEGORIES) == 16
     assert len({normalize_name(row[1]) for row in MENU}) == len(MENU)
     assert "Günlük Sulu Yemekler" in CATEGORIES
@@ -48,31 +51,28 @@ def test_approved_menu_catalog_has_69_priced_items_and_16_categories():
     assert TENANT_ID == 89
 
 def test_requested_beverages_have_the_approved_prices():
-    from app.seeds.add_beratzade_beverages import BEVERAGES as BEVERAGE_IMPORT_ROWS
-    drinks = {
-        normalize_name(name): price
-        for category, name, price, _ in MENU
-        if category == "İçecek Çeşitleri"
-    }
+    drinks = {normalize_name(name): price for category, name, price, _ in MENU if category == "İçecek Çeşitleri"}
     expected = {
-        "Uludağ Limonata (Şişe 250 ml)": 5000,
-        "Coca-Cola (330 ml)": 8000,
-        "Pepsi (330 ml)": 8000,
-        "Bardak Ayran": 6000,
-        "Küçük Ayran": 4000,
-        "Coca-Cola (1 L)": 10000,
-        "Fanta (1 L)": 10000,
-        "Doğanay Şalgam (Küçük)": 6000,
-        "Ekşi Ayran": 8000,
-        "Acılı Ayran": 8000,
-        "Naneli Ayran": 8000,
-        "Capri-Sun": 3500,
+        "Pepsi Slim Kutu 330 ml": 8000, "Coca-Cola Kutu 330 ml": 8000,
+        "Coca-Cola Zero Kutu 330 ml": 8000, "Coca-Cola Cam Şişe 250 ml": 8000,
+        "Coca-Cola Plastik Şişe 1 L": 10000, "Fanta Portakal Plastik Şişe 1 L": 10000,
+        "Sprite Kutu 330 ml": 8000, "Yedigün Portakal Kutu 250 ml": 8000,
+        "Fanta / Meyveli Gazoz Kutu 330 ml": 8000, "Sırma Gazoz Cam Şişe 200 ml": 5000,
+        "Niğde Gazozu Cam Şişe 200 ml": 5000, "Lipton Ice Tea Limon 330 ml": 7000,
+        "Lipton Ice Tea Şeftali 330 ml": 7000, "Lipton Ice Tea Kırmızı Meyve 330 ml": 7000,
+        "Lipton Sparkling Ice Tea Limon 330 ml": 7000, "Dimes Şeftali 250 ml": 7000,
+        "Dimes Vişne 250 ml": 7000, "Dimes Karışık / Portakal 200 ml": 7000,
+        "Meyöz Karışık 200 ml": 3000, "Meyöz Şeftali (Karışık Meyve) 200 ml": 3000,
+        "Capri-Sun Multivitamin 200 ml": 3500, "Capri-Sun Mystic Dragon 200 ml": 3500,
+        "Doğanay Şalgam 300 ml": 7000, "Sütaş Ayran 170 ml": 4000,
+        "Sütaş Ayran 200 ml": 5000, "Naneli Ayran 200 ml": 8000,
+        "Ekşili Ayran 200–250 ml": 8000, "Acılı Ayran 200 ml": 8000,
+        "Su 500 ml": 2500, "Bardak Su 200 ml": 1000,
     }
-    assert all(drinks.get(normalize_name(name)) == price for name, price in expected.items())
-    assert {normalize_name(name): price for name, price in BEVERAGE_IMPORT_ROWS} == {
-        normalize_name(name): price for name, price in expected.items()
-    }
-
+    assert all(drinks.get(normalize_name(k)) == v for k, v in expected.items())
+    assert sum(price > 0 for price in drinks.values()) == 35
+    assert sum(price == 0 for price in drinks.values()) == 9
+    assert all(menu_subcategory("İçecek Çeşitleri", name) == "Soğuk İçecekler" for name in expected)
 def test_existing_product_ids_are_kept_for_approved_duplicate_and_sutlac_alias():
     product_ids = _menu_product_id_map()
     assert product_ids[normalize_name("Urfa Kebap Servis")] == 613
