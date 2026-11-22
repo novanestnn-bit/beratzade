@@ -13,50 +13,58 @@ export interface SeoPageConfig {
 }
 
 const BRAND = 'Beratzade';
+const SITE_ORIGIN = 'https://www.beratzade.com';
 const DEFAULT_DESCRIPTION =
-  'Beratzade Kebap ve Kahvaltı Salonu. Restoran menüsü, masa servisi ve işletme yönetimi.';
+  "Beratzade Kebap & Kahvaltı Salonu'nda kebap çeşitleri, serpme kahvaltı, günlük sulu yemekler ve tavuklu pilav sizleri bekliyor.";
 const OG_IMAGE_PATH = '/og-image.png';
 
 /** Exact marketing / public shell pages with fixed English meta (crawler-friendly). */
 const MARKETING_PAGES: Record<string, Omit<SeoPageConfig, 'path'>> = {
   '/': {
-    title: `${BRAND} — Open-source restaurant platform`,
+    title: `${BRAND} | Kebap, Kahvaltı ve Sulu Yemekler`,
     description: DEFAULT_DESCRIPTION,
   },
   '/features': {
-    title: `Features — ${BRAND}`,
-    description:
-      'Everything Satisfecho offers: QR menus, online payments, kitchen displays, shift planning, inventory, and more — one platform for guests, staff, and owners.',
+    title: `${BRAND} | Kebap, Kahvaltı ve Sulu Yemekler`,
+    description: DEFAULT_DESCRIPTION,
   },
   '/about': {
-    title: `About us — ${BRAND}`,
-    description:
-      'Satisfecho is an open-source restaurant platform operated by Amvara Consulting S.L. Learn who we are and how the product helps restaurants.',
+    title: `${BRAND} | Hakkımızda`,
+    description: DEFAULT_DESCRIPTION,
   },
   '/register': {
-    title: `Create your restaurant — ${BRAND}`,
-    description: `Sign up for ${BRAND} and launch QR menus, ordering, and reservations for your restaurant.`,
+    title: `${BRAND} | Kebap, Kahvaltı ve Sulu Yemekler`,
+    description: DEFAULT_DESCRIPTION,
   },
   '/signup': {
-    title: `Create your restaurant — ${BRAND}`,
-    description: `Sign up for ${BRAND} and launch QR menus, ordering, and reservations for your restaurant.`,
+    title: `${BRAND} | Kebap, Kahvaltı ve Sulu Yemekler`,
+    description: DEFAULT_DESCRIPTION,
   },
   '/orders': {
-    title: `Order online — ${BRAND}`,
-    description: `Find restaurants on ${BRAND} and place take-away or home orders online.`,
+    title: `${BRAND} | Menü`,
+    description: DEFAULT_DESCRIPTION,
   },
   '/terms': {
-    title: `Terms of service — ${BRAND}`,
-    description: `Terms of service for the ${BRAND} restaurant platform.`,
+    title: `${BRAND} | Kullanım Koşulları`,
+    description: `${BRAND} Kebap & Kahvaltı Salonu kullanım koşulları.`,
   },
   '/privacy': {
-    title: `Privacy policy — ${BRAND}`,
-    description: `Privacy policy for the ${BRAND} restaurant platform.`,
+    title: `${BRAND} | Gizlilik`,
+    description: `${BRAND} Kebap & Kahvaltı Salonu gizlilik bilgileri.`,
   },
 };
 
 /** Path prefixes that should not be indexed (staff / auth shells). */
 const NOINDEX_PREFIXES = [
+  '/features',
+  '/about',
+  '/register',
+  '/signup',
+  '/orders',
+  '/terms',
+  '/privacy',
+  '/pricing',
+  '/manual-usuario',
   '/login',
   '/admin/login',
   '/forgot-password',
@@ -121,13 +129,13 @@ export class SeoService {
 
   /** Public /features/:slug detail pages (fixed English meta for crawlers). */
   applyFeatureDetail(path: string, title: string, description: string): void {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://satisfecho.de';
+    const origin = SITE_ORIGIN;
     this.applyTags({ title, description, path }, origin);
   }
 
   applyForUrl(rawUrl: string): void {
     const path = this.normalizePath(rawUrl);
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://satisfecho.de';
+    const origin = SITE_ORIGIN;
 
     if (this.isNoindexPath(path)) {
       this.applyTags({
@@ -182,7 +190,7 @@ export class SeoService {
 
   private setOgBasics(opts: { title: string; description: string; url: string }): void {
     const image = this.absoluteUrl(
-      typeof window !== 'undefined' ? window.location.origin : 'https://satisfecho.de',
+      SITE_ORIGIN,
       OG_IMAGE_PATH,
     );
     this.meta.updateTag({ property: 'og:type', content: 'website' });

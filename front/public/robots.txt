@@ -1,19 +1,21 @@
-# Satisfecho public site — https://satisfecho.de
+# Beratzade Kebap & Kahvaltı Salonu — https://www.beratzade.com
 User-agent: *
-Allow: /
-Allow: /features
-Allow: /register
-Allow: /signup
-Allow: /terms
-Allow: /privacy
-Allow: /orders
-Allow: /book/
 Allow: /public-menu/
+Allow: /book/
 Allow: /delivery/
 Allow: /waitlist/
 Allow: /feedback/
-Allow: /menu/
-Allow: /reservation
+
+# Platform marketing, legal, and management routes are outside Beratzade's public site.
+Disallow: /features
+Disallow: /about
+Disallow: /register
+Disallow: /signup
+Disallow: /orders
+Disallow: /terms
+Disallow: /privacy
+Disallow: /pricing
+Disallow: /manual-usuario
 
 # Staff / auth portals — prefer not to index app shells
 Disallow: /login
@@ -41,4 +43,4 @@ Disallow: /provider/
 Disallow: /courier/
 Disallow: /platform/
 
-Sitemap: https://satisfecho.de/sitemap.xml
+Sitemap: https://www.beratzade.com/sitemap.xml
