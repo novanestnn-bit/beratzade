@@ -21,7 +21,7 @@ os.environ.pop("ENABLE_API_DOCS", None)
 os.environ["SECRET_KEY"] = "unit-test-secret-key-not-a-placeholder-422"
 os.environ["REFRESH_SECRET_KEY"] = "unit-test-refresh-secret-not-a-placeholder-422"
 # Explicit CORS allowlist required when PRODUCTION=true (#421).
-os.environ["CORS_ORIGINS"] = "https://satisfecho.de"
+os.environ["CORS_ORIGINS"] = "https://www.beratzade.com"
 
 sys.path.insert(0, {back_root!r})
 

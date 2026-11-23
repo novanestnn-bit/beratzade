@@ -15,7 +15,7 @@ _BACK_ROOT = Path(__file__).resolve().parent.parent
 
 _OK_SECRET = "unit-test-secret-key-not-a-placeholder-421"
 _OK_REFRESH = "unit-test-refresh-secret-not-a-placeholder-421"
-_OK_CORS = "https://satisfecho.de,http://localhost:4202"
+_OK_CORS = "https://www.beratzade.com,http://localhost:4202"
 
 
 def _run_snippet(snippet: str) -> subprocess.CompletedProcess[str]:
@@ -66,7 +66,7 @@ import os
 os.environ["PRODUCTION"] = "true"
 os.environ["SECRET_KEY"] = {_OK_SECRET!r}
 os.environ["REFRESH_SECRET_KEY"] = {_OK_REFRESH!r}
-os.environ["CORS_ORIGINS"] = "https://satisfecho.de,*"
+os.environ["CORS_ORIGINS"] = "https://www.beratzade.com,*"
 try:
     import app.settings  # noqa: F401
 except Exception as e:
@@ -136,7 +136,7 @@ os.environ["CORS_ORIGINS"] = {_OK_CORS!r}
 from app.settings import settings
 assert settings.is_production is True
 assert "*" not in settings.cors_origins
-assert "https://satisfecho.de" in settings.cors_origins
+assert "https://www.beratzade.com" in settings.cors_origins
 print("ok")
 """
     )

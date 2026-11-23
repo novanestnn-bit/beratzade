@@ -51,7 +51,7 @@ import { environment } from '../../environments/environment';
             >{{ version || '0.0.0' }} <span class="landing-commit">{{ commitHash || '' }}</span></span
           >
           <a
-            href="https://github.com/satisfecho/pos/"
+            href="https://github.com/novanestnn-bit/beratzade/"
             target="_blank"
             rel="noopener noreferrer"
             class="landing-version-github"

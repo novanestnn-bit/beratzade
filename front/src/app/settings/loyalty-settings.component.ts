@@ -18,7 +18,7 @@ import { ApiService, LoyaltyMembership, LoyaltyProgram } from '../services/api.s
       <p class="hint docs">
         <a
           class="docs-link"
-          href="https://github.com/satisfecho/pos/blob/master/docs/0066-club-loyalty.md"
+          href="https://github.com/novanestnn-bit/beratzade/blob/master/docs/0066-club-loyalty.md"
           target="_blank"
           rel="noopener noreferrer"
           data-testid="settings-loyalty-docs-link"

@@ -60,7 +60,7 @@ import os
 os.environ["PRODUCTION"] = "true"
 os.environ["SECRET_KEY"] = {_PLACEHOLDER_SECRET!r}
 os.environ["REFRESH_SECRET_KEY"] = {_OK_REFRESH!r}
-os.environ["CORS_ORIGINS"] = "https://satisfecho.de"
+os.environ["CORS_ORIGINS"] = "https://www.beratzade.com"
 try:
     import app.settings  # noqa: F401 — triggers Settings() at import
 except Exception as e:
@@ -85,7 +85,7 @@ import os
 os.environ["PRODUCTION"] = "true"
 os.environ["SECRET_KEY"] = {_OK_SECRET!r}
 os.environ["REFRESH_SECRET_KEY"] = {_PLACEHOLDER_REFRESH!r}
-os.environ["CORS_ORIGINS"] = "https://satisfecho.de"
+os.environ["CORS_ORIGINS"] = "https://www.beratzade.com"
 try:
     import app.settings  # noqa: F401
 except Exception as e:
@@ -127,7 +127,7 @@ import os
 os.environ["PRODUCTION"] = "true"
 os.environ["SECRET_KEY"] = {_OK_SECRET!r}
 os.environ["REFRESH_SECRET_KEY"] = {_OK_REFRESH!r}
-os.environ["CORS_ORIGINS"] = "https://satisfecho.de"
+os.environ["CORS_ORIGINS"] = "https://www.beratzade.com"
 from app.settings import settings
 assert settings.is_production is True
 assert settings.secret_key == {_OK_SECRET!r}

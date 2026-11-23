@@ -108,7 +108,7 @@ import { ApiService, PrintAgent, PrintBridgeStatus } from '../services/api.servi
       <p class="hint docs">
         <a
           class="docs-link"
-          href="https://github.com/satisfecho/pos/blob/master/docs/0070-hardware-printing.md"
+          href="https://github.com/novanestnn-bit/beratzade/blob/master/docs/0070-hardware-printing.md"
           target="_blank"
           rel="noopener noreferrer"
           data-testid="settings-printing-docs-link"

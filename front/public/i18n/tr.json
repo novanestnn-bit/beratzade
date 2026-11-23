@@ -274,7 +274,7 @@
     "FEAT_WAITLIST_TITLE": "Waiting list",
     "FEAT_WAITLIST_DESC": "Guests join a queue with name, party size, and phone when no table is free — staff notify and seat from Reservations.",
     "FEAT_SATISFECHO_DELIVERY_TITLE": "Beratzade Teslimat",
-    "FEAT_SATISFECHO_DELIVERY_DESC": "Guests order delivery online with address, payment, and zone-based fees; staff and couriers fulfill, and customers track order status.",
+    "FEAT_SATISFECHO_DELIVERY_DESC": "Misafirler adres, ödeme ve bölgeye göre teslimat ücretiyle çevrimiçi sipariş verir; çalışanlar ve kuryeler siparişi teslim eder, müşteriler durumunu takip eder.",
     "FEAT_PAYMENTS_TITLE": "Online payments",
     "FEAT_PAYMENTS_DESC": "Accept card payments at the table or when booking via Stripe and Revolut Checkout.",
     "FEAT_ORDER_COMMENTS_TITLE": "Order comments",
@@ -3628,4 +3628,4 @@
     "EMPTY_GROUP": "Bu bölümde şu anda listelenecek ürün bulunmuyor.",
     "MENU_SECTIONS": "Menü bölümleri"
   }
-}
+}\n
