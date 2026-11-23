@@ -88,7 +88,7 @@ try {
   assert.equal(await page.$$eval('.beratzade-group-card', cards => cards.length), 7);
   assert.match(new URL(page.url()).searchParams.get('section'), /kahvalti/);
 
-  await page.click('.beratzade-menu-home-link');
+  await page.click('.beratzade-menu-brand');
   await page.waitForSelector('.beratzade-choice-card');
   await page.click('.beratzade-choice-card[data-section="kebap-sulu-yemekler"]');
   await page.waitForSelector('.beratzade-group-card');
