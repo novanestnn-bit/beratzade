@@ -996,12 +996,12 @@ def _verify_staff_menu_token(table_token: str, token: str) -> bool:
     return _staff_menu_token_claims(table_token, token)[0]
 
 
-# Public Satisfecho Delivery checkout + track: signed token covers pay and track (24h)
+# Public Beratzade Delivery checkout + track: signed token covers pay and track (24h)
 PUBLIC_DELIVERY_ORDER_TOKEN_EXPIRY = 86400  # 24 hours
 
 
 def _sign_public_delivery_order_token(order_id: int, tenant_id: int) -> str:
-    """Signed token proving guest ownership of a public Satisfecho Delivery order for pay/track."""
+    """Signed token proving guest ownership of a public Beratzade Delivery order for pay/track."""
     expiry = int(_time.time()) + PUBLIC_DELIVERY_ORDER_TOKEN_EXPIRY
     payload = f"sd:{order_id}:{tenant_id}:{expiry}"
     sig = hmac.new(
@@ -1091,11 +1091,11 @@ def _resolve_guest_payment_order(
         raise HTTPException(status_code=404, detail="Order not found")
     if not _verify_public_delivery_order_token(order.id, order.tenant_id, pot or ""):
         raise HTTPException(status_code=404, detail="Order not found")
-    return order, None, "Satisfecho Delivery"
+    return order, None, "Beratzade Delivery"
 
 
 def _guest_order_payable_total_cents(session: Session, order: models.Order) -> int:
-    """Line items + delivery fee for Satisfecho Delivery guest checkout totals."""
+    """Line items + delivery fee for Beratzade Delivery guest checkout totals."""
     items = session.exec(
         select(models.OrderItem).where(models.OrderItem.order_id == order.id)
     ).all()
@@ -1570,7 +1570,7 @@ def create_staff_sale(
 
 @app.get(
     "/public/tenants/{tenant_id}/satisfecho-delivery-config",
-    summary="Public Satisfecho Delivery fee and coverage config",
+    summary="Public Beratzade Delivery fee and coverage config",
     tags=["Public"],
 )
 @public_menu_ip_limit()
@@ -1609,7 +1609,7 @@ def get_public_satisfecho_delivery_config(
 
 @app.get(
     "/public/orders/{order_id}/delivery-status",
-    summary="Public Satisfecho Delivery order track status",
+    summary="Public Beratzade Delivery order track status",
     tags=["Public"],
 )
 @public_menu_ip_limit()
@@ -1667,7 +1667,7 @@ def get_public_delivery_order_status(
 
 @app.post(
     "/public/tenants/{tenant_id}/satisfecho-delivery",
-    summary="Public Satisfecho Delivery checkout create",
+    summary="Public Beratzade Delivery checkout create",
     tags=["Public"],
 )
 @public_menu_ip_limit()
@@ -1679,7 +1679,7 @@ def create_public_satisfecho_delivery_order(
     session: Session = Depends(get_session),
 ) -> dict:
     """
-    Unauthenticated: create a Satisfecho Delivery order (no table) for guest checkout.
+    Unauthenticated: create a Beratzade Delivery order (no table) for guest checkout.
     Kitchen is notified only after successful payment (via public_order_token pay endpoints).
     """
     tenant = session.get(models.Tenant, tenant_id)
@@ -4087,7 +4087,7 @@ def list_courier_users(
     current_user: Annotated[models.User, Depends(require_permission(Permission.ORDER_READ))],
     session: Session = Depends(get_session),
 ) -> list[models.UserResponse]:
-    """List courier-role users in the tenant (for Satisfecho Delivery assign)."""
+    """List courier-role users in the tenant (for Beratzade Delivery assign)."""
     users = session.exec(
         select(models.User).where(
             models.User.tenant_id == current_user.tenant_id,
@@ -4950,7 +4950,7 @@ def update_tenant_settings(
         else:
             tenant.guest_birthday_consent_text = None
 
-    # Satisfecho Delivery fee + coverage
+    # Beratzade Delivery fee + coverage
     if tenant_update.delivery_fee_cents is not None:
         fee = int(tenant_update.delivery_fee_cents)
         if fee < 0:
@@ -7528,7 +7528,7 @@ def _courier_pickup_context(session: Session, tenant_id: int) -> tuple[str | Non
 
 
 def _courier_order_base_query(tenant_id: int):
-    """Marketplace (integration) or first-party Satisfecho Delivery orders."""
+    """Marketplace (integration) or first-party Beratzade Delivery orders."""
     return (
         select(models.Order)
         .where(
@@ -14775,7 +14775,7 @@ def create_satisfecho_delivery_order_endpoint(
     current_user: Annotated[models.User, Depends(require_permission(Permission.ORDER_UPDATE_STATUS))],
     session: Session = Depends(get_session),
 ) -> dict:
-    """Staff: create a first-party Satisfecho Delivery order (no table / marketplace)."""
+    """Staff: create a first-party Beratzade Delivery order (no table / marketplace)."""
     if not body.items:
         raise HTTPException(status_code=400, detail="Order must have at least one item")
     address = (body.delivery_address or "").strip()
@@ -14838,7 +14838,7 @@ def update_order_delivery(
     current_user: Annotated[models.User, Depends(require_permission(Permission.ORDER_UPDATE_STATUS))],
     session: Session = Depends(get_session),
 ) -> dict:
-    """Staff: update delivery metadata on a Satisfecho Delivery order."""
+    """Staff: update delivery metadata on a Beratzade Delivery order."""
     order = session.exec(
         select(models.Order).where(
             models.Order.id == order_id,
@@ -14850,7 +14850,7 @@ def update_order_delivery(
     if _order_channel_value(order) != models.OrderChannel.satisfecho_delivery.value:
         raise HTTPException(
             status_code=400,
-            detail="Only Satisfecho Delivery orders can update delivery fields via this endpoint",
+            detail="Only Beratzade Delivery orders can update delivery fields via this endpoint",
         )
 
     updates = body.model_dump(exclude_unset=True)
@@ -17089,7 +17089,7 @@ def create_payment_intent(
         public_order_token=public_order_token,
     )
 
-    # Calculate total from order items (+ delivery fee for Satisfecho Delivery)
+    # Calculate total from order items (+ delivery fee for Beratzade Delivery)
     total_cents = _guest_order_payable_total_cents(session, order)
 
     if total_cents <= 0:
@@ -17206,7 +17206,7 @@ def confirm_payment(
                 detail="Payment mismatch: Payment does not belong to this order",
             )
 
-        # 2. Check amount (includes delivery fee for Satisfecho Delivery)
+        # 2. Check amount (includes delivery fee for Beratzade Delivery)
         total_cents = _guest_order_payable_total_cents(session, order)
 
         if intent.amount != total_cents:

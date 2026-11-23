@@ -2,7 +2,7 @@
 Seed demo orders for tenant 1 on clean deployment so Reports (Informes) show meaningful data.
 
 Creates a mix of **table** orders (pending, preparing, ready, completed, paid) plus a small
-set of **Satisfecho Delivery** samples (`order_channel=satisfecho_delivery`, no table) so the
+set of **Beratzade Delivery** samples (`order_channel=satisfecho_delivery`, no table) so the
 staff Delivery tab, kitchen cards, and courier Mine list are non-empty after bootstrap /
 `reset_demo_data`.
 
@@ -44,7 +44,7 @@ DAYS_BACK = 90
 # Approximate count: paid orders (for reports) + a few active orders (pending/preparing/ready/completed)
 NUM_PAID_ORDERS = 35
 NUM_ACTIVE_ORDERS = 5
-# Satisfecho Delivery samples (staff Delivery tab / courier / kitchen demo)
+# Beratzade Delivery samples (staff Delivery tab / courier / kitchen demo)
 NUM_PAID_DELIVERY_ORDERS = 5
 NUM_ACTIVE_DELIVERY_ORDERS = 4
 
@@ -121,7 +121,7 @@ def _seed_demo_delivery_orders(
     tenant_id: int,
     products_for_orders: list[Product],
 ) -> int:
-    """Create Satisfecho Delivery demo orders (no table). Returns count created."""
+    """Create Beratzade Delivery demo orders (no table). Returns count created."""
     courier_user_id = _existing_courier_user_id(session, tenant_id)
     created = 0
 
@@ -279,7 +279,7 @@ def run() -> None:
 
         if existing_any is not None:
             if existing_delivery is not None:
-                print("Tenant 1 already has orders (including Satisfecho Delivery). Skipping demo orders seed.")
+                print("Tenant 1 already has orders (including Beratzade Delivery). Skipping demo orders seed.")
                 return
             products = session.exec(
                 select(Product).where(Product.tenant_id == DEMO_TENANT_ID)
@@ -295,7 +295,7 @@ def run() -> None:
             if n:
                 session.commit()
                 print(
-                    f"Tenant {DEMO_TENANT_ID}: created {n} Satisfecho Delivery demo orders "
+                    f"Tenant {DEMO_TENANT_ID}: created {n} Beratzade Delivery demo orders "
                     "(table orders already present)."
                 )
             return
@@ -305,7 +305,7 @@ def run() -> None:
             session.commit()
             print(
                 f"Tenant {DEMO_TENANT_ID}: created {n} demo orders "
-                f"(table + Satisfecho Delivery paid/active) for Reports, Orders, and Delivery."
+                f"(table + Beratzade Delivery paid/active) for Reports, Orders, and Delivery."
             )
         else:
             print("Tenant 1: no tables or products found. Run seed_demo_tables and seed_demo_products first.")
