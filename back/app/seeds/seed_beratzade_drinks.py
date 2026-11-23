@@ -8,6 +8,7 @@ Unidentified brands/flavours remain unidentified; no substitute images are used.
 from copy import deepcopy
 import hashlib
 import json
+import os
 from pathlib import Path
 
 from sqlmodel import Session, select
@@ -16,8 +17,8 @@ from app import models
 
 
 PUBLIC_SLUG = "beratzade-kebap-kahvalti-salonu"
-CATEGORY = "İçecekler"
-SUBCATEGORY = "Soğuk"
+CATEGORY = "İçecek Çeşitleri"
+SUBCATEGORY = "Soğuk İçecekler"
 PHOTO_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "beratzade-drinks"
 UPLOADS_DIR = Path(__file__).resolve().parents[2] / "uploads"
 
@@ -104,8 +105,9 @@ def seed(session: Session, *, uploads_dir: Path = UPLOADS_DIR,
     ).all()}
     custom = deepcopy(tenant.custom_subcategories or {})
     subcategories = custom.setdefault(category, [])
-    if SUBCATEGORY not in subcategories:
-        subcategories.append(SUBCATEGORY)
+    for label in (SUBCATEGORY, "Sıcak İçecekler"):
+        if label not in subcategories:
+            subcategories.append(label)
     tenant.custom_subcategories = custom
     session.add(tenant)
 
@@ -141,11 +143,34 @@ def seed(session: Session, *, uploads_dir: Path = UPLOADS_DIR,
 
 def run() -> None:
     from app.db import engine
+    from app.settings import settings
+    from app.seeds.seed_beratzade_menu import TENANT_ID, validate_seed_environment
+
+    validate_seed_environment(
+        production=settings.is_production,
+        opt_in=os.environ.get("ALLOW_BERATZADE_MENU_IMPORT") == "1",
+        production_opt_in=os.environ.get("ALLOW_BERATZADE_MENU_PRODUCTION_IMPORT") == "1",
+        confirmed_tenant_id=(
+            int(os.environ["BERATZADE_MENU_CONFIRM_TENANT_ID"])
+            if os.environ.get("BERATZADE_MENU_CONFIRM_TENANT_ID", "").isdigit()
+            else None
+        ),
+        database_host=engine.url.host,
+        database_name=engine.url.database,
+        tenant_ref=settings.local_dev_tenant_ref,
+    )
 
     with Session(engine) as session:
-        created = seed(session)
+        tenant = session.exec(
+            select(models.Tenant).where(models.Tenant.public_slug == PUBLIC_SLUG)
+        ).one_or_none()
+        if tenant is None or tenant.id != TENANT_ID:
+            raise RuntimeError("Beratzade tenant verification failed; no drinks were imported.")
+        created = seed(session, static_images=True)
         print(f"İçecek aktarımı tamamlandı: {created} yeni ürün; {len(DRINKS)} fiyatlı, {len(DRAFT_DRINKS)} fiyat bekleyen ürünlük liste.")
 
 
 if __name__ == "__main__":
     run()
+
+\n

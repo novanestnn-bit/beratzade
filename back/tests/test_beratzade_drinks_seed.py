@@ -56,7 +56,15 @@ class DrinkSeedTest(unittest.TestCase):
         self.assertEqual({p.name: p.price_cents for p in products}, {
             name: price for name, price, _ in (*DRINKS, *DRAFT_DRINKS)
         })
-        self.assertTrue(all(p.category == "İçecekler" and p.subcategory == "Soğuk" for p in products))
+        self.assertTrue(all(
+            p.category == "İçecek Çeşitleri" and p.subcategory == "Soğuk İçecekler"
+            for p in products
+        ))
+        self.session.refresh(target)
+        self.assertEqual(
+            target.custom_subcategories["İçecek Çeşitleri"],
+            ["Soğuk İçecekler", "Sıcak İçecekler"],
+        )
         products[0].price_cents = 9999
         products[0].image_filename = "existing.webp"
         self.session.add(products[0])
@@ -87,3 +95,5 @@ class DrinkSeedTest(unittest.TestCase):
         illustrated = [p for p in products if p.image_filename]
         self.assertEqual(len(illustrated), 35)
         self.assertTrue(all(p.image_filename.startswith("menu-images/beratzade/drinks/") for p in illustrated))
+        static_root = Path(__file__).resolve().parents[2] / "front" / "public"
+        self.assertTrue(all((static_root / p.image_filename).is_file() for p in illustrated))
