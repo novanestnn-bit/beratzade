@@ -98,7 +98,7 @@ export const routes: Routes = [
   { path: 'waitlist/:tenantId', loadComponent: () => import('./waitlist-public/waitlist-public.component').then(m => m.WaitlistPublicComponent) },
   { path: 'feedback/:tenantId', loadComponent: () => import('./feedback-public/feedback-public.component').then(m => m.FeedbackPublicComponent) },
   { path: 'loyalty/card/:memberToken', loadComponent: () => import('./loyalty-public/loyalty-card-public.component').then(m => m.LoyaltyCardPublicComponent) },
-  // Bare /loyalty and /loyalty/ must not fall through to landing (Satisfecho marketing) â€” #373
+  // Bare /loyalty and /loyalty/ must not fall through to the marketing landing â€” #373
   { path: 'loyalty', pathMatch: 'full', loadComponent: () => import('./loyalty-public/loyalty-public.component').then(m => m.LoyaltyPublicComponent) },
   { path: 'loyalty/:tenantId', loadComponent: () => import('./loyalty-public/loyalty-public.component').then(m => m.LoyaltyPublicComponent) },
   // Public take-away / home ordering: list tenants with ordering link

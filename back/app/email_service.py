@@ -73,7 +73,7 @@ def _effective_smtp_config(tenant: Optional["Tenant"] = None) -> dict[str, Any]:
 def smtp_credentials_configured(tenant: Optional["Tenant"] = None) -> bool:
     """True when tenant or global SMTP has user and password (email can be attempted)."""
     cfg = _effective_smtp_config(tenant)
-    return bool(cfg.get("user") and cfg.get("password"))
+    return bool(cfg.get("user") and cfg.get("password") and cfg.get("from_email"))
 
 
 def reminder_send_failure_message(
@@ -132,8 +132,8 @@ async def send_email(
         True if email sent successfully, False otherwise
     """
     cfg = _effective_smtp_config(tenant)
-    if not cfg["user"] or not cfg["password"]:
-        logger.error("SMTP credentials not configured (tenant or global)")
+    if not cfg["user"] or not cfg["password"] or not cfg["from_email"]:
+        logger.error("SMTP credentials and sender address must be configured (tenant or global)")
         return False
 
     from_addr = from_email or cfg["from_email"]

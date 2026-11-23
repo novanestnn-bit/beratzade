@@ -40,7 +40,7 @@ import { ApiService, PricePromotion } from '../services/api.service';
             <select [(ngModel)]="draftChannels">
               <option value="">{{ 'SETTINGS.PROMOS_CHANNELS_ALL' | translate }}</option>
               <option value="table">table</option>
-              <option value="satisfecho_delivery">satisfecho_delivery</option>
+              <option value="satisfecho_delivery">Beratzade delivery</option>
               <option value="marketplace">marketplace</option>
             </select>
           </label>

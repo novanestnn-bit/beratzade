@@ -200,7 +200,7 @@ def build_pass_json(
         "passTypeIdentifier": settings.loyalty_apple_pass_type_id.strip(),
         "serialNumber": membership.apple_pass_serial,
         "teamIdentifier": settings.loyalty_apple_team_id.strip(),
-        "organizationName": (tenant.name or "Satisfecho")[:60],
+        "organizationName": (tenant.name or "Beratzade")[:60],
         "description": (program.program_name or "Loyalty")[:100],
         "logoText": (program.program_name or "Club")[:30],
         "foregroundColor": "rgb(255, 255, 255)",
@@ -369,12 +369,12 @@ def _ensure_google_class(
         return class_id
     body = {
         "id": class_id,
-        "issuerName": (tenant.name or "Satisfecho")[:60],
+        "issuerName": (tenant.name or "Beratzade")[:60],
         "reviewStatus": "UNDER_REVIEW",
         "programName": (program.program_name or "Loyalty")[:60],
         "programLogo": {
             "sourceUri": {
-                "uri": "https://satisfecho.de/favicon.ico",
+                "uri": "https://www.beratzade.com/favicon-beratzade.svg",
             },
             "contentDescription": {
                 "defaultValue": {"language": "en-US", "value": "Logo"},

@@ -69,7 +69,6 @@ import { LandingSiteFooterComponent } from '../shared/landing-site-footer.compon
           <h2 id="about-contact-heading" class="about-section__title">{{ 'ABOUT_PAGE.CONTACT_TITLE' | translate }}</h2>
           <p class="about-section__body">
             {{ 'ABOUT_PAGE.CONTACT_BODY' | translate }}
-            <a href="mailto:hello@satisfecho.de" class="about-section__link">hello@satisfecho.de</a>
           </p>
         </section>
       </main>

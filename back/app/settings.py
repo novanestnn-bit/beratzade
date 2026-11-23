@@ -128,9 +128,9 @@ class Settings(BaseSettings):
     smtp_password: str = Field(default="", validation_alias="SMTP_PASSWORD")
     smtp_use_tls: bool = Field(default=True, validation_alias="SMTP_USE_TLS")
     email_from: str = Field(
-        default="noreply@satisfecho.de",
+        default="",
         validation_alias="EMAIL_FROM",
-        description="From address when tenant has none; use a domain you control (not example.com).",
+        description="From address when tenant has none; configure an address on a domain you control.",
     )
     email_from_name: str = Field(default="POS2 System", validation_alias="EMAIL_FROM_NAME")
 
@@ -152,7 +152,7 @@ class Settings(BaseSettings):
     public_app_base_url: str = Field(
         default="",
         validation_alias="PUBLIC_APP_BASE_URL",
-        description="e.g. https://satisfecho.de or http://127.0.0.1:4202 — required for password-reset and reservation email links; if empty, POST /password-reset/request returns 503",
+        description="e.g. https://www.beratzade.com or http://127.0.0.1:4202 — required for password-reset and reservation email links; if empty, POST /password-reset/request returns 503",
     )
 
     # Product-wide legal URLs when a tenant has not set its own (landing, auth pages).
@@ -399,13 +399,13 @@ class Settings(BaseSettings):
         if not parts:
             raise ValueError(
                 "Production requires CORS_ORIGINS to list at least one exact front-end "
-                "origin (e.g. https://satisfecho.de). See docs/0004-deployment.md."
+                "origin (e.g. https://www.beratzade.com). See docs/0004-deployment.md."
             )
         if "*" in parts:
             raise ValueError(
                 "Production refuses CORS_ORIGINS containing '*'. Set an explicit "
                 "allowlist of front-end origin(s) (protocol + host + port), e.g. "
-                "https://satisfecho.de. Same-origin public menus do not need a wildcard. "
+                "https://www.beratzade.com. Same-origin public menus do not need a wildcard. "
                 "See docs/0004-deployment.md."
             )
         return self

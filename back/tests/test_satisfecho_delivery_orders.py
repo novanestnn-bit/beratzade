@@ -88,7 +88,7 @@ class TestSatisfechoDeliveryOrders(PgClientTestCase):
         self.assertIsNotNone(match)
         assert match is not None
         self.assertEqual(match["order_channel"], "satisfecho_delivery")
-        self.assertEqual(match["table_name"], "Satisfecho Delivery")
+        self.assertEqual(match["table_name"], "Beratzade Delivery")
         self.assertEqual(match["delivery_address"], "Calle Mayor 10, Madrid")
         self.assertEqual(match["customer_phone"], "+34600111222")
 

@@ -143,7 +143,7 @@ class TestReservationReminderEmail(unittest.TestCase):
             self.assertFalse(email_service.smtp_credentials_configured(None))
         with patch.object(email_service.settings, "smtp_user", "u"), patch.object(
             email_service.settings, "smtp_password", "p"
-        ):
+        ), patch.object(email_service.settings, "email_from", "team@beratzade.com"):
             self.assertTrue(email_service.smtp_credentials_configured(None))
 
     def test_reminder_send_failure_message_when_smtp_not_configured(self):

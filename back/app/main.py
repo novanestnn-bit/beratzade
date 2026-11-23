@@ -7759,7 +7759,7 @@ def courier_order_action(
             "action": action,
             "status": order.status.value,
             "courier_user_id": order.courier_user_id,
-            "table_name": "Satisfecho Delivery"
+            "table_name": "Beratzade Delivery"
             if _order_channel_value(order) == models.OrderChannel.satisfecho_delivery.value
             else "Delivery",
         },
@@ -15070,7 +15070,7 @@ def list_orders(
         elif channel == models.OrderChannel.takeaway.value:
             table_display = "Gel-Al"
         elif channel == models.OrderChannel.satisfecho_delivery.value:
-            table_display = "Satisfecho Delivery"
+            table_display = "Beratzade Delivery"
         elif getattr(order, "delivery_integration_id", None) or channel == models.OrderChannel.marketplace.value:
             table_display = "Delivery"
         elif table:

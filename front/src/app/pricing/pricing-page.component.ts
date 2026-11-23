@@ -138,7 +138,7 @@ import { LandingSiteFooterComponent } from '../shared/landing-site-footer.compon
               <p class="pricing-support__note">{{ 'PRICING_PAGE.SUPPORT_NOTE' | translate }}</p>
             </div>
             <a
-              href="mailto:hello@satisfecho.de"
+              routerLink="/about"
               class="pricing-btn pricing-btn--ghost pricing-support__cta"
               data-testid="pricing-cta-support"
             >

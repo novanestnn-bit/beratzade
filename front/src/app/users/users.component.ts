@@ -8,9 +8,6 @@ import { ApiErrorMessageService } from '../services/api-error-message.service';
 import { FocusFirstInputDirective } from '../shared/focus-first-input.directive';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
-/** Satisfecho support login for owner-granted temporary admin access (issue #257). */
-export const SUPPORT_USER_EMAIL = 'support@satisfecho.de';
-
 @Component({
   selector: 'app-users',
   standalone: true,
@@ -21,16 +18,6 @@ export const SUPPORT_USER_EMAIL = 'support@satisfecho.de';
         <div class="page-header">
           <h1>{{ 'USERS.TITLE' | translate }}</h1>
           <div class="header-actions">
-            @if (canManageSupportAccess()) {
-              <button
-                type="button"
-                class="btn-secondary"
-                data-testid="add-support-access"
-                (click)="openSupportAccessModal()"
-              >
-                {{ 'USERS.ADD_SUPPORT_ACCESS' | translate }}
-              </button>
-            }
             <button type="button" class="btn-primary" data-testid="add-user" (click)="openCreateModal()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -59,9 +46,6 @@ export const SUPPORT_USER_EMAIL = 'support@satisfecho.de';
                     <span class="user-role-badge" [class]="'role-' + user.role">
                       {{ getRoleDisplayName(user.role) }}
                     </span>
-                    @if (isSupportUser(user)) {
-                      <span class="user-support-badge">{{ 'USERS.SUPPORT_BADGE' | translate }}</span>
-                    }
                   </div>
                 </div>
                 <div class="user-actions">
@@ -204,12 +188,6 @@ export const SUPPORT_USER_EMAIL = 'support@satisfecho.de';
                     </button>
                   </div>
                 </div>
-                @if (!editingUser() && isSupportEmailForm()) {
-                  <p class="role-hint">{{ 'USERS.ADD_SUPPORT_ACCESS_HINT' | translate }}</p>
-                }
-                @if (editingUser() && isSupportUser(editingUser()!) && supportAccessFromShortcut()) {
-                  <p class="role-hint">{{ 'USERS.SUPPORT_EDIT_EXISTING_HINT' | translate }}</p>
-                }
                 @if (editingUser() && currentUser()?.role === 'owner' && editingUser()?.id !== currentUser()?.id) {
                   <p class="role-hint">{{ 'USERS.CO_OWNER_HINT' | translate }}</p>
                 }
@@ -654,9 +632,6 @@ export class UsersComponent implements OnInit {
   readonly deleteError = signal<string | null>(null);
   private deleteTrigger: HTMLElement | null = null;
 
-  /** True when edit modal was opened via "Add Satisfecho support" for an existing support user. */
-  supportAccessFromShortcut = signal(false);
-
   // Available roles based on current user's permissions
   availableRoles = signal<UserRole[]>([]);
 
@@ -730,19 +705,6 @@ export class UsersComponent implements OnInit {
     return false;
   }
 
-  isSupportUser(user: User): boolean {
-    return user.email.trim().toLowerCase() === SUPPORT_USER_EMAIL;
-  }
-
-  isSupportEmailForm(): boolean {
-    return this.formEmail.trim().toLowerCase() === SUPPORT_USER_EMAIL;
-  }
-
-  canManageSupportAccess(): boolean {
-    const current = this.currentUser();
-    return current?.role === 'owner' || current?.role === 'admin';
-  }
-
   canDeleteUser(user: User): boolean {
     const current = this.currentUser();
     if (!current) return false;
@@ -759,7 +721,6 @@ export class UsersComponent implements OnInit {
 
   openCreateModal() {
     this.editingUser.set(null);
-    this.supportAccessFromShortcut.set(false);
     this.formEmail = '';
     this.formFullName = '';
     this.formRole = 'waiter';
@@ -770,26 +731,7 @@ export class UsersComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  openSupportAccessModal() {
-    const existing = this.users().find((u) => this.isSupportUser(u));
-    if (existing) {
-      this.openEditModal(existing, true);
-      return;
-    }
-    this.editingUser.set(null);
-    this.supportAccessFromShortcut.set(false);
-    this.formEmail = SUPPORT_USER_EMAIL;
-    this.formFullName = this.translate.instant('USERS.SUPPORT_DEFAULT_NAME');
-    this.formRole = 'admin';
-    this.formPassword = '';
-    this.formPasswordConfirm = '';
-    this.formActorCurrentPassword = '';
-    this.formError.set(null);
-    this.showModal.set(true);
-  }
-
-  openEditModal(user: User, fromSupportShortcut = false) {
-    this.supportAccessFromShortcut.set(fromSupportShortcut);
+  openEditModal(user: User) {
     this.editingUser.set(user);
     this.formEmail = user.email;
     this.formFullName = user.full_name || '';
@@ -804,7 +746,6 @@ export class UsersComponent implements OnInit {
   closeModal() {
     this.showModal.set(false);
     this.editingUser.set(null);
-    this.supportAccessFromShortcut.set(false);
   }
 
   saveUser() {
