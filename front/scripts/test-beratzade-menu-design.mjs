@@ -76,6 +76,12 @@ try {
   await page.setViewport({ width: 390, height: 844 });
   await page.goto(`${base}/public-menu/${tenant.public_slug}?lang=tr`, { waitUntil: 'networkidle2' });
   await page.waitForSelector('.beratzade-choice-card');
+  await page.waitForSelector('.beratzade-menu-intro');
+  assert.equal(await page.$eval('#beratzade-menu-title', title => title.textContent.trim()), 'Beratzade Menüsü');
+  await page.waitForFunction(() => {
+    const image = document.querySelector('.menu-editorial img');
+    return image?.complete && image.naturalWidth > 0;
+  });
   assert.equal(await page.$$eval('.beratzade-choice-card', cards => cards.length), 2);
   assert.deepEqual(
     await page.$$eval('.beratzade-choice-card', cards => cards.map(card => card.dataset.section)),
@@ -88,7 +94,7 @@ try {
   assert.equal(await page.$$eval('.beratzade-group-card', cards => cards.length), 7);
   assert.match(new URL(page.url()).searchParams.get('section'), /kahvalti/);
 
-  await page.click('.beratzade-menu-brand');
+  await page.click('.beratzade-menu-home-link');
   await page.waitForSelector('.beratzade-choice-card');
   await page.click('.beratzade-choice-card[data-section="kebap-sulu-yemekler"]');
   await page.waitForSelector('.beratzade-group-card');
