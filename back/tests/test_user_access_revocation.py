@@ -72,6 +72,19 @@ class TestUserAccessRevocation(PgClientTestCase):
         response = self.client.delete(f"/users/{self.owner.id}", headers=self.headers(self.target))
         self.assertEqual(response.status_code, 403)
 
+    def test_pending_otp_cannot_complete_after_removal(self):
+        import pyotp
+        self.target.otp_enabled = True
+        self.target.otp_secret = pyotp.random_base32()
+        self.session.add(self.target)
+        self.session.commit()
+        pending = security.create_otp_pending_token({"sub": self.target.email,
+            "tenant_id": self.target.tenant_id, "token_version": self.target.token_version})
+        self.assertEqual(self.client.delete(f"/users/{self.target.id}", headers=self.headers(self.owner)).status_code, 200)
+        response = self.client.post("/token/otp", json={"temp_token": pending,
+            "code": pyotp.TOTP(self.target.otp_secret).now()})
+        self.assertEqual(response.status_code, 401)
+
     def test_cross_tenant_deletion_is_rejected(self):
         other = models.Tenant(name="Other revocation tenant")
         self.session.add(other)

@@ -3333,7 +3333,9 @@ def login_with_otp(
             detail=api_error_payload("otp_token_invalid", lang),
         )
     user = session.exec(statement).first()
-    if not user or not getattr(user, "otp_secret", None) or not getattr(user, "otp_enabled", False):
+    if (not user or not user.is_active
+            or user.token_version != payload.get("token_version", 0)
+            or not getattr(user, "otp_secret", None) or not getattr(user, "otp_enabled", False)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=api_error_payload("otp_session_invalid", lang),
