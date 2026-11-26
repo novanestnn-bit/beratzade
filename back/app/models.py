@@ -285,6 +285,7 @@ class User(SQLModel, table=True):
     hashed_password: str
     full_name: str | None = None
     token_version: int = Field(default=0)  # Increment to invalidate all tokens
+    is_active: bool = Field(default=True)
     # DB type is user_role (migrations); SQLAlchemy default would be userrole — bind explicitly.
     role: UserRole = Field(
         default=UserRole.waiter,

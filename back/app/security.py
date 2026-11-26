@@ -164,7 +164,7 @@ def _user_from_payload(session: Session, payload: dict) -> User | None:
     else:
         return None
     user = session.exec(statement).first()
-    if user is None or user.token_version != token_version:
+    if user is None or not user.is_active or user.token_version != token_version:
         return None
     return user
 

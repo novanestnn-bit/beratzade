@@ -712,9 +712,6 @@ export class UsersComponent implements OnInit {
     // Can't delete yourself
     if (user.id === current.id) return false;
 
-    // Can't delete owner
-    if (user.role === 'owner') return false;
-
     // Only owner can delete
     return current.role === 'owner';
   }

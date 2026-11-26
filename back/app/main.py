@@ -3198,7 +3198,10 @@ def login_for_access_token(
         login_email = normalize_email_address(form_data.username).casefold()
     except ValueError:
         login_email = form_data.username.strip().casefold()
-    statement = select(models.User).where(func.lower(models.User.email) == login_email)
+    statement = select(models.User).where(
+        func.lower(models.User.email) == login_email,
+        models.User.is_active == True,
+    )
     if scope == "provider":
         statement = statement.where(
             models.User.provider_id.is_not(None),
@@ -4065,9 +4068,12 @@ def list_users(
     current_user: Annotated[models.User, Depends(require_permission(Permission.USER_READ))],
     session: Session = Depends(get_session),
 ) -> list[models.UserResponse]:
-    """List all users in the tenant."""
+    """List active users in the tenant."""
     users = session.exec(
-        select(models.User).where(models.User.tenant_id == current_user.tenant_id)
+        select(models.User).where(
+            models.User.tenant_id == current_user.tenant_id,
+            models.User.is_active == True,
+        )
     ).all()
     return [
         models.UserResponse(
@@ -4092,6 +4098,7 @@ def list_courier_users(
         select(models.User).where(
             models.User.tenant_id == current_user.tenant_id,
             models.User.role == models.UserRole.courier,
+            models.User.is_active == True,
         )
     ).all()
     return [
@@ -4178,7 +4185,8 @@ def update_user(
     target_user = session.exec(
         select(models.User).where(
             models.User.id == user_id,
-            models.User.tenant_id == current_user.tenant_id
+            models.User.tenant_id == current_user.tenant_id,
+            models.User.is_active == True,
         )
     ).first()
     
@@ -4279,7 +4287,7 @@ def delete_user(
     current_user: Annotated[models.User, Depends(require_permission(Permission.USER_DELETE))],
     session: Session = Depends(get_session),
 ) -> dict:
-    """Delete a user (owner only)."""
+    """Revoke user access while preserving historical records (owner only)."""
     # Get the target user
     target_user = session.exec(
         select(models.User).where(
@@ -4298,14 +4306,10 @@ def delete_user(
             detail="Cannot delete yourself"
         )
     
-    # Cannot delete another owner
-    if target_user.role == models.UserRole.owner:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete an owner"
-        )
-    
-    session.delete(target_user)
+    # The authenticated owner remains active; self-deletion above is forbidden.
+    target_user.is_active = False
+    target_user.token_version += 1
+    session.add(target_user)
     session.commit()
     
     return {"message": "User deleted successfully"}
